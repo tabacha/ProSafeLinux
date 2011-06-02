@@ -9,9 +9,12 @@ local f_data = ProtoField.string("nsdp.data", "Data", FT_STRING)
 local f_cmd = ProtoField.uint16("nsdp.cmd", "Command", base.HEX)
 local f_password = ProtoField.string("nsdp.password", "Password", FT_STRING)
 local f_newpassword = ProtoField.string("nsdp.newpassword", "New password", FT_STRING)
+local f_flags = ProtoField.uint16("nsdp.flags", "Flags", base.HEX, {
+	[0x000a] = "Password error"
+})
 
 --local f_debug = ProtoField.uint8("nsdp.debug", "Debug")
-p_nsdp.fields = {f_type,f_source,f_destination,f_seq,f_cmd,f_password,f_newpassword}
+p_nsdp.fields = {f_type,f_source,f_destination,f_seq,f_cmd,f_password,f_newpassword,f_flags}
 
 -- nsdp dissector function
 function p_nsdp.dissector (buf, pkt, root)
@@ -24,7 +27,9 @@ function p_nsdp.dissector (buf, pkt, root)
   local offset = 0
   local ptype = buf(offset,2):uint()
   subtree:add(f_type, ptype)
-  offset = offset + 8
+  offset = offset + 4
+  subtree:add(f_flags, buf(offset,2))
+  offset = offset + 4
   subtree:add(f_source, buf(offset,6))
   offset = offset + 6
   subtree:add(f_destination, buf(offset,6))
