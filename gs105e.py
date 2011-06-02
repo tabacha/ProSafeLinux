@@ -15,6 +15,7 @@ class gs105e:
 		self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 		self.socket.bind((host, port))
 		self.seq = random.randint(100,2000)
+		self.srcmac = 0x00218698da1e
 
 	def recv(self,recvfunc,maxlen=8192,timeout=0.005):
 		self.socket.settimeout(timeout)
@@ -49,16 +50,14 @@ class gs105e:
 		self.seq+=1
 
 
-	def baseudp(self,cmd,destmac="\x00\x00\x00\x00\x00\x00"):
+	def baseudp(self,cmd,ctype=0x0101,destmac=0):
 		reserved = "\x00"
-		data = 2 * "\x01" + 6* reserved + self.srcmac + destmac + 2*reserved  
+		data = struct.pack(">h",ctype) + 6* reserved + struct.pack('>LHLH', self.srcmac >> 16, self.srcmac & 0xffff, destmac >> 16, destmac & 0xffff) + 2*reserved  
 		data += struct.pack(">h",self.seq)
 		data +=  "NSDP" + 4 * reserved + cmd 
 		return data
 
 	def discover(self):
-		self.srcmac = "\x00\x21\x86\x98\xda\x1e"
-
 		reserved = "\x00"
 		cmd = "\x00\x01"
 
@@ -85,5 +84,21 @@ class gs105e:
 	#	self.send("255.255.255.255",63322, data)
 		self.recv(None)
 
+	def passwd(self, dest, oldpass, newpass):
+		reserved = "\x00"
+		cmd = "\x00\x0a"
+
+		data = self.baseudp(cmd, destmac=dest, ctype=0x0103)
+		data += struct.pack(">h", len(oldpass))
+		data += oldpass
+		data += struct.pack(">h", 9)
+		data += struct.pack(">h", len(newpass))
+		data += newpass
+		data += 2* "\xff" + 2* "\x00"
+		self.send("255.255.255.255",63322, data)
+		time.sleep(0.2)
+		self.recv(None)
+
 g = gs105e('',63321)
-g.discover()
+#g.discover()
+g.passwd(0xe091f5936b94, 'kat', 'hemmeligt')
