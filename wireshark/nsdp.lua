@@ -12,9 +12,13 @@ local f_newpassword = ProtoField.string("nsdp.newpassword", "New password", FT_S
 local f_flags = ProtoField.uint16("nsdp.flags", "Flags", base.HEX, {
 	[0x000a] = "Password error"
 })
+local f_model =ProtoField.string("nsdp.model","Model", FT_STRING)
+local f_name =ProtoField.string("nsdp.name","Name", FT_STRING)
+local f_macinfo = ProtoField.ether("nsdp.macinfo", "MAC info", base.HEX)
+local f_firmwarever = ProtoField.string("nsdp.firmwarever", "Firmware version",FT_STRING)
 
 --local f_debug = ProtoField.uint8("nsdp.debug", "Debug")
-p_nsdp.fields = {f_type,f_source,f_destination,f_seq,f_cmd,f_password,f_newpassword,f_flags}
+p_nsdp.fields = {f_type,f_source,f_destination,f_seq,f_cmd,f_password,f_newpassword,f_flags,f_model,f_name,f_macinfo,f_firmwarever}
 
 -- nsdp dissector function
 function p_nsdp.dissector (buf, pkt, root)
@@ -26,7 +30,7 @@ function p_nsdp.dissector (buf, pkt, root)
   subtree = root:add(p_nsdp, buf(0))
   local offset = 0
   local ptype = buf(offset,2):uint()
-  subtree:add(f_type, ptype)
+  subtree:add(f_type, buf(offset,2))
   offset = offset + 4
   subtree:add(f_flags, buf(offset,2))
   offset = offset + 4
@@ -39,12 +43,33 @@ function p_nsdp.dissector (buf, pkt, root)
   local cmd = 0
   if offset < buf:len() then
     cmd = buf(offset, 2):uint()
+    subtree:add(f_cmd,buf(offset, 2))
     offset = offset + 2
+  else
+    subtree:add(f_cmd, cmd)
   end
-  subtree:add(f_cmd, cmd)
-
   if cmd == 1 then
     subtree:append_text(", init")
+    if (ptype==0x0102) then
+        subtree:append_text("-response")
+	local model_len=buf(offset,2):uint()
+	offset=offset+2
+	subtree:add(f_model,buf(offset,model_len))
+	offset=offset+model_len
+	offset=offset+8
+	local name_len=buf(offset,2):uint()
+	subtree:add(f_name,buf(offset,name_len))
+	offset=offset+name_len
+	offset=offset+2
+	local macinfo_len=buf(offset,2):uint()
+	offset=offset+2
+	subtree:add(f_macinfo,buf(offset,macinfo_len))
+	offset=offset+macinfo_len
+	offset=offset+40
+	local firmwarever_len=buf(offset,2):uint()
+	offset=offset+2
+	subtree:add(f_firmwarever,buf(offset,fimwarever_len))
+    end
   elseif cmd == 0xa or (ptype == 0x0104 and cmd == 0) then
     if ptype == 0x0103 then
       local pw_len = buf(offset, 2):uint()
