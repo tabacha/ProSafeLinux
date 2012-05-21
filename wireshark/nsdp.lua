@@ -56,8 +56,13 @@ function p_nsdp.dissector (buf, pkt, root)
 	offset=offset+2
 	subtree:add(f_model,buf(offset,model_len))
 	offset=offset+model_len
-	offset=offset+8
+	offset=offset+2
+        local fixme_len=buf(offset,2):uint()
+	offset=offset+2
+	offset=offset+fixme_len
+	offset=offset+2
 	local name_len=buf(offset,2):uint()
+	offset=offset+2
 	subtree:add(f_name,buf(offset,name_len))
 	offset=offset+name_len
 	offset=offset+2
