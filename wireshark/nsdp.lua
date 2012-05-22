@@ -1,13 +1,52 @@
 -- create nsdp protocol and its fields
 p_nsdp = Proto ("nsdp","Netgear Switch Description Protocol")
 -- local f_source = ProtoField.uint16("nsdp.src", "Source", base.HEX)
-local f_type = ProtoField.uint16("nsdp.type", "Type", base.HEX)
+local f_type = ProtoField.uint16("nsdp.type", "Type", base.HEX,{
+ [0x101]="Query Data",
+ [0x102]="Data Response",
+ [0x103]="Change Request",
+ [0x104]="Change Response"
+})
 local f_source = ProtoField.ether("nsdp.src", "Source", base.HEX)
 local f_destination = ProtoField.ether("nsdp.dst", "Destination", base.HEX)
 local f_seq = ProtoField.uint16("nsdp.seq", "Seq", base.HEX)
 local f_len = ProtoField.uint16("nsdp.len", "Length", base.HEX)
 local f_data = ProtoField.string("nsdp.data", "Data", FT_STRING)
-local f_cmd = ProtoField.uint16("nsdp.cmd", "Command", base.HEX)
+local f_cmd = ProtoField.uint16("nsdp.cmd", "Command", base.HEX,{
+	[0x0001] = "Model",
+	[0x0002] = "FIXME 0x0002 (2 Bytes)",
+	[0x0003] = "Name",
+	[0x0004] = "MAC",
+	[0x0005] = "FIXME 0x0005 (0 Bytes)",
+	[0x0006] = "IP-Address",
+	[0x0007] = "Netmask",
+	[0x0008] = "Gateway",
+	[0x0009] = "New Password",
+	[0x000a] = "Password",
+	[0x000b] = "DHCP Status",
+	[0x000c] = "FIXME 0x000c (1 Byte)",
+	[0x000d] = "Firmware Version",
+	[0x000e] = "FIXME 0x000e (0 Byte)",
+	[0x000f] = "FIXME 0x000f (1 Byte)",
+	[0x0013] = "Reboot",
+	[0x0400] = "Factory Reset",
+	[0x1000] = "Port Traffic Statistic",
+	[0x2000] = "VLAN Support",
+	[0x2400] = "VLAN-ID",
+	[0x3400] = "FIXME 0x3400 (1 Byte)",
+	[0x3800] = "FIXME 0x3800 (2 Bytes, Portbased? 1 Byte)",
+	[0x4c00] = "FIXME 0x4c00 (5 Bytes, Portbased? 4 Byte)",
+	[0x5000] = "FIXME 0x5000 (5 Bytes, Portbased? 4 Byte)",
+	[0x5400] = "FIXME 0x5400 (1 Byte)",
+	[0x5800] = "FIXME 0x5800 (5 Bytes, Portbased? 4 Byte)",
+	[0x5c00] = "FIXME 0x5c00 (3 Bytes)",
+	[0x6800] = "FIXME 0x6800 (4 Bytes)",
+	[0x6800] = "FIXME 0x6c00 (1 Byte)",
+	[0x6800] = "FIXME 0x7000 (1 Byte)",
+	[0x7400] = "FIMXE 0x7400 (8 Bytes)",
+	[0x0c00] = "Speed/Link Status",
+	[0xffff] = "End Request"
+})
 local f_password = ProtoField.string("nsdp.password", "Password", FT_STRING)
 local f_newpassword = ProtoField.string("nsdp.newpassword", "New password", FT_STRING)
 local f_flags = ProtoField.uint16("nsdp.flags", "Flags", base.HEX, {
@@ -17,6 +56,7 @@ local f_model =ProtoField.string("nsdp.model","Model", FT_STRING)
 local f_name =ProtoField.string("nsdp.name","Name", FT_STRING)
 local f_macinfo = ProtoField.ether("nsdp.macinfo", "MAC info", base.HEX)
 local f_ipaddr = ProtoField.ipv4("nsdp.ipaddr","IP Address")
+local f_dhcp_enable =ProtoField.uint8("nsdp.dhcp_enable","DHCP Enable")
 local f_netmask = ProtoField.ipv4("nsdp.netmask","Netmask")
 local f_gateway = ProtoField.ipv4("nsdp.gateway","Gateway")
 local f_firmwarever_len = ProtoField.uint16("nsdp.firmwarever_len", "Firmware version LEN",base.HEX)
@@ -27,19 +67,17 @@ local speed_flags={
   [0x03]="100M",
   [0x05]="1000M"
 }
-local f_speedport_1 = ProtoField.uint8("nsdp.speed_port_1","Speed Port 1",base.HEX, speed_flags)
-local f_speedport_2 = ProtoField.uint8("nsdp.speed_port_2","Speed Port 2",base.HEX, speed_flags)
-local f_speedport_3 = ProtoField.uint8("nsdp.speed_port_3","Speed Port 3",base.HEX, speed_flags)
-local f_speedport_4 = ProtoField.uint8("nsdp.speed_port_4","Speed Port 4",base.HEX, speed_flags)
-local f_speedport_5 = ProtoField.uint8("nsdp.speed_port_5","Speed Port 5",base.HEX, speed_flags)
-local f_speedport_6 = ProtoField.uint8("nsdp.speed_port_6","Speed Port 6",base.HEX, speed_flags)
-local f_speedport_7 = ProtoField.uint8("nsdp.speed_port_7","Speed Port 7",base.HEX, speed_flags)
-local f_speedport_8 = ProtoField.uint8("nsdp.speed_port_8","Speed Port 8",base.HEX, speed_flags)
+local f_speed = ProtoField.uint8("nsdp.speed","Speed",base.HEX, speed_flags)
+local f_link = ProtoField.uint8("nsdp.link","Link",base.HEX)
+local f_port=ProtoField.uint8("nsdp.port","Port Number")
+local f_rec=ProtoField.uint64("nsdp.recived","Bytes recived")
+local f_send=ProtoField.uint64("nsdp.send","Bytes send")
 
 --local f_debug = ProtoField.uint8("nsdp.debug", "Debug")
-p_nsdp.fields = {f_type,f_source,f_destination,f_seq,f_cmd,f_password,f_newpassword,f_flags,f_model,f_name,f_macinfo,
+p_nsdp.fields = {f_type,f_source,f_destination,f_seq,f_cmd,f_password,f_newpassword,f_flags,
+		 f_model,f_name,f_macinfo,f_dhcp_enable,f_port,f_rec,f_send,f_link,
                  f_ipaddr,f_netmask,f_gateway,f_firmwarever_len,f_firmwarever,f_len,
-		 f_speedport_1,f_speedport_2,f_speedport_3,f_speedport_4,f_speedport_5,f_speedport_6,f_speedport_7,f_speedport_8}
+		 f_speed}
 
 -- nsdp dissector function
 function p_nsdp.dissector (buf, pkt, root)
@@ -73,7 +111,6 @@ function p_nsdp.dissector (buf, pkt, root)
     local len=buf(offset+2,2):uint()
     local tree=0
     offset = offset + 4
-    
     if cmd == 0x0001 then
 	tree=subtree:add(f_model,buf(offset,len))
     elseif cmd == 0x0003 then
@@ -98,28 +135,23 @@ function p_nsdp.dissector (buf, pkt, root)
         tree=subtree:add(f_newpassword, buf(offset,len))
     elseif cmd == 0x000a then
         tree=subtree:add(f_password, buf(offset,len))
+    elseif cmd == 0x000b and len==1 then
+        tree=subtree:add(f_dhcp_enable, buf(offset,len))
+    elseif cmd == 0x000b  then
+        tree=subtree:add(buf(offset,len),"Query DHCP")
     elseif cmd == 0x000d then
 	tree=subtree:add(f_firmwarever,buf(offset,len))
     elseif cmd==0x0c00 and len==3 then
-           local port=buf(offset,1):uint()
-	   local link=buf(offset+2,1):uint()
-           if (port == 0x01) then
-	     tree=subtree:add(f_speedport_1,buf(offset+1,1))
-           elseif (port == 0x02) then
-	     tree=subtree:add(f_speedport_2,buf(offset+1,1))
-           elseif (port == 0x03) then
-	     tree=subtree:add(f_speedport_3,buf(offset+1,1))
-           elseif (port == 0x04) then
-	     tree=subtree:add(f_speedport_4,buf(offset+1,1))
-           elseif (port == 0x05) then
-	     tree=subtree:add(f_speedport_5,buf(offset+1,1))
-           elseif (port == 0x06) then
-	     tree=subtree:add(f_speedport_6,buf(offset+1,1))
-           elseif (port == 0x07) then
-	     tree=subtree:add(f_speedport_7,buf(offset+1,1))
-           elseif (port == 0x08) then
-	     tree=subtree:add(f_speedport_8,buf(offset+1,1))
-           end
+	   tree=subtree:add(buf(offset,1),"Speed Statistic")
+	   tree:add(f_port,buf(offset,1))
+	   tree:add(f_speed,buf(offset+1,1))
+	   tree:add(f_link,buf(offset+2,1))
+    elseif cmd==0x1000 and len==0x31 then
+	   tree=subtree:add(buf(offset,1),"Port Statistic")
+	   tree:add(f_port,buf(offset,1))
+	   tree:add(f_rec,buf(offset+1,8))
+	   tree:add(f_send,buf(offset+9,8))
+	   -- FIXME: CRC Errors
     else
       tree=subtree:add(buf(offset,len),"FIXME")
     end
