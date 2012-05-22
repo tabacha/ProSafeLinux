@@ -15,10 +15,30 @@ local f_flags = ProtoField.uint16("nsdp.flags", "Flags", base.HEX, {
 local f_model =ProtoField.string("nsdp.model","Model", FT_STRING)
 local f_name =ProtoField.string("nsdp.name","Name", FT_STRING)
 local f_macinfo = ProtoField.ether("nsdp.macinfo", "MAC info", base.HEX)
+local f_ipaddr = ProtoField.ipv4("nsdp.ipaddr","IP Address")
+local f_netmask = ProtoField.ipv4("nsdp.netmask","Netmask")
+local f_network = ProtoField.ipv4("nsdp.network","Network")
+local f_firmwarever_len = ProtoField.uint16("nsdp.firmwarever_len", "Firmware version LEN",base.HEX)
 local f_firmwarever = ProtoField.string("nsdp.firmwarever", "Firmware version",FT_STRING)
+local speed_flags={
+  [0x00]="None",
+  [0x01]="10M",
+  [0x03]="100M",
+  [0x05]="1000M"
+}
+local f_speedport_1 = ProtoField.uint8("nsdp.speed_port_1","Speed Port 1",base.HEX, speed_flags)
+local f_speedport_2 = ProtoField.uint8("nsdp.speed_port_2","Speed Port 2",base.HEX, speed_flags)
+local f_speedport_3 = ProtoField.uint8("nsdp.speed_port_3","Speed Port 3",base.HEX, speed_flags)
+local f_speedport_4 = ProtoField.uint8("nsdp.speed_port_4","Speed Port 4",base.HEX, speed_flags)
+local f_speedport_5 = ProtoField.uint8("nsdp.speed_port_5","Speed Port 5",base.HEX, speed_flags)
+local f_speedport_6 = ProtoField.uint8("nsdp.speed_port_6","Speed Port 6",base.HEX, speed_flags)
+local f_speedport_7 = ProtoField.uint8("nsdp.speed_port_7","Speed Port 7",base.HEX, speed_flags)
+local f_speedport_8 = ProtoField.uint8("nsdp.speed_port_8","Speed Port 8",base.HEX, speed_flags)
 
 --local f_debug = ProtoField.uint8("nsdp.debug", "Debug")
-p_nsdp.fields = {f_type,f_source,f_destination,f_seq,f_cmd,f_password,f_newpassword,f_flags,f_model,f_name,f_macinfo,f_firmwarever}
+p_nsdp.fields = {f_type,f_source,f_destination,f_seq,f_cmd,f_password,f_newpassword,f_flags,f_model,f_name,f_macinfo,
+                 f_ipaddr,f_netmask,f_network,f_firmwarever_len,f_firmwarever,
+		 f_speedport_1,f_speedport_2,f_speedport_3,f_speedport_4,f_speedport_5,f_speedport_6,f_speedport_7,f_speedport_8}
 
 -- nsdp dissector function
 function p_nsdp.dissector (buf, pkt, root)
@@ -56,25 +76,103 @@ function p_nsdp.dissector (buf, pkt, root)
 	offset=offset+2
 	subtree:add(f_model,buf(offset,model_len))
 	offset=offset+model_len
+
+	-- cmd==buf(offset,2):uint() ??? cmd == 0x02
 	offset=offset+2
         local fixme_len=buf(offset,2):uint()
 	offset=offset+2
 	offset=offset+fixme_len
+
+	-- cmd==buf(offset,2):uint() ??? cmd == 0x03
 	offset=offset+2
 	local name_len=buf(offset,2):uint()
 	offset=offset+2
 	subtree:add(f_name,buf(offset,name_len))
 	offset=offset+name_len
+
+	-- cmd==buf(offset,2):uint() ??? cmd == 0x04
 	offset=offset+2
 	local macinfo_len=buf(offset,2):uint()
 	offset=offset+2
 	subtree:add(f_macinfo,buf(offset,macinfo_len))
 	offset=offset+macinfo_len
-	offset=offset+40
-	local firmwarever_len=buf(offset,2):uint()
+
+	-- cmd==buf(offset,2):uint() ??? cmd == 0x05
 	offset=offset+2
-	subtree:add(f_firmwarever,buf(offset,fimwarever_len))
+	fixme_len=buf(offset,2):uint()
+	offset=offset+2
+	offset=offset+fixme_len
+
+	-- cmd==buf(offset,2):uint() ??? cmd == 0x06
+	offset=offset+2
+	local ip_len=buf(offset,2):uint()
+	offset=offset+2
+	subtree:add(f_ipaddr,buf(offset,ip_len))
+	offset=offset+ip_len
+
+	-- cmd==buf(offset,2):uint() ??? cmd == 0x07
+	offset=offset+2
+	local netmask_len=buf(offset,2):uint()
+	offset=offset+2
+	subtree:add(f_netmask,buf(offset,netmask_len))
+	offset=offset+netmask_len
+
+	-- cmd==buf(offset,2):uint() ??? cmd == 0x08
+	offset=offset+2
+	local network_len=buf(offset,2):uint()
+	offset=offset+2
+	subtree:add(f_network,buf(offset,network_len))
+	offset=offset+network_len
+
+	-- cmd==buf(offset,2):uint() ??? cmd == 0x0b
+	offset=offset+2
+	fixme_len=buf(offset,2):uint()
+	offset=offset+2
+	offset=offset+fixme_len
+
+	-- cmd==buf(offset,2):uint() ??? cmd == 0x0c
+	offset=offset+2
+	fixme_len=buf(offset,2):uint()
+	offset=offset+2
+	offset=offset+fixme_len
+
+	-- cmd==buf(offset,2):uint() ??? cmd == 0x0d
+	offset=offset+2
+	--subtree:add(f_firmwarever_len,buf(offset,2))
+	local len=buf(offset,2):uint()
+	offset=offset+2
+	subtree:add(f_firmwarever,buf(offset,len))
+	-- cmd==buf(offset,2):uint() ??? cmd == 0x0e
+	-- cmd==buf(offset,2):uint() ??? cmd == 0x0f
     end
+  elseif (ptype == 0x0102 and cmd == 0x0c00) then
+        subtree:append_text("port-speed-link")
+	while (cmd==0x0c00) do
+	   local len=buf(offset,2):uint()
+	   offset=offset+2
+           local port=buf(offset,1):uint()
+	   local link=buf(offset+2,1):uint()
+           if (port == 0x01) then
+	     subtree:add(f_speedport_1,buf(offset+1,1))
+           elseif (port == 0x02) then
+	     subtree:add(f_speedport_2,buf(offset+1,1))
+           elseif (port == 0x03) then
+	     subtree:add(f_speedport_3,buf(offset+1,1))
+           elseif (port == 0x04) then
+	     subtree:add(f_speedport_4,buf(offset+1,1))
+           elseif (port == 0x05) then
+	     subtree:add(f_speedport_5,buf(offset+1,1))
+           elseif (port == 0x06) then
+	     subtree:add(f_speedport_6,buf(offset+1,1))
+           elseif (port == 0x07) then
+	     subtree:add(f_speedport_7,buf(offset+1,1))
+           elseif (port == 0x08) then
+	     subtree:add(f_speedport_8,buf(offset+1,1))
+           end
+	   offset=offset+len
+	   cmd = buf(offset,2):uint()
+	   offset=offset+2
+        end
   elseif cmd == 0xa or (ptype == 0x0104 and cmd == 0) then
     if ptype == 0x0103 then
       local pw_len = buf(offset, 2):uint()
