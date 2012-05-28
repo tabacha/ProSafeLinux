@@ -12,6 +12,14 @@ local f_destination = ProtoField.ether("nsdp.dst", "Destination", base.HEX)
 local f_seq = ProtoField.uint16("nsdp.seq", "Seq", base.HEX)
 local f_len = ProtoField.uint16("nsdp.len", "Length", base.HEX)
 local f_data = ProtoField.string("nsdp.data", "Data", FT_STRING)
+local f_vlan_engine = PortFiled.unit8("nsdp.vlan_engine,"VLAN Engine",base.HEX,{ [0x00]="None",
+ [0x01]="VLAN_Port_Based",
+ [0x02]="VLAN_ID_Based",
+ [0x03]="802.1Q_Port_Based",
+ [0x04]="802.1Q_Extended",
+})
+
+
 local f_cmd = ProtoField.uint16("nsdp.cmd", "Command", base.HEX,{
 	[0x0001] = "Model",
 	[0x0002] = "FIXME 0x0002 (2 Bytes)",
@@ -31,8 +39,9 @@ local f_cmd = ProtoField.uint16("nsdp.cmd", "Command", base.HEX,{
 	[0x0013] = "Reboot",
 	[0x0400] = "Factory Reset",
 	[0x1000] = "Port Traffic Statistic",
-	[0x2000] = "VLAN Support",
+	[0x2000] = "VLAN Engine",
 	[0x2400] = "VLAN-ID",
+	[0x2800] = "802VLAN-ID",
 	[0x3400] = "FIXME 0x3400 (1 Byte)",
 	[0x3800] = "FIXME 0x3800 (2 Bytes, Portbased? 1 Byte)",
 	[0x4c00] = "FIXME 0x4c00 (5 Bytes, Portbased? 4 Byte)",
@@ -76,6 +85,7 @@ local f_send=ProtoField.uint64("nsdp.send","Bytes send")
 --local f_debug = ProtoField.uint8("nsdp.debug", "Debug")
 p_nsdp.fields = {f_type,f_source,f_destination,f_seq,f_cmd,f_password,f_newpassword,f_flags,
 		 f_model,f_name,f_macinfo,f_dhcp_enable,f_port,f_rec,f_send,f_link,
+	         f_vlan_engine,
                  f_ipaddr,f_netmask,f_gateway,f_firmwarever_len,f_firmwarever,f_len,
 		 f_speed}
 
@@ -152,6 +162,17 @@ function p_nsdp.dissector (buf, pkt, root)
 	   tree:add(f_rec,buf(offset+1,8))
 	   tree:add(f_send,buf(offset+9,8))
 	   -- FIXME: CRC Errors
+    elseif cmd==0x2000 and len==0x01 then
+	   tree=subtree:add(f_vlan_engine,buf(offset,len))
+    elseif cmd==0x2800 and len==0x04 then
+      tree=subtree:add(buf(offset,len),"FIXME")
+      -- 2 Bytes: VLAN ID (0x0ffe is all Ports
+      -- 1 Byte Port Hex 01=Port 8 02=Port 7 04=Port 6 08=Port 5 10=Port Port 4 20=Port 3 40=Port 2 80=Port 1
+      -- 1 Byte  Tagged Ports
+    elseif cmd==0x3000 and len==0x03 then
+      tree=subtree:add(buf(offset,len),"FIXME")
+      -- 1 Byte Port (not binary Port8=8; Port1=1)
+      -- 2 Bytes VLAN ID Port PVID
     else
       tree=subtree:add(buf(offset,len),"FIXME")
     end
