@@ -39,12 +39,14 @@ local f_cmd = ProtoField.uint16("nsdp.cmd", "Command", base.HEX,{
 	[0x0013] = "Reboot",
 	[0x0400] = "Factory Reset",
 	[0x1000] = "Port Traffic Statistic",
+	[0x1400] = "Reset Port Traffic Statistic",
+	[0x1800] = "Test Cable",
 	[0x2000] = "VLAN Engine",
 	[0x2400] = "VLAN-ID",
 	[0x2800] = "802VLAN-ID",
 	[0x3400] = "FIXME 0x3400 (1 Byte)",
 	[0x3800] = "FIXME 0x3800 (2 Bytes, Portbased? 1 Byte)",
-	[0x4c00] = "FIXME 0x4c00 (5 Bytes, Portbased? 4 Byte)",
+	[0x4c00] = "Bandwith Limit (5 Bytes, Portbased? 4 Byte)",
 	[0x5000] = "FIXME 0x5000 (5 Bytes, Portbased? 4 Byte)",
 	[0x5400] = "FIXME 0x5400 (1 Byte)",
 	[0x5800] = "FIXME 0x5800 (5 Bytes, Portbased? 4 Byte)",
@@ -147,6 +149,9 @@ function p_nsdp.dissector (buf, pkt, root)
         tree=subtree:add(f_password, buf(offset,len))
     elseif cmd == 0x000b and len==1 then
         tree=subtree:add(f_dhcp_enable, buf(offset,len))
+	-- 00 DHCP disabled
+        -- 01 DHCP enabled
+        -- CMD: 02 DHCP do a new query
     elseif cmd == 0x000b  then
         tree=subtree:add(buf(offset,len),"Query DHCP")
     elseif cmd == 0x000d then
@@ -162,6 +167,21 @@ function p_nsdp.dissector (buf, pkt, root)
 	   tree:add(f_rec,buf(offset+1,8))
 	   tree:add(f_send,buf(offset+9,8))
 	   -- FIXME: CRC Errors
+    elseif cmd==0x1400 and len==0x0x1 then
+	   tree=subtree:add(buf(offset,1),"Reset Port Statistic")
+	   -- 1 Byte: 0x01
+    elseif cmd==0x1800 and len==0x02 then
+      tree=subtree:add(buf(offset,len),"Test Cable")
+	-- 1 Byte  Port 01=Port 1...08=Port 8
+	-- 1 Byte alway 0x01
+    elseif cmd==0x1c00 and len==0x01 then
+	-- 1 Byte Port
+
+    elseif cmd==0x1c00 and len==0x09 then
+	-- 1 Byte Port
+        -- 00 00 01 00 00 00 00 == No Cable
+        -- 00 00 00 00 00 00 01 == OK
+        -- 00 00 00 00 00 00 04 == OK
     elseif cmd==0x2000 and len==0x01 then
 	   tree=subtree:add(f_vlan_engine,buf(offset,len))
     elseif cmd==0x2800 and len==0x04 then
@@ -173,8 +193,90 @@ function p_nsdp.dissector (buf, pkt, root)
       tree=subtree:add(buf(offset,len),"FIXME")
       -- 1 Byte Port (not binary Port8=8; Port1=1)
       -- 2 Bytes VLAN ID Port PVID
-    else
+    elseif cmd==0x3400 and len==0x01 then
+      tree=subtree:add(buf(offset,len),"Port Based Quality of Service")
+      -- 1 Byte 0x01== port based
+      -- 1 Byte 0x02== 802.1p based
+    elseif cmd==0x3800 and len==0x01 then
+      tree=subtree:add(buf(offset,len),"Port Based Quality of Service")
+      -- 1 Byte port 
+      -- 1 Byte:
+      -- 0x01 == High Priority
+      -- 0x02 == Middle Priority
+      -- 0x03 == Normal Priority
+      -- 0x04 == Low Priority
+    elseif cmd==0x4c00 and len==0x05 then
       tree=subtree:add(buf(offset,len),"FIXME")
+      -- 1 Byte Port (not binary Port8=8; Port1=1)
+      -- 2 Bytes Unknown
+      -- 2 Bytes Incomming Rate 
+      --   0x0000 No Limit
+      --   0x0001 512 Kbits/s
+      --   0x0002 1 Mbits/s
+      --   0x0003 2 Mbits/s
+      --   0x0004 4 Mbits/s
+      --   0x0005 8 Mbits/s
+      --   0x0006 16 Mbits/s
+      --   0x0007 32 Mbits/s
+      --   0x0008 64 Mbits/s
+      --   0x0009 128 Mbits/s
+      --   0x000a 256 Mbits/s
+      --   0x000b 512 Mbits/s
+    elseif cmd==0x5000 and len==0x05 then
+      tree=subtree:add(buf(offset,len),"FIXME")
+      -- 1 Byte Port (not binary Port8=8; Port1=1)
+      -- 2 Bytes Unknown
+      -- 2 Bytes Outgoing Rate 
+      --   0x0000 No Limit
+      --   0x0001 512 Kbits/s
+      --   0x0002 1 Mbits/s
+      --   0x0003 2 Mbits/s
+      --   0x0004 4 Mbits/s
+      --   0x0005 8 Mbits/s
+      --   0x0006 16 Mbits/s
+      --   0x0007 32 Mbits/s
+      --   0x0008 64 Mbits/s
+      --   0x0009 128 Mbits/s
+      --   0x000a 256 Mbits/s
+      --   0x000b 512 Mbits/s
+    elseif cmd==0x5c00 and len==0x03 then
+      tree=subtree:add(buf(offset,len),"Port Mirroring")
+      -- 00 00 00 = Disabled
+      -- 1 Byte destination port
+      -- 1 Byte 00
+      -- 1 Byte source ports (binary port shema)
+    elseif cmd==0x5800 and len==0x05 then
+      tree=subtree:add(buf(offset,len),"Broadcast Filter")
+      -- 1 Byte Port (not binary Port8=8; Port1=1)
+      -- 2 Bytes Unknown
+      -- 2 Bytes Broadcast Rate 
+      --   0x0000 No Limit
+      --   0x0001 512 Kbits/s
+      --   0x0002 1 Mbits/s
+      --   0x0003 2 Mbits/s
+      --   0x0004 4 Mbits/s
+      --   0x0005 8 Mbits/s
+      --   0x0006 16 Mbits/s
+      --   0x0007 32 Mbits/s
+      --   0x0008 64 Mbits/s
+      --   0x0009 128 Mbits/s
+      --   0x000a 256 Mbits/s
+      --   0x000b 512 Mbits/s
+    elseif cmd==0x6000 and len==0x01 then
+      tree=subtree:add(buf(offset,len),"Number of Ports???")
+      -- 1 Byte Port (not binary Port8=8; Port1=1)
+    elseif cmd==0x6c00 and len==0x01 then
+      tree=subtree:add(buf(offset,len),"Block unknown MultiCast Address")
+      -- 1 Byte Port (not binary Port8=8; Port1=1)
+    elseif cmd==0x7000 and len==0x04 then
+      tree=subtree:add(buf(offset,len),"IGMP Spoofing")
+      -- 00 00 00 00 Disabled
+      -- 00 01 Enabled
+      -- 2 Bytes VLAN ID
+    elseif cmd==0x7000 and len==0x01 then
+      tree=subtree:add(buf(offset,len),"Valid IGMP Spoofing")
+      -- 01 enabled
+      -- 00 disabled
     end
     tree:add(f_cmd,buf(offset-4,2))
     tree:add(f_len,buf(offset-2,2))
