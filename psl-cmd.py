@@ -233,6 +233,16 @@ class psl:
 		time.sleep(0.7)
 		self.recv(func)
 
+	def passwd(self,mac,old,new,func):
+		-- The Order of the CMD_PASSWORD and CMD_NEW_PASSWORD is important
+		data = self.baseudp(destmac=mac,ctype=self.CTYPE_TRANSMIT_REQUEST)
+	        data+=self.addudp(self.CMD_PASSWORD,old);
+	        data+=self.addudp(self.CMD_NEW_PASSWORD,new);
+                data+=self.addudp(self.CMD_END)
+		self.send("255.255.255.255",self.SENDPORT, data)
+		time.sleep(0.7)
+		self.recv(func)
+
 
 	def discover(self):
 		query_arr=[self.CMD_MODEL,
@@ -242,21 +252,6 @@ class psl:
 			   self.CMD_IP];
 		self.query(query_arr,self.discoverfunc)
 
-	def passwd(self, dest, oldpass, newpass):
-		reserved = "\x00"
-		cmd = "\x00\x0a"
-
-		data = self.baseudp( destmac=dest, ctype=0x0103)
-		data += cmd
-		data += struct.pack(">h", len(oldpass))
-		data += oldpass
-		data += struct.pack(">h", 9)
-		data += struct.pack(">h", len(newpass))
-		data += newpass
-		data += 2* "\xff" + 2* "\x00"
-		self.send("255.255.255.255",self.SENDPORT, data)
-		time.sleep(0.2)
-		self.recv(None)
 
 parser = argparse.ArgumentParser(description='Manage Netgear ProSafe Plus switches under linux.')
 subparsers = parser.add_subparsers(help='operation',dest="operation")
@@ -311,9 +306,7 @@ if args.operation=="factory-reset":
 
 if args.operation=="passwd":
   print "Changing Password...\n";
-  cmd={g.CMD_PASSWORD:args.old[0],
-       g.CMD_NEW_PASSWORD:args.new[0]}
-  g.transmit(cmd,pack_mac(args.mac[0]),g.transfunc)
+  g.passwd(pack_mac(args.mac[0]),args.old[0],args.new[0],g.transfunc)
 
 if args.operation=="set":
   print "Changing Values..\n"
