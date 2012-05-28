@@ -234,7 +234,7 @@ class psl:
 		self.recv(func)
 
 	def passwd(self,mac,old,new,func):
-		-- The Order of the CMD_PASSWORD and CMD_NEW_PASSWORD is important
+		# The Order of the CMD_PASSWORD and CMD_NEW_PASSWORD is important
 		data = self.baseudp(destmac=mac,ctype=self.CTYPE_TRANSMIT_REQUEST)
 	        data+=self.addudp(self.CMD_PASSWORD,old);
 	        data+=self.addudp(self.CMD_NEW_PASSWORD,new);
