@@ -27,8 +27,6 @@ def unpack_string(v):
   
 def unpack_ipv4(v):
   a=struct.unpack(">I",v)[0]
-#  return a
-  print "ip=",a
   return "%s" % ipaddr.IPv4Address(a)
   
 def unpack_boolean(v):
@@ -47,9 +45,7 @@ def pack_string(v):
 
 def pack_ipv4(v):
   i=(int)(ipaddr.IPv4Address(v))
-  print "ip=",i
   r=struct.pack(">I",i)
-  print  binascii.hexlify(r)
   return r
 
 def pack_boolean(v):
@@ -136,7 +132,10 @@ class psl:
 		self.socket.bind(("255.255.255.255", self.myport))
   		
 		self.seq = random.randint(100,2000)
+		self.debug = False
 
+	def setDebugOutput(self):
+	        self.debug = True
 
 	def unpackValue(self,cmd,value):
 	         try:
@@ -158,7 +157,8 @@ class psl:
 			message, address = self.socket.recvfrom(maxlen)
 		except socket.timeout:
 			return None
-		print "recv="+binascii.hexlify(message)
+		if self.debug:
+                    print "recv="+binascii.hexlify(message)
 		if recvfunc is not None:	
 		   recvfunc(message,address)
 		self.recv(recvfunc,maxlen,timeout)
@@ -179,8 +179,8 @@ class psl:
 		  pos=pos+2
 		  value = self.unpackValue(cmd,p[pos:(pos+len)])
 		  data[cmd]=value
-		     
-		  #print "cmd=",cmd," len=",len," data=",binascii.hexlify(p[pos:(pos+len)])
+		  if self.debug:   
+		   print "cmd=",cmd," len=",len," data=",binascii.hexlify(p[pos:(pos+len)])
 		  pos=pos+len
 		#pprint.pprint(data)
 		return data
@@ -204,7 +204,8 @@ class psl:
 
 
 	def send(self,host,port,data):
-		print "send="+binascii.hexlify(data)
+		if self.debug:
+                   print "send="+binascii.hexlify(data)
 		self.socket.sendto(data,(host,port))
 		self.seq+=1
 

@@ -6,6 +6,7 @@ from psl import psl
 
 parser = argparse.ArgumentParser(description='Manage Netgear ProSafe Plus switches under linux.')
 parser.add_argument("--interface",nargs=1,help="Interface",default=["eth0"])
+parser.add_argument("--debug",help="Debug output",action='store_true')
 subparsers = parser.add_subparsers(help='operation',dest="operation")
 
 discover_parser=subparsers.add_parser('discover', help='Find all switches in all subnets')
@@ -36,9 +37,11 @@ set_parser.add_argument("--dhcp",nargs=1,help="DHCP?",choices=["on","off"])
 
 args = parser.parse_args()
 interface=args.interface[0]
-print interface
-g = psl(interface)
+#print interface
 
+g = psl(interface)
+if (args.debug):
+  g.setDebugOutput()
 if args.operation=="discover":
   print "Searching for ProSafe Plus Switches ...\n"
   g.discover()
