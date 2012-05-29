@@ -1,18 +1,18 @@
-== Setup ==
+# Setup 
 
 As a superuser set a default route to the interface where the switch is connected:
 
-Example:
+##Example:
 
-ip route add 255.255.255.255 dev eth1
+    ip route add 255.255.255.255 dev eth1
 
-If your interface is not eth0 please specify it, when you call psl-cmd.py.
+If your interface is **not** eth0 please specify it, when you call *psl-cmd.py*.
 
-Example:
+##Example:
 
-./psl-cmd.py --interface eth1 discover
+    ./psl-cmd.py --interface eth1 discover
 
-== DEPENDENCYS ==
+# DEPENDENCYS
 
 
 http://code.google.com/p/ipaddr-py/downloads/detail?name=3144.tar.gz
