@@ -76,6 +76,18 @@ def unpack_portStat(v):
       "rest":binascii.hexlify(v[19:]),
   }
   return r
+def pack_speedStat(v):
+  print "xx"
+  return v
+
+def unpack_speedStat(v):
+  r={
+      "port":struct.unpack(">b",v[0])[0],
+      "speed":struct.unpack(">b",v[1])[0],
+      "rest":binascii.hexlify(v[2:]),
+  }
+  return r
+
 class psl:
 	CMD_MODEL    = 0x0001
 	CMD_FIMXE2   = 0x0002
@@ -94,6 +106,7 @@ class psl:
 	CMD_FIXMEF   = 0x000f
 	CMD_REBOOT   = 0x0013
 	CMD_FACTORY_RESET = 0x0400
+	CMD_SPEED_STAT= 0x0c00
 	CMD_PORT_STAT= 0x1000
 	CMD_RESET_PORT_STAT=0x1400
 	CMD_VLAN_SUPP= 0x2000
@@ -119,6 +132,8 @@ class psl:
 	TYP_IPV4={0:pack_ipv4, 1: unpack_ipv4}
 	TYP_BOOLEAN={0:pack_boolean, 1: unpack_boolean}
 	TYP_PORT_STAT={0:pack_portStat, 1: unpack_portStat}
+	TYP_SPEED_STAT={0:pack_speedStat, 1: unpack_speedStat}
+
 	FLAG_PASSWORD_ERROR=0x000a        
 	TYPHASH= {
 		CMD_MODEL:TYP_STRING,
@@ -133,6 +148,7 @@ class psl:
 		CMD_FIRMWAREV:TYP_STRING,
 		CMD_REBOOT:TYP_BOOLEAN,
 		CMD_FACTORY_RESET:TYP_BOOLEAN,
+		CMD_SPEED_STAT:TYP_SPEED_STAT,
 	        CMD_PORT_STAT:TYP_PORT_STAT,
 	        CMD_RESET_PORT_STAT:TYP_BOOLEAN,
 		}

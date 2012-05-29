@@ -27,7 +27,7 @@ passwd_parser.add_argument("--new",nargs=1,help="new password",required=True)
 query_parser=subparsers.add_parser("query",help="Query values from the switch")
 query_parser.add_argument("--mac",nargs=1,help="Hardware adresse of the switch",required=True)
 query_parser.add_argument("--passwd",nargs=1,help="password")
-query_parser.add_argument("query",nargs="+",help="What to query for",choices=['ip','mac',"name",'model','gateway','netmask',"dhcp","traffic-statistic"]);
+query_parser.add_argument("query",nargs="+",help="What to query for",choices=['ip','mac',"name",'model','all','gateway','netmask',"dhcp","traffic-statistic","speed-statistic"]);
 
 reboot_parser=subparsers.add_parser("reboot",help="Reboot the switch")
 reboot_parser.add_argument("--mac",nargs=1,help="Hardware adresse of the switch",required=True)
@@ -95,22 +95,24 @@ def query():
      g.transmit(login,pack_mac(args.mac[0]),g.transfunc)
   cmd=[]
   for q in args.query:
-    if (q=="ip"):
+    if (q=="ip") or (q=="all"):
       cmd.append(g.CMD_IP)
-    if (q=="name"):
+    if (q=="name") or (q=="all"):
       cmd.append(g.CMD_NAME)
-    if (q=="model"):
+    if (q=="model") or (q=="all"):
       cmd.append(g.CMD_MODEL)
-    if (q=="mac"):
+    if (q=="mac") or (q=="all"):
       cmd.append(g.CMD_MAC)
-    if (q=="gateway"):
+    if (q=="gateway") or (q=="all"):
       cmd.append(g.CMD_GATEWAY)
-    if (q=="netmask"):
+    if (q=="netmask") or (q=="all"):
       cmd.append(g.CMD_NETMASK)
-    if (q=="dhcp"):
+    if (q=="dhcp") or (q=="all"):
       cmd.append(g.CMD_DHCP)    
-    if (q=="traffic-statistic"):
+    if (q=="traffic-statistic") or (q=="all"):
       cmd.append(g.CMD_PORT_STAT)
+    if (q=="speed-statistic") or (q=="all"):
+      cmd.append(g.CMD_SPEED_STAT)
 
   g.query(cmd,g.queryfunc)
 
