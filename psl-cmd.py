@@ -9,6 +9,18 @@ import random
 import sys
 import ipaddr
 import argparse
+import fcntl
+
+def getHwAddr(ifname):
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', ifname[:15]))
+    return ''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1]
+    
+def get_ip_address(ifname):
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    return socket.inet_ntoa(fcntl.ioctl( s.fileno(), 0x8915, # SIOCGIFADDR
+            struct.pack('256s', ifname[:15]))[20:24])
+
 
 def unpack_string(v):
   return v
@@ -114,8 +126,9 @@ class psl:
 		}
 	RECPORT=63321
 	SENDPORT=63322
-	def __init__(self,host,srcmac):
-		self.myhost = host
+	def __init__(self,interface):
+		self.myhost = get_ip_address(interface)
+		self.srcmac = pack_mac(getHwAddr(interface))
 		self.myport = self.RECPORT
 		self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -123,8 +136,6 @@ class psl:
 		self.socket.bind(("255.255.255.255", self.myport))
   		
 		self.seq = random.randint(100,2000)
-#		self.srcmac = 0x00218698da1e
-		self.srcmac = 0x00163e19e1e1
 
 
 	def unpackValue(self,cmd,value):
@@ -199,7 +210,7 @@ class psl:
 
 	def baseudp(self,ctype,destmac=6*"\x00"):
 		reserved = "\x00"
-		data = struct.pack(">h",ctype) + 6* reserved + struct.pack('>LH', self.srcmac >> 16, self.srcmac & 0xffff)+destmac + 2*reserved  
+		data = struct.pack(">h",ctype) + 6* reserved + self.srcmac +destmac + 2*reserved  
 		data += struct.pack(">h",self.seq)
 		data +=  "NSDP" + 4 * reserved 
 		return data
@@ -254,6 +265,7 @@ class psl:
 
 
 parser = argparse.ArgumentParser(description='Manage Netgear ProSafe Plus switches under linux.')
+parser.add_argument("--interface",nargs=1,help="Interface",default=["eth0"])
 subparsers = parser.add_subparsers(help='operation',dest="operation")
 
 discover_parser=subparsers.add_parser('discover', help='Find all switches in all subnets')
@@ -282,8 +294,10 @@ set_parser.add_argument("--ip",nargs=1,help="Change IP")
 set_parser.add_argument("--name",nargs=1,help="Change Name")
 set_parser.add_argument("--dhcp",nargs=1,help="DHCP?",choices=["on","off"])
 
-g = psl('192.168.11.21',0x00163e19e1e1)
 args = parser.parse_args()
+interface=args.interface[0]
+print interface
+g = psl(interface)
 
 if args.operation=="discover":
   print "Searching for ProSafe Plus Switches ...\n"
@@ -301,9 +315,6 @@ if args.operation=="factory-reset":
        g.CMD_FACTORY_RESET:True}
   g.transmit(cmd,pack_mac(args.mac[0]),g.transfunc)
 
-#g.passwd(0xe091f5936b94, 'kat', 'hemmeligt')
-
-
 if args.operation=="passwd":
   print "Changing Password...\n";
   g.passwd(pack_mac(args.mac[0]),args.old[0],args.new[0],g.transfunc)
@@ -319,3 +330,15 @@ if args.operation=="set":
       cmd[g.CMD_NAME]=args.name[0]
 
   g.transmit(cmd,pack_mac(args.mac[0]),g.transfunc)
+
+if args.operation=="query":
+  print "Query Values..\n";
+  #cmd={g.CMD_PASSWORD:args.passwd[0]}
+  cmd=[]
+  for q in args.query:
+    if (q=="ip"):
+      cmd.append(g.CMD_IP)
+    if (g=="name"):
+      cmd.append(g.CMD_NAME)
+  g.query(cmd,g.transfunc)
+    
