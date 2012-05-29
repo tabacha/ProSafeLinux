@@ -64,6 +64,18 @@ def pack_mac(v):
 def pack_null(v):
   return v
 
+def pack_portStat(v):
+  print "xx"
+  return v
+
+def unpack_portStat(v):
+  r={
+      "port":struct.unpack(">b",v[0])[0],
+      "rec":struct.unpack(">Q",v[1:9])[0],
+      "send":struct.unpack(">Q",v[10:18])[0],
+      "rest":binascii.hexlify(v[19:]),
+  }
+  return r
 class psl:
 	CMD_MODEL    = 0x0001
 	CMD_FIMXE2   = 0x0002
@@ -83,6 +95,7 @@ class psl:
 	CMD_REBOOT   = 0x0013
 	CMD_FACTORY_RESET = 0x0400
 	CMD_PORT_STAT= 0x1000
+	CMD_RESET_PORT_STAT=0x1400
 	CMD_VLAN_SUPP= 0x2000
 	CMD_VLAN_ID  = 0x2400
 	CMD_FIMXE3400= 0x3400	
@@ -105,6 +118,7 @@ class psl:
 	TYP_MAC={0:pack_mac, 1: unpack_mac}
 	TYP_IPV4={0:pack_ipv4, 1: unpack_ipv4}
 	TYP_BOOLEAN={0:pack_boolean, 1: unpack_boolean}
+	TYP_PORT_STAT={0:pack_portStat, 1: unpack_portStat}
 	FLAG_PASSWORD_ERROR=0x000a        
 	TYPHASH= {
 		CMD_MODEL:TYP_STRING,
@@ -119,6 +133,8 @@ class psl:
 		CMD_FIRMWAREV:TYP_STRING,
 		CMD_REBOOT:TYP_BOOLEAN,
 		CMD_FACTORY_RESET:TYP_BOOLEAN,
+	        CMD_PORT_STAT:TYP_PORT_STAT,
+	        CMD_RESET_PORT_STAT:TYP_BOOLEAN,
 		}
 	RECPORT=63321
 	SENDPORT=63322
@@ -129,6 +145,7 @@ class psl:
 		self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1) 
+		# 25=SO_BINDTODEVICE 
 		self.socket.bind(("255.255.255.255", self.myport))
   		
 		self.seq = random.randint(100,2000)
@@ -142,6 +159,8 @@ class psl:
 		   f=self.TYPHASH[cmd][1]
 		   return f(value)
 		 except:
+		   if self.debug:
+                     print "error unpack"
 		   return binascii.hexlify(value)
 		
 	def packValue(self,cmd,value):
@@ -178,7 +197,12 @@ class psl:
 		  len=struct.unpack(">H",p[pos:(pos+2)])[0]
 		  pos=pos+2
 		  value = self.unpackValue(cmd,p[pos:(pos+len)])
-		  data[cmd]=value
+		  if cmd in data:
+                    if type(data[cmd])!=type(list()):
+			data[cmd]=[data[cmd]]
+		    data[cmd].append(value)
+		  else:
+		    data[cmd]=value
 		  if self.debug:   
 		   print "cmd=",cmd," len=",len," data=",binascii.hexlify(p[pos:(pos+len)])
 		  pos=pos+len
@@ -196,11 +220,39 @@ class psl:
 	def transfunc(self,m,a):
 		#print "==FOUND SWITCH=="
 		data = self.parse_packet(m)
-		pprint.pprint(data)
+		if self.debug:
+		  pprint.pprint(data)
 		if data["flags"]==self.FLAG_PASSWORD_ERROR:
 		   print "wrong password"
 		if data["flags"]==0:
-  		   print "success"
+		   print "success"
+
+	def queryfunc(self,m,a):
+		#print "==FOUND SWITCH=="
+		data = self.parse_packet(m)
+		if self.CMD_NAME in data:
+		  print "Name:\t%s" %data[self.CMD_NAME]
+
+                if self.CMD_MODEL in data:
+		  print "Model:\t%s" %data[self.CMD_MODEL]
+
+                if self.CMD_IP in data:
+		  print "IP:\t%s" %data[self.CMD_IP]
+
+                if self.CMD_DHCP in data:
+		  print "DHCP:\t%s" %data[self.CMD_DHCP]
+
+                if self.CMD_PORT_STAT in data:
+		  print "Port Statistic:"
+		  for row in data[self.CMD_PORT_STAT]:
+		    print "%2d\t%12d\t%12d\t%s" %(row["port"],row["rec"],row["send"],row["rest"])
+		    
+		if self.debug:
+		  pprint.pprint(data)
+		if data["flags"]==self.FLAG_PASSWORD_ERROR:
+		   print "wrong password"
+		if data["flags"]==0:
+		   print "success"
 
 
 	def send(self,host,port,data):

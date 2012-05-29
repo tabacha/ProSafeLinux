@@ -2,7 +2,16 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import binascii
 from psl import psl
+
+
+def pack_mac(v):
+   if (len(v)==17):
+        return binascii.unhexlify(v[0:2]+v[3:5]+v[6:8]+v[9:11]+v[12:14]+v[15:17])
+   if (len(v)==12):
+	return binascii.unhexlify(v)
+   raise "unkown mac format="+v
 
 parser = argparse.ArgumentParser(description='Manage Netgear ProSafe Plus switches under linux.')
 parser.add_argument("--interface",nargs=1,help="Interface",default=["eth0"])
@@ -17,8 +26,8 @@ passwd_parser.add_argument("--new",nargs=1,help="new password",required=True)
 
 query_parser=subparsers.add_parser("query",help="Query values from the switch")
 query_parser.add_argument("--mac",nargs=1,help="Hardware adresse of the switch",required=True)
-query_parser.add_argument("--passwd",nargs=1,help="password",required=True)
-query_parser.add_argument("query",nargs="+",help="What to query for",choices=['ip','mac','model','gateway','netmask']);
+query_parser.add_argument("--passwd",nargs=1,help="password")
+query_parser.add_argument("query",nargs="+",help="What to query for",choices=['ip','mac',"name",'model','gateway','netmask',"dhcp","traffic-statistic"]);
 
 reboot_parser=subparsers.add_parser("reboot",help="Reboot the switch")
 reboot_parser.add_argument("--mac",nargs=1,help="Hardware adresse of the switch",required=True)
@@ -34,54 +43,89 @@ set_parser.add_argument("--passwd",nargs=1,help="password",required=True)
 set_parser.add_argument("--ip",nargs=1,help="Change IP")
 set_parser.add_argument("--name",nargs=1,help="Change Name")
 set_parser.add_argument("--dhcp",nargs=1,help="DHCP?",choices=["on","off"])
+set_parser.add_argument("--reset-traffic-statistic",dest="resettraffictstatistic",action='store_true');
 
 args = parser.parse_args()
 interface=args.interface[0]
 #print interface
 
 g = psl(interface)
-if (args.debug):
-  g.setDebugOutput()
-if args.operation=="discover":
+
+def discover():
   print "Searching for ProSafe Plus Switches ...\n"
   g.discover()
 
-if args.operation=="reboot":
+def reboot():
   print "Rebooting Switch...\n";
   cmd={g.CMD_PASSWORD:args.passwd[0],
        g.CMD_REBOOT:True}
   g.transmit(cmd,pack_mac(args.mac[0]),g.transfunc)
 
-if args.operation=="factory-reset":
+def factoryReset():
   print "Reseting Switch to factory defaults...\n";
   cmd={g.CMD_PASSWORD:args.passwd[0],
        g.CMD_FACTORY_RESET:True}
   g.transmit(cmd,pack_mac(args.mac[0]),g.transfunc)
-
 if args.operation=="passwd":
   print "Changing Password...\n";
   g.passwd(pack_mac(args.mac[0]),args.old[0],args.new[0],g.transfunc)
 
-if args.operation=="set":
+def set():
   print "Changing Values..\n"
   cmd={g.CMD_PASSWORD:args.passwd[0]}
+  
   if (args.ip):
       cmd[g.CMD_IP]=args.ip[0]
+      
   if (args.dhcp):
       cmd[g.CMD_DHCP]=(args.dhcp[0]=="on")
+      
   if (args.name):
       cmd[g.CMD_NAME]=args.name[0]
-
+      
+  if (args.resettraffictstatistic):
+      cmd[g.CMD_RESET_PORT_STAT]=True
+      
   g.transmit(cmd,pack_mac(args.mac[0]),g.transfunc)
 
-if args.operation=="query":
+def query():
   print "Query Values..\n";
-  #cmd={g.CMD_PASSWORD:args.passwd[0]}
+  if not(args.passwd == None):
+     login={g.CMD_PASSWORD:args.passwd[0]}
+     g.transmit(login,pack_mac(args.mac[0]),g.transfunc)
   cmd=[]
   for q in args.query:
     if (q=="ip"):
       cmd.append(g.CMD_IP)
-    if (g=="name"):
+    if (q=="name"):
       cmd.append(g.CMD_NAME)
-  g.query(cmd,g.transfunc)
-    
+    if (q=="model"):
+      cmd.append(g.CMD_MODEL)
+    if (q=="mac"):
+      cmd.append(g.CMD_MAC)
+    if (q=="gateway"):
+      cmd.append(g.CMD_GATEWAY)
+    if (q=="netmask"):
+      cmd.append(g.CMD_NETMASK)
+    if (q=="dhcp"):
+      cmd.append(g.CMD_DHCP)    
+    if (q=="traffic-statistic"):
+      cmd.append(g.CMD_PORT_STAT)
+
+  g.query(cmd,g.queryfunc)
+
+cmdHash={
+ "reboot":reboot,
+ "discover":discover,
+ "factory-reset":factoryReset,
+ "set":set,
+ "query":query,
+}
+
+if (args.debug):
+  g.setDebugOutput()
+
+if args.operation in cmdHash:
+   cmdHash[args.operation]();
+else:
+   print "ERROR: operation not found!"
