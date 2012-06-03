@@ -290,7 +290,7 @@ class psl:
 
 	def send(self,host,port,data):
 		if self.debug:
-                   print "send="+binascii.hexlify(data)
+                   print "send to ip "+host+" data="+binascii.hexlify(data)
 		self.socket.sendto(data,(host,port))
 		self.seq+=1
 
@@ -333,36 +333,38 @@ class psl:
 	    return "255.255.255.255"   
 	       
 	def query(self,cmd_arr,mac,func,useIpFunc=True):
+                if useIpFunc:
+		  ip=self.ip_from_mac(mac)
+		else:
+		  ip="255.255.255.255"
 		data = self.baseudp(destmac=mac,ctype=self.CTYPE_QUERY_REQUEST)
 		for cmd in cmd_arr:
 	            data+=self.addudp(cmd);
                 data+=self.addudp(self.CMD_END)
                 
-                if useIpFunc:
-		  ip=self.ip_from_mac(mac)
-		else:
-		  ip="255.255.255.255"
 		self.send(ip,self.SENDPORT, data)
 		time.sleep(0.7)
 		self.recv(func)
 
 
 	def transmit(self,cmd_arr,mac,func):
+	  	ip=self.ip_from_mac(mac)
 		data = self.baseudp(destmac=mac,ctype=self.CTYPE_TRANSMIT_REQUEST)
 		for cmd,pdata in cmd_arr.items():
 	            data+=self.addudp(cmd,pdata);
                 data+=self.addudp(self.CMD_END)
-		self.send(self.ip_from_mac(mac),self.SENDPORT, data)
+		self.send(ip,self.SENDPORT, data)
 		time.sleep(0.7)
 		self.recv(func)
 
 	def passwd(self,mac,old,new,func):
 		# The Order of the CMD_PASSWORD and CMD_NEW_PASSWORD is important
+		ip=self.ip_from_mac(mac)
 		data = self.baseudp(destmac=mac,ctype=self.CTYPE_TRANSMIT_REQUEST)
 	        data+=self.addudp(self.CMD_PASSWORD,old);
 	        data+=self.addudp(self.CMD_NEW_PASSWORD,new);
                 data+=self.addudp(self.CMD_END)
-		self.send(self.ip_from_mac(mac),self.SENDPORT, data)
+		self.send(ip,self.SENDPORT, data)
 		time.sleep(0.7)
 		self.recv(func)
 
