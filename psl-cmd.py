@@ -6,12 +6,6 @@ import binascii
 from psl import psl
 
 
-def pack_mac(v):
-   if (len(v)==17):
-        return binascii.unhexlify(v[0:2]+v[3:5]+v[6:8]+v[9:11]+v[12:14]+v[15:17])
-   if (len(v)==12):
-	return binascii.unhexlify(v)
-   raise "unkown mac format="+v
 
 parser = argparse.ArgumentParser(description='Manage Netgear ProSafe Plus switches under linux.')
 parser.add_argument("--interface",nargs=1,help="Interface",default=["eth0"])
@@ -59,16 +53,16 @@ def reboot():
   print "Rebooting Switch...\n";
   cmd={g.CMD_PASSWORD:args.passwd[0],
        g.CMD_REBOOT:True}
-  g.transmit(cmd,pack_mac(args.mac[0]),g.transfunc)
+  g.transmit(cmd,args.mac[0],g.transfunc)
 
 def factoryReset():
   print "Reseting Switch to factory defaults...\n";
   cmd={g.CMD_PASSWORD:args.passwd[0],
        g.CMD_FACTORY_RESET:True}
-  g.transmit(cmd,pack_mac(args.mac[0]),g.transfunc)
+  g.transmit(cmd,args.mac[0],g.transfunc)
 if args.operation=="passwd":
   print "Changing Password...\n";
-  g.passwd(pack_mac(args.mac[0]),args.old[0],args.new[0],g.transfunc)
+  g.passwd(args.mac[0],args.old[0],args.new[0],g.transfunc)
 
 def set():
   print "Changing Values..\n"
@@ -86,13 +80,13 @@ def set():
   if (args.resettraffictstatistic):
       cmd[g.CMD_RESET_PORT_STAT]=True
       
-  g.transmit(cmd,pack_mac(args.mac[0]),g.transfunc)
+  g.transmit(cmd,args.mac[0],g.transfunc)
 
 def query():
   print "Query Values..\n";
   if not(args.passwd == None):
      login={g.CMD_PASSWORD:args.passwd[0]}
-     g.transmit(login,pack_mac(args.mac[0]),g.transfunc)
+     g.transmit(login,args.mac[0],g.transfunc)
   cmd=[]
   for q in args.query:
     if (q=="ip") or (q=="all"):
@@ -114,7 +108,7 @@ def query():
     if (q=="speed-statistic") or (q=="all"):
       cmd.append(g.CMD_SPEED_STAT)
 
-  g.query(cmd,g.queryfunc)
+  g.query(cmd,args.mac[0],g.queryfunc)
 
 cmdHash={
  "reboot":reboot,

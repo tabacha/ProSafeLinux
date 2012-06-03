@@ -109,18 +109,23 @@ class psl:
 	CMD_SPEED_STAT= 0x0c00
 	CMD_PORT_STAT= 0x1000
 	CMD_RESET_PORT_STAT=0x1400
+	CMD_TEST_CABLE=0x1800
+	CMD_TEST_CABLE_RESP=0x1c00
 	CMD_VLAN_SUPP= 0x2000
 	CMD_VLAN_ID  = 0x2400
-	CMD_FIMXE3400= 0x3400	
-	CMD_FIMXE3800= 0x3800	
-	CMD_FIMXE4c00= 0x4c00	
-	CMD_FIXME5000= 0x5000
+	CMD_VLAN802_ID = 0x2800
+	CMD_VLANPVID = 0x3000
+	CMD_QUALITY_OF_SERVICE= 0x3400	
+	CMD_PORT_BASED_QOS= 0x3800	
+	CMD_BANDWITH_INCOMMING_LIMIT= 0x4c00	
+	CMD_BANDWITH_OUTGOING_LIMIT= 0x5000
 	CMD_FIXME5400= 0x5400
-	CMD_FIXME5800= 0x5800
-	CMD_FIXME5c00= 0x5c00
+	CMD_BROADCAST_FILTER= 0x5800
+	CMD_PORT_MIRROR= 0x5c00
+	CMD_FIMXE6000= 0x6000 # Guess: Number of Ports???
 	CMD_FIXME6800= 0x6800
-	CMD_FIXME6c00= 0x6c00
-	CMD_FIXME7000= 0x7000
+	CMD_BLOCK_UNKOWN_MULTICAST= 0x6c00
+	CMD_IGPM_SPOOFING= 0x7000
 	CMD_FIXME7400= 0x7400
 	CMD_END	     = 0xffff
 	CTYPE_QUERY_REQUEST= 0x0101
@@ -166,6 +171,7 @@ class psl:
   		
 		self.seq = random.randint(100,2000)
 		self.debug = False
+		self.mac_cache={}
 
 	def setDebugOutput(self):
 	        self.debug = True
@@ -212,8 +218,11 @@ class psl:
 		  pos=pos+2
 		  len=struct.unpack(">H",p[pos:(pos+2)])[0]
 		  pos=pos+2
-		  value = self.unpackValue(cmd,p[pos:(pos+len)])
-		  if cmd in data:
+		  if len>0:
+		     value = self.unpackValue(cmd,p[pos:(pos+len)])
+		  else:
+		     value=None
+ 	          if cmd in data:
                     if type(data[cmd])!=type(list()):
 			data[cmd]=[data[cmd]]
 		    data[cmd].append(value)
@@ -232,6 +241,14 @@ class psl:
 		if (data[self.CMD_DHCP]):
 		   dhcpstr=" DHCP=on"
 		print " * %s\t%s\t%s\t%s\t%s" % (data[self.CMD_MAC],data[self.CMD_IP],data[self.CMD_MODEL],data[self.CMD_NAME],dhcpstr)
+
+        def storediscoverfunc(self,m,a):
+		#print "==FOUND SWITCH=="
+		data = self.parse_packet(m)
+		if self.debug:
+		  print "Store MAC,IP: "+data[self.CMD_MAC]+" "+data[self.CMD_IP]
+		self.mac_cache[data[self.CMD_MAC]]=data[self.CMD_IP]
+		#print " * %s\t%s\t%s\t%s\t%s" % (data[self.CMD_MAC],data[self.CMD_IP],data[self.CMD_MODEL],data[self.CMD_NAME],dhcpstr)
 
 	def transfunc(self,m,a):
 		#print "==FOUND SWITCH=="
@@ -266,9 +283,9 @@ class psl:
 		if self.debug:
 		  pprint.pprint(data)
 		if data["flags"]==self.FLAG_PASSWORD_ERROR:
-		   print "wrong password"
+		   print "Flags: wrong password"
 		if data["flags"]==0:
-		   print "success"
+		   print "Flags: success"
 
 
 	def send(self,host,port,data):
@@ -277,8 +294,12 @@ class psl:
 		self.socket.sendto(data,(host,port))
 		self.seq+=1
 
-	def baseudp(self,ctype,destmac=6*"\x00"):
+	def baseudp(self,ctype,destmac):
 		reserved = "\x00"
+		if destmac is None:
+		  destmac=6*"\x00"
+		if len(destmac)>6:
+		  destmac=pack_mac(destmac)
 		data = struct.pack(">h",ctype) + 6* reserved + self.srcmac +destmac + 2*reserved  
 		data += struct.pack(">h",self.seq)
 		data +=  "NSDP" + 4 * reserved 
@@ -294,12 +315,34 @@ class psl:
 		  data += struct.pack(">H", 0)
 		return data
 
-	def query(self,cmd_arr,func):
-		data = self.baseudp(ctype=self.CTYPE_QUERY_REQUEST)
+        def ip_from_mac(self,mac):
+	    if mac is None:
+	       return "255.255.255.255"
+            if mac in self.mac_cache:
+               return self.mac_cache[mac]
+	    #print "mac="+mac
+	    # FIXME: Search in /proc/net/arp if mac there use this one
+	    #with open("/proc/net/arp") as f:
+            # for line in f:
+            #   print line
+ 	    query_arr=[ self.CMD_MAC, self.CMD_IP];
+            self.query(query_arr,mac,self.storediscoverfunc,useIpFunc=False)
+            if mac in self.mac_cache:
+               return self.mac_cache[mac]
+            print "cant find mac: "+mac
+	    return "255.255.255.255"   
+	       
+	def query(self,cmd_arr,mac,func,useIpFunc=True):
+		data = self.baseudp(destmac=mac,ctype=self.CTYPE_QUERY_REQUEST)
 		for cmd in cmd_arr:
 	            data+=self.addudp(cmd);
                 data+=self.addudp(self.CMD_END)
-		self.send("255.255.255.255",self.SENDPORT, data)
+                
+                if useIpFunc:
+		  ip=self.ip_from_mac(mac)
+		else:
+		  ip="255.255.255.255"
+		self.send(ip,self.SENDPORT, data)
 		time.sleep(0.7)
 		self.recv(func)
 
@@ -309,7 +352,7 @@ class psl:
 		for cmd,pdata in cmd_arr.items():
 	            data+=self.addudp(cmd,pdata);
                 data+=self.addudp(self.CMD_END)
-		self.send("255.255.255.255",self.SENDPORT, data)
+		self.send(self.ip_from_mac(mac),self.SENDPORT, data)
 		time.sleep(0.7)
 		self.recv(func)
 
@@ -319,7 +362,7 @@ class psl:
 	        data+=self.addudp(self.CMD_PASSWORD,old);
 	        data+=self.addudp(self.CMD_NEW_PASSWORD,new);
                 data+=self.addudp(self.CMD_END)
-		self.send("255.255.255.255",self.SENDPORT, data)
+		self.send(self.ip_from_mac(mac),self.SENDPORT, data)
 		time.sleep(0.7)
 		self.recv(func)
 
@@ -330,7 +373,7 @@ class psl:
 			   self.CMD_MAC,
 			   self.CMD_DHCP,
 			   self.CMD_IP];
-		self.query(query_arr,self.discoverfunc)
+		self.query(query_arr,None,self.discoverfunc)
 
 
     
