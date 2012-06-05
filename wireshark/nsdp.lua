@@ -12,7 +12,7 @@ local f_destination = ProtoField.ether("nsdp.dst", "Destination", base.HEX)
 local f_seq = ProtoField.uint16("nsdp.seq", "Seq", base.HEX)
 local f_len = ProtoField.uint16("nsdp.len", "Length", base.HEX)
 local f_data = ProtoField.string("nsdp.data", "Data", FT_STRING)
-local f_vlan_engine = PortFiled.unit8("nsdp.vlan_engine,"VLAN Engine",base.HEX,{ [0x00]="None",
+local f_vlan_engine = ProtoField.uint8("nsdp.vlan_engine","VLAN Engine",base.HEX,{ [0x00]="None",
  [0x01]="VLAN_Port_Based",
  [0x02]="VLAN_ID_Based",
  [0x03]="802.1Q_Port_Based",
@@ -167,7 +167,7 @@ function p_nsdp.dissector (buf, pkt, root)
 	   tree:add(f_rec,buf(offset+1,8))
 	   tree:add(f_send,buf(offset+9,8))
 	   -- FIXME: CRC Errors
-    elseif cmd==0x1400 and len==0x0x1 then
+    elseif cmd==0x1400 and len==0x01 then
 	   tree=subtree:add(buf(offset,1),"Reset Port Statistic")
 	   -- 1 Byte: 0x01
     elseif cmd==0x1800 and len==0x02 then
@@ -277,6 +277,8 @@ function p_nsdp.dissector (buf, pkt, root)
       tree=subtree:add(buf(offset,len),"Valid IGMP Spoofing")
       -- 01 enabled
       -- 00 disabled
+    else
+      tree=subtree:add(buf(offset,len),"FIXME")
     end
     tree:add(f_cmd,buf(offset-4,2))
     tree:add(f_len,buf(offset-2,2))
