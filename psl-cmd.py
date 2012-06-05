@@ -12,8 +12,31 @@ query_cmds={
   "mac":psl.CMD_MAC,
   "gateway":psl.CMD_GATEWAY,
   "dhcp":psl.CMD_DHCP,
+  "netmask":psl.CMD_NETMASK,
+  "firmware_version":psl.CMD_FIRMWAREV,
   "traffic-statistic":psl.CMD_PORT_STAT,
   "speed-statistic":psl.CMD_SPEED_STAT,
+  "vlan_engine":psl.CMD_VLAN_SUPP,
+  "vlan_id":psl.CMD_VLAN_ID,
+  "vlan802_id":psl.CMD_VLAN802_ID, 
+  "vlan_pvid":psl.CMD_VLANPVID,
+  "qos_id":psl.CMD_QUALITY_OF_SERVICE,
+  "port_qos":psl.CMD_PORT_BASED_QOS,
+  "bandwith_limit_in":psl.CMD_BANDWITH_INCOMMING_LIMIT,
+  "bandwith_limit_out":psl.CMD_BANDWITH_OUTGOING_LIMIT,
+  "broadcast_filter":psl.CMD_BROADCAST_FILTER,
+  "port_mirror":psl.CMD_PORT_MIRROR,
+  "block_unkown_multicast":psl.CMD_BLOCK_UNKOWN_MULTICAST,
+  "igpm_spoofing":psl.CMD_IGPM_SPOOFING,
+  "fixme_2":psl.CMD_FIMXE2,
+  "fixme_5":psl.CMD_FIMXE5,
+  "fixme_c":psl.CMD_FIXMEC,	
+  "fixme_e":psl.CMD_FIXMEF,
+  "fixme_f":psl.CMD_FIXMEF,
+  "fixme_5400":psl.CMD_FIXME5400,
+  "fixme_6000":psl.CMD_FIXME6000,
+  "fixme_6800":psl.CMD_FIXME6800,
+  "fixme_7400":psl.CMD_FIXME7400,
   }
 
 parser = argparse.ArgumentParser(description='Manage Netgear ProSafe Plus switches under linux.')
@@ -102,10 +125,28 @@ def query():
   for q in args.query:
     if q == "all":
       for k in query_cmds.keys():
-	cmd.append(query_cmds[k])
+        if ((query_cmds[k]!=psl.CMD_VLAN_ID) and (query_cmds[k]!=psl.CMD_VLAN802_ID)):
+  	  cmd.append(query_cmds[k])
     if q in query_cmds:
-      cmd.append(query_cmds[q])
-  g.query(cmd,args.mac[0],g.queryfunc)
+       cmd.append(query_cmds[q])
+  g.query(cmd,args.mac[0],g.storefunc)
+  data=g.outdata;
+  if psl.CMD_NAME in data:
+    print "Name:\t%s" %data[psl.CMD_NAME]
+    
+  if psl.CMD_MODEL in data:
+    print "Model:\t%s" %data[psl.CMD_MODEL]
+
+  if psl.CMD_IP in data:
+    print "IP:\t%s" %data[psl.CMD_IP]
+
+  if psl.CMD_DHCP in data:
+    print "DHCP:\t%s" %data[psl.CMD_DHCP]
+
+  if psl.CMD_PORT_STAT in data:
+      print "Port Statistic:"
+      for row in data[psl.CMD_PORT_STAT]:
+          print "%2d\t%12d\t%12d\t%s" %(row["port"],row["rec"],row["send"],row["rest"])
 
 cmdHash={
  "reboot":reboot,

@@ -122,7 +122,7 @@ class psl:
 	CMD_FIXME5400= 0x5400
 	CMD_BROADCAST_FILTER= 0x5800
 	CMD_PORT_MIRROR= 0x5c00
-	CMD_FIMXE6000= 0x6000 # Guess: Number of Ports???
+	CMD_FIXME6000= 0x6000 # Guess: Number of Ports???
 	CMD_FIXME6800= 0x6800
 	CMD_BLOCK_UNKOWN_MULTICAST= 0x6c00
 	CMD_IGPM_SPOOFING= 0x7000
@@ -170,6 +170,7 @@ class psl:
 		self.socket.bind(("255.255.255.255", self.myport))
   		
 		self.seq = random.randint(100,2000)
+		self.outdata={}
 		self.debug = False
 		self.mac_cache={}
 
@@ -255,36 +256,21 @@ class psl:
 		data = self.parse_packet(m)
 		if self.debug:
 		  pprint.pprint(data)
-		if data["flags"]==self.FLAG_PASSWORD_ERROR:
-		   print "wrong password"
-		if data["flags"]==0:
-		   print "success"
+		  if data["flags"]==self.FLAG_PASSWORD_ERROR:
+		    print "wrong password"
+		  if data["flags"]==0:
+		    print "success"
 
-	def queryfunc(self,m,a):
+	def storefunc(self,m,a):
 		#print "==FOUND SWITCH=="
-		data = self.parse_packet(m)
-		if self.CMD_NAME in data:
-		  print "Name:\t%s" %data[self.CMD_NAME]
-
-                if self.CMD_MODEL in data:
-		  print "Model:\t%s" %data[self.CMD_MODEL]
-
-                if self.CMD_IP in data:
-		  print "IP:\t%s" %data[self.CMD_IP]
-
-                if self.CMD_DHCP in data:
-		  print "DHCP:\t%s" %data[self.CMD_DHCP]
-
-                if self.CMD_PORT_STAT in data:
-		  print "Port Statistic:"
-		  for row in data[self.CMD_PORT_STAT]:
-		    print "%2d\t%12d\t%12d\t%s" %(row["port"],row["rec"],row["send"],row["rest"])
-		    
+		self.outdata = self.parse_packet(m)
 		if self.debug:
-		  pprint.pprint(data)
-		if data["flags"]==self.FLAG_PASSWORD_ERROR:
-		   print "Flags: wrong password"
-		if data["flags"]==0:
+		  pprint.pprint(self.outdata)
+		  
+		  if self.outdata["flags"]==self.FLAG_PASSWORD_ERROR:
+		    print "Flags: wrong password"
+		    
+		  if self.outdata["flags"]==0:
 		   print "Flags: success"
 
 
@@ -341,7 +327,7 @@ class psl:
 		for cmd in cmd_arr:
 	            data+=self.addudp(cmd);
                 data+=self.addudp(self.CMD_END)
-                
+                self.outdata={}
 		self.send(ip,self.SENDPORT, data)
 		time.sleep(0.7)
 		self.recv(func)
