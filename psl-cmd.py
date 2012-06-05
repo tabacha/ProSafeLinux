@@ -39,6 +39,12 @@ query_cmds={
   "fixme_7400":psl.CMD_FIXME7400,
   }
 
+query_cmds_rev={}
+
+for key in query_cmds: 
+    value=query_cmds[key]
+    query_cmds_rev[value]=key
+    
 parser = argparse.ArgumentParser(description='Manage Netgear ProSafe Plus switches under linux.')
 parser.add_argument("--interface",nargs=1,help="Interface",default=["eth0"])
 parser.add_argument("--debug",help="Debug output",action='store_true')
@@ -116,6 +122,33 @@ def set():
       
   g.transmit(cmd,args.mac[0],g.transfunc)
 
+def display_port_stat(data):
+   print "%-30s%4s%15s%15s %s" %("Port Statistic:","Port","Rec.","Send","FIXME")
+   for row in data:
+      print "%-30s%4d%15d%15d %s" %("",row["port"],row["rec"],row["send"],row["rest"])
+
+def display_speed_stat(data):
+   print "%-30s%4s%15s%10s" %("Speed Statistic:","Port","Speed","FIXME")
+   for row in data:
+      speed=row["speed"]
+      if speed==psl.SPEED_NONE:
+	 speed="Not conn."
+      if speed==psl.SPEED_10MH:
+	 speed="10 Mbit/s H"
+      if speed==psl.SPEED_10ML:
+	 speed="10 Mbit/s L"
+      if speed==psl.SPEED_100MH:
+	 speed="100 Mbit/s H"
+      if speed==psl.SPEED_100ML:
+	 speed="100 Mbit/s L"
+      if speed==psl.SPEED_1G:
+	 speed="1 Gbit/s"
+      print "%-30s%4d%15s%10s" %("",row["port"],speed,row["rest"])
+  
+queryFuncHash={
+  psl.CMD_PORT_STAT:display_port_stat,
+  psl.CMD_SPEED_STAT:display_speed_stat
+  }
 def query():
   print "Query Values..\n";
   if not(args.passwd == None):
@@ -130,23 +163,17 @@ def query():
     if q in query_cmds:
        cmd.append(query_cmds[q])
   g.query(cmd,args.mac[0],g.storefunc)
-  data=g.outdata;
-  if psl.CMD_NAME in data:
-    print "Name:\t%s" %data[psl.CMD_NAME]
-    
-  if psl.CMD_MODEL in data:
-    print "Model:\t%s" %data[psl.CMD_MODEL]
-
-  if psl.CMD_IP in data:
-    print "IP:\t%s" %data[psl.CMD_IP]
-
-  if psl.CMD_DHCP in data:
-    print "DHCP:\t%s" %data[psl.CMD_DHCP]
-
-  if psl.CMD_PORT_STAT in data:
-      print "Port Statistic:"
-      for row in data[psl.CMD_PORT_STAT]:
-          print "%2d\t%12d\t%12d\t%s" %(row["port"],row["rec"],row["send"],row["rest"])
+  for key in g.outdata.keys():
+    if key in queryFuncHash:
+      func=queryFuncHash[key]
+      func(g.outdata[key])
+    else:
+     if key in query_cmds_rev:
+       print "%-30s%s" %(query_cmds_rev[key].capitalize(),g.outdata[key])
+     else:
+       if args.debug:
+         print "-%-29s%s" %(key,g.outdata[key])
+       
 
 cmdHash={
  "reboot":reboot,
