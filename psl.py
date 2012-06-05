@@ -139,6 +139,13 @@ class psl:
 	TYP_PORT_STAT={0:pack_portStat, 1: unpack_portStat}
 	TYP_SPEED_STAT={0:pack_speedStat, 1: unpack_speedStat}
 
+        SPEED_NONE=0x00
+        SPEED_10MH=0x01
+        SPEED_10ML=0x02
+        SPEED_100MH=0x03
+        SPEED_100ML=0x04
+        SPEED_1G=0x05
+        
 	FLAG_PASSWORD_ERROR=0x000a        
 	TYPHASH= {
 		CMD_MODEL:TYP_STRING,
