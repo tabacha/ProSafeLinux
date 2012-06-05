@@ -322,12 +322,12 @@ class psl:
 
 	def addudp(self,cmd,datain=None):
 	        data = struct.pack(">H",cmd)
-		if (datain):
+		if (datain is None):
+		  data += struct.pack(">H", 0)
+		else:
 		  pdata=self.packValue(cmd,datain);
 		  data += struct.pack(">H", len(pdata))
 		  data += pdata
-		else:
-		  data += struct.pack(">H", 0)
 		return data
 
         def ip_from_mac(self,mac):
@@ -365,8 +365,11 @@ class psl:
 	def transmit(self,cmd_arr,mac,func):
 	  	ip=self.ip_from_mac(mac)
 		data = self.baseudp(destmac=mac,ctype=self.CTYPE_TRANSMIT_REQUEST)
+		if self.CMD_PASSWORD in cmd_arr:
+		  data+=self.addudp(self.CMD_PASSWORD,cmd_arr[self.CMD_PASSWORD])
 		for cmd,pdata in cmd_arr.items():
-	            data+=self.addudp(cmd,pdata);
+		   if cmd!=self.CMD_PASSWORD:
+	              data+=self.addudp(cmd,pdata);
                 data+=self.addudp(self.CMD_END)
 		self.send(ip,self.SENDPORT, data)
 		time.sleep(0.7)
