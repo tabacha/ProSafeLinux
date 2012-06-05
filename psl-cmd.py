@@ -76,6 +76,8 @@ set_parser.add_argument("--mac",nargs=1,help="Hardware adresse of the switch",re
 set_parser.add_argument("--passwd",nargs=1,help="password",required=True)
 set_parser.add_argument("--ip",nargs=1,help="Change IP")
 set_parser.add_argument("--name",nargs=1,help="Change Name")
+set_parser.add_argument("--gateway",nargs=1,help="Default Gateway")
+set_parser.add_argument("--netmask",nargs=1,help="Netmask")
 set_parser.add_argument("--dhcp",nargs=1,help="DHCP?",choices=["on","off"])
 set_parser.add_argument("--reset-traffic-statistic",dest="resettraffictstatistic",action='store_true');
 
@@ -106,19 +108,25 @@ if args.operation=="passwd":
 
 def set():
   print "Changing Values..\n"
-  cmd={g.CMD_PASSWORD:args.passwd[0]}
+  cmd={psl.CMD_PASSWORD:args.passwd[0]}
   
   if (args.ip):
-      cmd[g.CMD_IP]=args.ip[0]
+      cmd[psl.CMD_IP]=args.ip[0]
       
   if (args.dhcp):
-      cmd[g.CMD_DHCP]=(args.dhcp[0]=="on")
+      cmd[psl.CMD_DHCP]=(args.dhcp[0]=="on")
       
   if (args.name):
-      cmd[g.CMD_NAME]=args.name[0]
+      cmd[psl.CMD_NAME]=args.name[0]
+      
+  if (args.gateway):
+      cmd[psl.CMD_GATEWAY]=args.gateway[0]
+      
+  if (args.netmask):
+      cmd[psl.CMD_NETMASK]=args.netmask[0]
       
   if (args.resettraffictstatistic):
-      cmd[g.CMD_RESET_PORT_STAT]=True
+      cmd[psl.CMD_RESET_PORT_STAT]=True
       
   g.transmit(cmd,args.mac[0],g.transfunc)
 
