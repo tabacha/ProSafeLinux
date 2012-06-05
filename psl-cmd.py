@@ -107,7 +107,6 @@ if args.operation=="passwd":
   g.passwd(args.mac[0],args.old[0],args.new[0],g.transfunc)
 
 def set():
-  print "Changing Values..\n"
   cmd={psl.CMD_PASSWORD:args.passwd[0]}
   
   if (args.ip):
@@ -127,7 +126,22 @@ def set():
       
   if (args.resettraffictstatistic):
       cmd[psl.CMD_RESET_PORT_STAT]=True
-      
+  
+  if psl.CMD_DHCP in cmd:
+     if cmd[psl.CMD_DHCP]:
+	if (psl.CMD_IP in cmd) or (psl.CMD_GATEWAY in cmd) or (psl.CMD_NETMASK in cmd):
+	  print "When dhcp=on, no ip,gateway nor netmask is allowed"
+	  return
+     else:
+        if (not((psl.CMD_IP in cmd) and (psl.CMD_GATEWAY in cmd) and (psl.CMD_NETMASK in cmd))): 
+          print "When dhcp=off, you have to specify ip,gateway and netmask"
+	  return
+  else:
+     if (psl.CMD_IP in cmd) or (psl.CMD_GATEWAY in cmd) or (psl.CMD_NETMASK in cmd):
+       print "To change network settings use dhcp,ip,gateway and netmask option together"
+       return
+
+  print "Changing Values..\n"
   g.transmit(cmd,args.mac[0],g.transfunc)
 
 def display_port_stat(data):
