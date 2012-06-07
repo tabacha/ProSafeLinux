@@ -10,6 +10,7 @@ import sys
 import socket
 import ipaddr
 import fcntl
+import IN
 
 def getHwAddr(ifname):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -191,13 +192,23 @@ class psl:
 	def __init__(self,interface):
 		self.myhost = get_ip_address(interface)
 		self.srcmac = pack_mac(getHwAddr(interface))
-		self.myport = self.RECPORT
-		self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-		self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1) 
-		# 25=SO_BINDTODEVICE 
-		self.socket.bind(("255.255.255.255", self.myport))
-  		
+
+	         # send socket
+		self.ssocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		self.ssocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+		self.ssocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1) 
+		
+		# The following requires root permission so we do not do this:
+		# self.socket.setsockopt(socket.SOL_SOCKET,IN.SO_BINDTODEVICE,"eth1"+'\0')	
+		
+		self.ssocket.bind((self.myhost, self.RECPORT))
+
+		# recive socket
+		self.rsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		self.rsocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                self.rsocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1) 
+	        self.rsocket.bind(("255.255.255.255",self.RECPORT))
+
 		self.seq = random.randint(100,2000)
 		self.outdata={}
 		self.debug = False
@@ -223,9 +234,9 @@ class psl:
 		   return binascii.unhexlify(value)
 		
 	def recv(self,recvfunc,maxlen=8192,timeout=0.005):
-		self.socket.settimeout(timeout)
+		self.rsocket.settimeout(timeout)
 		try:
-			message, address = self.socket.recvfrom(maxlen)
+			message, address = self.rsocket.recvfrom(maxlen)
 		except socket.timeout:
 			return None
 		if self.debug:
@@ -306,7 +317,7 @@ class psl:
 	def send(self,host,port,data):
 		if self.debug:
                    print "send to ip "+host+" data="+binascii.hexlify(data)
-		self.socket.sendto(data,(host,port))
+		self.ssocket.sendto(data,(host,port))
 		self.seq+=1
 
 	def baseudp(self,ctype,destmac):
