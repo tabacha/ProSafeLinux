@@ -20,7 +20,7 @@ http://code.google.com/p/ipaddr-py/downloads/detail?name=3144.tar.gz
 
 Please feel free to fork the code and do any push request.
 
-Please contact me Sven Anders &lt;psl-github2012@sven.anders.im&gt
+Please contact me Sven Anders &lt;psl-github2012@sven.anders.im&gt;
 
 # Other simalar projects
 
