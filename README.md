@@ -16,11 +16,11 @@ http://code.google.com/p/ipaddr-py/downloads/detail?name=3144.tar.gz
 
 * If you have a switch which show CRC errors on statistic page,
 * If you have a cable which is bad, and the cable test report it,
-* If you have any other switch than the GS108Ev2 and a discover works for you, please send me a psl-cmd.py query --mac &gt;mac&lt; all
+* If you have any other switch than the GS108Ev2 and a discover works for you, please send me a psl-cmd.py query --mac &lt;mac&gt; all
 
 Please feel free to fork the code and do any push request.
 
-Please contact me Sven Anders <psl-github2012@sven.anders.im>
+Please contact me Sven Anders &lt;psl-github2012@sven.anders.im&gt
 
 # Other simalar projects
 
