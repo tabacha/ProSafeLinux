@@ -44,6 +44,9 @@ def unpack_null(v):
 def pack_string(v):
   return v
 
+def pack_bandwith(v):
+  return v
+
 def pack_ipv4(v):
   i=(int)(ipaddr.IPv4Address(v))
   r=struct.pack(">I",i)
@@ -87,6 +90,24 @@ def unpack_speedStat(v):
       "speed":struct.unpack(">b",v[1])[0],
       "rest":binascii.hexlify(v[2:]),
   }
+  return r
+
+def unpack_bandwith(v):
+# print "unpack"+binascii.hexlify(v[4:5]),
+ r={
+      "port":struct.unpack(">b",v[0])[0],
+      "limit":struct.unpack(">h",v[3::])[0],
+      "rest":binascii.hexlify(v[1:2]),
+ }
+ return r
+ 
+def pack_vlanid(v):
+ return v
+def unpack_vlanid(v):
+  r={
+      "port":struct.unpack(">b",v[0])[0],
+      "id":struct.unpack(">h",v[1:])[0],
+    }      
   return r
 
 class psl:
@@ -139,6 +160,8 @@ class psl:
 	TYP_BOOLEAN={0:pack_boolean, 1: unpack_boolean}
 	TYP_PORT_STAT={0:pack_portStat, 1: unpack_portStat}
 	TYP_SPEED_STAT={0:pack_speedStat, 1: unpack_speedStat}
+	TYP_BANDWITH={0:pack_bandwith, 1: unpack_bandwith}
+	TYP_VLANID={0:pack_vlanid, 1: unpack_vlanid}
 
         SPEED_NONE=0x00
         SPEED_10MH=0x01
@@ -186,6 +209,9 @@ class psl:
 		CMD_SPEED_STAT:TYP_SPEED_STAT,
 	        CMD_PORT_STAT:TYP_PORT_STAT,
 	        CMD_RESET_PORT_STAT:TYP_BOOLEAN,
+		CMD_BANDWITH_INCOMMING_LIMIT:TYP_BANDWITH,	
+		CMD_BANDWITH_OUTGOING_LIMIT:TYP_BANDWITH,
+		CMD_VLANPVID:TYP_VLANID,
 		}
 	RECPORT=63321
 	SENDPORT=63322
@@ -218,13 +244,16 @@ class psl:
 	        self.debug = True
 
 	def unpackValue(self,cmd,value):
-	         try:
+	         #try:
+		 if cmd in self.TYPHASH:
 		   f=self.TYPHASH[cmd][1]
 		   return f(value)
-		 except:
+		 else:
 		   if self.debug:
-                     print "error unpack"
+                     print "error unpack cmd %d" %(cmd)
 		   return binascii.hexlify(value)
+		 #except:
+		 #  
 		
 	def packValue(self,cmd,value):
 	         try:
