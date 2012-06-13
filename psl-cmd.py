@@ -3,6 +3,7 @@
 
 import argparse
 import binascii
+import sys
 from psl import psl
 
 query_cmds={
@@ -27,14 +28,13 @@ query_cmds={
   "broadcast_filter":psl.CMD_BROADCAST_FILTER,
   "port_mirror":psl.CMD_PORT_MIRROR,
   "block_unkown_multicast":psl.CMD_BLOCK_UNKOWN_MULTICAST,
-  "igpm_spoofing":psl.CMD_IGPM_SPOOFING,
+  "igmp_spoofing":psl.CMD_IGMP_SPOOFING,
   "fixme_2":psl.CMD_FIMXE2,
   "fixme_5":psl.CMD_FIMXE5,
   "fixme_c":psl.CMD_FIXMEC,	
   "fixme_e":psl.CMD_FIXMEF,
   "fixme_f":psl.CMD_FIXMEF,
-  "fixme_5400":psl.CMD_FIXME5400,
-  "fixme_6000":psl.CMD_FIXME6000,
+  "number_of_ports":psl.CMD_NUMBER_OF_PORTS,
   "fixme_6800":psl.CMD_FIXME6800,
   "fixme_7400":psl.CMD_FIXME7400,
   }
@@ -62,6 +62,10 @@ query_parser.add_argument("--passwd",nargs=1,help="password")
 ch=query_cmds.keys()
 ch.append("all")
 query_parser.add_argument("query",nargs="+",help="What to query for",choices=ch);
+
+query_parser=subparsers.add_parser("query_raw",help="Query raw values from the switch")
+query_parser.add_argument("--mac",nargs=1,help="Hardware adresse of the switch",required=True)
+query_parser.add_argument("--passwd",nargs=1,help="password")
 
 reboot_parser=subparsers.add_parser("reboot",help="Reboot the switch")
 reboot_parser.add_argument("--mac",nargs=1,help="Hardware adresse of the switch",required=True)
@@ -195,7 +199,48 @@ def query():
      else:
        if args.debug:
          print "-%-29s%s" %(key,g.outdata[key])
-       
+
+def query_raw():
+  print "QUERY DEBUG RAW"
+  if not(args.passwd == None):
+     login={g.CMD_PASSWORD:args.passwd[0]}
+     g.transmit(login,args.mac[0],g.transfunc)
+  i=1
+  while (i<psl.CMD_END):
+     cmd=[]
+     cmd.append(i)
+     try:
+       g.query(cmd,args.mac[0],g.rec_raw)    
+       if i in g.outdata.keys():
+	  print "RES:%04x:%-29s:%s " %(i,g.outdata[i],g.outdata["raw"])
+       else:
+	  print "NON:%04x:%-29s:%s" % (i,"",g.outdata["raw"])
+       if args.debug:
+         for key in g.outdata.keys():
+            print "%x-%-29s%s" %(i,key,g.outdata[key])
+     except (KeyboardInterrupt,SystemExit):
+        raise
+     except:
+       print "ERR:%04x:%s" %(i,sys.exc_info()[1])
+     i=i+1
+
+def query_raw2():
+  print "QUERY DEBUG RAW"
+  if not(args.passwd == None):
+     login={g.CMD_PASSWORD:args.passwd[0]}
+     g.transmit(login,args.mac[0],g.transfunc)
+  i=1
+  while (i<psl.CMD_END):
+     cmd=[]
+     cmd.append(i)
+     try:
+       g.query(cmd,args.mac[0],g.rec_raw)    
+       print "RES:%04x:%s " %(i,g.outdata)
+     except (KeyboardInterrupt,SystemExit):
+        raise
+     except:
+       print "ERR:%04x:%s" %(i,sys.exc_info()[1])
+     i=i+1
 
 cmdHash={
  "reboot":reboot,
@@ -203,6 +248,7 @@ cmdHash={
  "factory-reset":factoryReset,
  "set":set,
  "query":query,
+ "query_raw":query_raw,
 }
 
 if (args.debug):

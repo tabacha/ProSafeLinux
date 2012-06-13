@@ -144,10 +144,10 @@ class psl:
 	CMD_FIXME5400= 0x5400
 	CMD_BROADCAST_FILTER= 0x5800
 	CMD_PORT_MIRROR= 0x5c00
-	CMD_FIXME6000= 0x6000 # Guess: Number of Ports???
+	CMD_NUMBER_OF_PORTS= 0x6000 
 	CMD_FIXME6800= 0x6800
 	CMD_BLOCK_UNKOWN_MULTICAST= 0x6c00
-	CMD_IGPM_SPOOFING= 0x7000
+	CMD_IGMP_SPOOFING= 0x7000
 	CMD_FIXME7400= 0x7400
 	CMD_END	     = 0xffff
 	CTYPE_QUERY_REQUEST= 0x0101
@@ -212,6 +212,8 @@ class psl:
 		CMD_BANDWITH_INCOMMING_LIMIT:TYP_BANDWITH,	
 		CMD_BANDWITH_OUTGOING_LIMIT:TYP_BANDWITH,
 		CMD_VLANPVID:TYP_VLANID,
+		CMD_BLOCK_UNKOWN_MULTICAST:TYP_BOOLEAN,
+		CMD_IGMP_SPOOFING:TYP_BOOLEAN,
 		}
 	RECPORT=63321
 	SENDPORT=63322
@@ -341,7 +343,12 @@ class psl:
 		    
 		  if self.outdata["flags"]==0:
 		   print "Flags: success"
-
+	def rec_raw(self,m,a):
+		try:
+		   self.storefunc(m,a)
+                except:
+                   pass
+		self.outdata["raw"]=binascii.hexlify(m)
 
 	def send(self,host,port,data):
 		if self.debug:
