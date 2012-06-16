@@ -205,7 +205,7 @@ def query_raw():
   if not(args.passwd == None):
      login={g.CMD_PASSWORD:args.passwd[0]}
      g.transmit(login,args.mac[0],g.transfunc)
-  i=1
+  i=0x0001
   while (i<psl.CMD_END):
      cmd=[]
      cmd.append(i)
@@ -224,23 +224,7 @@ def query_raw():
        print "ERR:%04x:%s" %(i,sys.exc_info()[1])
      i=i+1
 
-def query_raw2():
-  print "QUERY DEBUG RAW"
-  if not(args.passwd == None):
-     login={g.CMD_PASSWORD:args.passwd[0]}
-     g.transmit(login,args.mac[0],g.transfunc)
-  i=1
-  while (i<psl.CMD_END):
-     cmd=[]
-     cmd.append(i)
-     try:
-       g.query(cmd,args.mac[0],g.rec_raw)    
-       print "RES:%04x:%s " %(i,g.outdata)
-     except (KeyboardInterrupt,SystemExit):
-        raise
-     except:
-       print "ERR:%04x:%s" %(i,sys.exc_info()[1])
-     i=i+1
+
 
 cmdHash={
  "reboot":reboot,
