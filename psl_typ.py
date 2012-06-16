@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+import binascii
+import struct
+import ipaddr
 class psl_typ:
       def __init__(self, id,name):
 	  self.id = id
@@ -60,7 +63,7 @@ class psl_typ_boolean(psl_typ):
             return struct.pack(">b",0x00)
 
       def unpack_py(self,value):
-	  return (v==0x01)
+	  return (value==0x01)
 	  
       def pack_cmd(self,value):
 	  return self.pack_py(value.lowercase=="on")
@@ -101,12 +104,12 @@ class psl_typ_ipv4(psl_typ):
 	  self.id = id
 	  self.name = name
 	  
-        def pack_py(value):
+        def pack_py(self,value):
           i=(int)(ipaddr.IPv4Address(value))
           r=struct.pack(">I",i)
           return r
           
-        def unpack_py(value):
+        def unpack_py(self,value):
           a=struct.unpack(">I",value)[0]
           return "%s" % ipaddr.IPv4Address(a)
 
@@ -123,11 +126,11 @@ class psl_typ_hex(psl_typ):
 	  self.id = id
 	  self.name = name
 	  
-        def pack_py(value):
-          return binascii.hexlify(value)
-          
-        def unpack_py(value):
+        def pack_py(self,value):
           return binascii.unhexlify(value)
+          
+        def unpack_py(self,value):
+          return binascii.hexlify(value)
 
         def pack_cmd(self,value):
 	  return self.pack_py(self,value)
@@ -141,7 +144,7 @@ class psl_typ_speed_stat(psl_typ):
         def __init__(self, id,name):
 	  self.id = id
 	  self.name = name
-	def unpack_py(v):
+	def unpack_py(self,v):
           r={
            "port":struct.unpack(">b",v[0])[0],
            "speed":struct.unpack(">b",v[1])[0],
@@ -149,13 +152,17 @@ class psl_typ_speed_stat(psl_typ):
            }
           return r
 
+        def isSetable(self):
+	   return False
+
+
 ###########################################################################################
 
 class psl_typ_port_stat(psl_typ):
         def __init__(self, id,name):
 	  self.id = id
 	  self.name = name
-	def unpack_py(v):
+	def unpack_py(self,v):
           r={
            "port":struct.unpack(">b",v[0])[0],
            "rec":struct.unpack(">Q",v[1:9])[0],
@@ -163,6 +170,10 @@ class psl_typ_port_stat(psl_typ):
            "rest":binascii.hexlify(v[19:]),
            }
           return r
+          
+        def isSetable(self):
+	   return False
+
 
 ###########################################################################################
 
@@ -170,7 +181,7 @@ class psl_typ_bandwith(psl_typ):
         def __init__(self, id,name):
 	  self.id = id
 	  self.name = name
-	def unpack_py(v):
+	def unpack_py(self,v):
             r={
              "port":struct.unpack(">b",v[0])[0],
              "limit":struct.unpack(">h",v[3::])[0],
@@ -184,7 +195,7 @@ class psl_typ_vlanid(psl_typ):
         def __init__(self, id,name):
 	  self.id = id
 	  self.name = name
-        def unpack_py(v):
+        def unpack_py(self,v):
           r={
             "port":struct.unpack(">b",v[0])[0],
             "id":struct.unpack(">h",v[1:])[0],
