@@ -11,6 +11,8 @@ import socket
 import ipaddr
 import fcntl
 import IN
+import psl_typ
+import inspect
 
 def getHwAddr(ifname):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -22,147 +24,62 @@ def get_ip_address(ifname):
     return socket.inet_ntoa(fcntl.ioctl( s.fileno(), 0x8915, # SIOCGIFADDR
             struct.pack('256s', ifname[:15]))[20:24])
 
-
-def unpack_string(v):
-  return v
-  
-def unpack_ipv4(v):
-  a=struct.unpack(">I",v)[0]
-  return "%s" % ipaddr.IPv4Address(a)
-  
-def unpack_boolean(v):
-  return (v==0x01)
-
-def unpack_mac(v):
-  mac=binascii.hexlify(v)
-  return mac[0:2]+":"+mac[2:4]+":"+mac[4:6]+":"+mac[6:8]+":"+mac[8:10]+":"+mac[10:12]
-
-def unpack_null(v):
-  return v
-  
-
-def pack_string(v):
-  return v
-
-def pack_bandwith(v):
-  return v
-
-def pack_ipv4(v):
-  i=(int)(ipaddr.IPv4Address(v))
-  r=struct.pack(">I",i)
-  return r
-
-def pack_boolean(v):
-  if (v):
-    return struct.pack(">b",0x01)
-  else:
-    return struct.pack(">b",0x00)
-
 def pack_mac(v):
-   if (len(v)==17):
-        return binascii.unhexlify(v[0:2]+v[3:5]+v[6:8]+v[9:11]+v[12:14]+v[15:17])
-   if (len(v)==12):
-	return binascii.unhexlify(v)
-   raise "unkown mac format="+v
-    
-def pack_null(v):
-  return v
+    if (len(v)==17):
+       return binascii.unhexlify(v[0:2]+v[3:5]+v[6:8]+v[9:11]+v[12:14]+v[15:17])
+    if (len(v)==12):
+       return binascii.unhexlify(v)
+    raise "unkown mac format="+v
 
-def pack_portStat(v):
-  print "xx"
-  return v
-
-def unpack_portStat(v):
-  r={
-      "port":struct.unpack(">b",v[0])[0],
-      "rec":struct.unpack(">Q",v[1:9])[0],
-      "send":struct.unpack(">Q",v[10:18])[0],
-      "rest":binascii.hexlify(v[19:]),
-  }
-  return r
-def pack_speedStat(v):
-  print "xx"
-  return v
-
-def unpack_speedStat(v):
-  r={
-      "port":struct.unpack(">b",v[0])[0],
-      "speed":struct.unpack(">b",v[1])[0],
-      "rest":binascii.hexlify(v[2:]),
-  }
-  return r
-
-def unpack_bandwith(v):
-# print "unpack"+binascii.hexlify(v[4:5]),
- r={
-      "port":struct.unpack(">b",v[0])[0],
-      "limit":struct.unpack(">h",v[3::])[0],
-      "rest":binascii.hexlify(v[1:2]),
- }
- return r
- 
-def pack_vlanid(v):
- return v
-
-def unpack_vlanid(v):
-  r={
-      "port":struct.unpack(">b",v[0])[0],
-      "id":struct.unpack(">h",v[1:])[0],
-    }      
-  return r
+def unpack_mac(value):
+    mac=binascii.hexlify(value)
+    return mac[0:2]+":"+mac[2:4]+":"+mac[4:6]+":"+mac[6:8]+":"+mac[8:10]+":"+mac[10:12]
 
 class psl:
-	CMD_MODEL    = 0x0001
-	CMD_FIMXE2   = 0x0002
-	CMD_NAME     = 0x0003
-	CMD_MAC      = 0x0004
-	CMD_FIMXE5   = 0x0005
-	CMD_IP       = 0x0006
-	CMD_NETMASK  = 0x0007
-	CMD_GATEWAY  = 0x0008
-	CMD_NEW_PASSWORD = 0x0009
-	CMD_PASSWORD = 0x000a
-	CMD_DHCP     = 0x000b
-	CMD_FIXMEC   = 0x000c
-	CMD_FIRMWAREV= 0x000d
-	CMD_FIMXEE   = 0x000e
-	CMD_FIXMEF   = 0x000f
-	CMD_REBOOT   = 0x0013
-	CMD_FACTORY_RESET = 0x0400
-	CMD_SPEED_STAT= 0x0c00
-	CMD_PORT_STAT= 0x1000
-	CMD_RESET_PORT_STAT=0x1400
-	CMD_TEST_CABLE=0x1800
-	CMD_TEST_CABLE_RESP=0x1c00
-	CMD_VLAN_SUPP=0x2000
-	CMD_VLAN_ID  = 0x2400
-	CMD_VLAN802_ID = 0x2800
-	CMD_VLANPVID = 0x3000
-	CMD_QUALITY_OF_SERVICE= 0x3400	
-	CMD_PORT_BASED_QOS= 0x3800	
-	CMD_BANDWITH_INCOMMING_LIMIT= 0x4c00	
-	CMD_BANDWITH_OUTGOING_LIMIT= 0x5000
-	CMD_FIXME5400= 0x5400
-	CMD_BROADCAST_FILTER= 0x5800
-	CMD_PORT_MIRROR= 0x5c00
-	CMD_NUMBER_OF_PORTS= 0x6000 
-	CMD_FIXME6800= 0x6800
-	CMD_BLOCK_UNKOWN_MULTICAST= 0x6c00
-	CMD_IGMP_SPOOFING= 0x7000
-	CMD_FIXME7400= 0x7400
-	CMD_END	     = 0xffff
+	CMD_MODEL    = psl_typ.psl_typ_string(0x0001,"model")
+	CMD_FIMXE2   = psl_typ.psl_typ_hex(0x0002,"fixme2")
+	CMD_NAME     = psl_typ.psl_typ_string(0x0003,"name")
+	CMD_MAC      = psl_typ.psl_typ_mac(0x0004,"MAC")
+	CMD_FIMXE5   = psl_typ.psl_typ_hex(0x0005,"fixme5")
+	CMD_IP       = psl_typ.psl_typ_ipv4(0x0006,"ip")
+	CMD_NETMASK  = psl_typ.psl_typ_ipv4(0x0007,"netmask")
+	CMD_GATEWAY  = psl_typ.psl_typ_ipv4(0x0008,"gateway")
+	CMD_NEW_PASSWORD = psl_typ.psl_typ_string(0x0009,"new_password")
+	CMD_PASSWORD = psl_typ.psl_typ_string(0x000a,"password")
+	CMD_DHCP     = psl_typ.psl_typ_boolean(0x000b,"dhcp")
+	CMD_FIXMEC   = psl_typ.psl_typ_hex(0x000c,"fixmeC")
+	CMD_FIRMWAREV= psl_typ.psl_typ_string(0x000d,"firmwarever")
+	CMD_FIMXEE   = psl_typ.psl_typ_hex(0x000e,"fixmeE")
+	CMD_FIXMEF   = psl_typ.psl_typ_hex(0x000f,"fixmeF")
+	CMD_REBOOT   = psl_typ.psl_typ_boolean(0x0013,"reboot")
+	CMD_FACTORY_RESET = psl_typ.psl_typ_boolean(0x0400,"factory_reset")
+	CMD_SPEED_STAT= psl_typ.psl_typ_speed_stat(0x0c00,"speed-stat")
+	CMD_PORT_STAT= psl_typ.psl_typ_port_stat(0x1000,"port-stat")
+	CMD_RESET_PORT_STAT=psl_typ.psl_typ_boolean(0x1400,"reset-port-stat")
+	CMD_TEST_CABLE=psl_typ.psl_typ_hex(0x1800,"test-cable")
+	CMD_TEST_CABLE_RESP=psl_typ.psl_typ_hex(0x1c00,"test-cable-resp")
+	CMD_VLAN_SUPP=psl_typ.psl_typ_hex(0x2000,"vlan-supp")
+	CMD_VLAN_ID  = psl_typ.psl_typ_vlanid(0x2400,"vlan-id")
+	CMD_VLAN802_ID = psl_typ.psl_typ_hex(0x2800,"vlan802-id")
+	CMD_VLANPVID = psl_typ.psl_typ_hex(0x3000,"vlan-pvid")
+	CMD_QUALITY_OF_SERVICE= psl_typ.psl_typ_hex(0x3400,"qos")
+	CMD_PORT_BASED_QOS= psl_typ.psl_typ_hex(0x3800,"port-bases-qos")
+	CMD_BANDWITH_INCOMMING_LIMIT= psl_typ.psl_typ_bandwith(0x4c00,"bandwith-in")
+	CMD_BANDWITH_OUTGOING_LIMIT= psl_typ.psl_typ_bandwith(0x5000,"bandwith-out")
+	CMD_FIXME5400= psl_typ.psl_typ_hex(0x5400,"fxime5400")
+	CMD_BROADCAST_FILTER= psl_typ.psl_typ_hex(0x5800,"broadcast-filter")
+	CMD_PORT_MIRROR= psl_typ.psl_typ_hex(0x5c00,"port-mirror")
+	CMD_NUMBER_OF_PORTS= psl_typ.psl_typ_hex(0x6000,"number-of-ports") 
+	CMD_FIXME6800= psl_typ.psl_typ_hex(0x6800,"fixme6800")
+	CMD_BLOCK_UNKOWN_MULTICAST= psl_typ.psl_typ_hex(0x6c00,"block-unknown-multicast")
+	CMD_IGMP_SPOOFING= psl_typ.psl_typ_boolean(0x7000,"igmp-spoofing")
+	CMD_FIXME7400= psl_typ.psl_typ_hex(0x7400,"fixme7400")
+	CMD_END	     = psl_typ.psl_typ_hex(0xffff,"END")
+
 	CTYPE_QUERY_REQUEST= 0x0101
 	CTYPE_QUERY_RESPONSE= 0x0102
 	CTYPE_TRANSMIT_REQUEST = 0x103
 	CTYPE_TRANSMIT_RESPONSE = 0x104
-	TYP_STRING={0:pack_string, 1: unpack_string}
-	TYP_MAC={0:pack_mac, 1: unpack_mac}
-	TYP_IPV4={0:pack_ipv4, 1: unpack_ipv4}
-	TYP_BOOLEAN={0:pack_boolean, 1: unpack_boolean}
-	TYP_PORT_STAT={0:pack_portStat, 1: unpack_portStat}
-	TYP_SPEED_STAT={0:pack_speedStat, 1: unpack_speedStat}
-	TYP_BANDWITH={0:pack_bandwith, 1: unpack_bandwith}
-	TYP_VLANID={0:pack_vlanid, 1: unpack_vlanid}
 
         SPEED_NONE=0x00
         SPEED_10MH=0x01
@@ -194,28 +111,7 @@ class psl:
         BIN_PORT8=0x01
         
 	FLAG_PASSWORD_ERROR=0x000a        
-	TYPHASH= {
-		CMD_MODEL:TYP_STRING,
-		CMD_NAME:TYP_STRING,
-		CMD_MAC:TYP_MAC,
-		CMD_IP:TYP_IPV4,
-		CMD_NETMASK:TYP_IPV4,
-		CMD_GATEWAY:TYP_IPV4,
-		CMD_NEW_PASSWORD:TYP_STRING,
-		CMD_PASSWORD:TYP_STRING,
-		CMD_DHCP:TYP_BOOLEAN,
-		CMD_FIRMWAREV:TYP_STRING,
-		CMD_REBOOT:TYP_BOOLEAN,
-		CMD_FACTORY_RESET:TYP_BOOLEAN,
-		CMD_SPEED_STAT:TYP_SPEED_STAT,
-	        CMD_PORT_STAT:TYP_PORT_STAT,
-	        CMD_RESET_PORT_STAT:TYP_BOOLEAN,
-		CMD_BANDWITH_INCOMMING_LIMIT:TYP_BANDWITH,	
-		CMD_BANDWITH_OUTGOING_LIMIT:TYP_BANDWITH,
-		CMD_VLANPVID:TYP_VLANID,
-		CMD_BLOCK_UNKOWN_MULTICAST:TYP_BOOLEAN,
-		CMD_IGMP_SPOOFING:TYP_BOOLEAN,
-		}
+
 	RECPORT=63321
 	SENDPORT=63322
 	def __init__(self,interface):
@@ -242,6 +138,12 @@ class psl:
 		self.outdata={}
 		self.debug = False
 		self.mac_cache={}
+		self.cmd_by_id={}
+		self.cmd_by_name={}
+		for key,value in  inspect.getmembers(psl):
+		  if key.startswith("CMD_"):
+		    self.cmd_by_name[key]=value
+		    self.cmd_by_id[value.getId()]=value
 
 	def setDebugOutput(self):
 	        self.debug = True
@@ -285,14 +187,15 @@ class psl:
 		data["mymac"]= binascii.hexlify(p[8:14])
 		data["theirmac"]= binascii.hexlify(p[14:20])
                 pos=32
-		cmd=0
-		while(cmd!=0xffff):
-		  cmd= struct.unpack(">H",p[pos:(pos+2)])[0]
+		cmd_id=0
+		while(cmd_id!=self.CMD_END.getId()):
+		  cmd_id= struct.unpack(">H",p[pos:(pos+2)])[0]
+		  cmd=self.cmd_by_id[cmd_id];
 		  pos=pos+2
 		  len=struct.unpack(">H",p[pos:(pos+2)])[0]
 		  pos=pos+2
 		  if len>0:
-		     value = self.unpackValue(cmd,p[pos:(pos+len)])
+		     value = cmd.unpack_py(p[pos:(pos+len)])
 		  else:
 		     value=None
  	          if cmd in data:
@@ -302,7 +205,7 @@ class psl:
 		  else:
 		    data[cmd]=value
 		  if self.debug:   
-		   print "cmd=",cmd," len=",len," data=",binascii.hexlify(p[pos:(pos+len)])
+		   print "cmd=",cmd_id," len=",len," data=",binascii.hexlify(p[pos:(pos+len)])
 		  pos=pos+len
 		#pprint.pprint(data)
 		return data
@@ -369,11 +272,11 @@ class psl:
 		return data
 
 	def addudp(self,cmd,datain=None):
-	        data = struct.pack(">H",cmd)
+	        data = struct.pack(">H",cmd.getId())
 		if (datain is None):
 		  data += struct.pack(">H", 0)
 		else:
-		  pdata=self.packValue(cmd,datain);
+		  pdata=self.packValue(cmd.getId(),datain);
 		  data += struct.pack(">H", len(pdata))
 		  data += pdata
 		return data
