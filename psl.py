@@ -44,19 +44,19 @@ class psl:
 	CMD_IP       = psl_typ.psl_typ_ipv4(0x0006,"ip")
 	CMD_NETMASK  = psl_typ.psl_typ_ipv4(0x0007,"netmask")
 	CMD_GATEWAY  = psl_typ.psl_typ_ipv4(0x0008,"gateway")
-	CMD_NEW_PASSWORD = psl_typ.psl_typ_string(0x0009,"new_password")
-	CMD_PASSWORD = psl_typ.psl_typ_string(0x000a,"password")
+	CMD_NEW_PASSWORD = psl_typ.psl_typ_password(0x0009,"new_password",True)
+	CMD_PASSWORD = psl_typ.psl_typ_password(0x000a,"password",False)
 	CMD_DHCP     = psl_typ.psl_typ_boolean(0x000b,"dhcp")
 	CMD_FIXMEC   = psl_typ.psl_typ_hex(0x000c,"fixmeC")
 	CMD_FIRMWAREV= psl_typ.psl_typ_string(0x000d,"firmwarever")
 	CMD_FIMXEE   = psl_typ.psl_typ_hex(0x000e,"fixmeE")
 	CMD_FIXMEF   = psl_typ.psl_typ_hex(0x000f,"fixmeF")
-	CMD_REBOOT   = psl_typ.psl_typ_boolean(0x0013,"reboot")
-	CMD_FACTORY_RESET = psl_typ.psl_typ_boolean(0x0400,"factory_reset")
+	CMD_REBOOT   = psl_typ.psl_typ_action(0x0013,"reboot")
+	CMD_FACTORY_RESET = psl_typ.psl_typ_action(0x0400,"factory_reset")
 	CMD_SPEED_STAT= psl_typ.psl_typ_speed_stat(0x0c00,"speed-stat")
 	CMD_PORT_STAT= psl_typ.psl_typ_port_stat(0x1000,"port-stat")
-	CMD_RESET_PORT_STAT=psl_typ.psl_typ_boolean(0x1400,"reset-port-stat")
-	CMD_TEST_CABLE=psl_typ.psl_typ_hex(0x1800,"test-cable")
+	CMD_RESET_PORT_STAT=psl_typ.psl_typ_action(0x1400,"reset-port-stat")
+	CMD_TEST_CABLE=psl_typ.psl_typ_action(0x1800,"test-cable")
 	CMD_TEST_CABLE_RESP=psl_typ.psl_typ_hex(0x1c00,"test-cable-resp")
 	CMD_VLAN_SUPP=psl_typ.psl_typ_hex(0x2000,"vlan-supp")
 	CMD_VLAN_ID  = psl_typ.psl_typ_vlanid(0x2400,"vlan-id")
@@ -74,20 +74,13 @@ class psl:
 	CMD_BLOCK_UNKOWN_MULTICAST= psl_typ.psl_typ_hex(0x6c00,"block-unknown-multicast")
 	CMD_IGMP_SPOOFING= psl_typ.psl_typ_boolean(0x7000,"igmp-spoofing")
 	CMD_FIXME7400= psl_typ.psl_typ_hex(0x7400,"fixme7400")
-	CMD_END	     = psl_typ.psl_typ_hex(0xffff,"END")
+	CMD_END	     = psl_typ.psl_typ_end(0xffff,"END")
 
 	CTYPE_QUERY_REQUEST= 0x0101
 	CTYPE_QUERY_RESPONSE= 0x0102
 	CTYPE_TRANSMIT_REQUEST = 0x103
 	CTYPE_TRANSMIT_RESPONSE = 0x104
 
-        SPEED_NONE=0x00
-        SPEED_10MH=0x01
-        SPEED_10ML=0x02
-        SPEED_100MH=0x03
-        SPEED_100ML=0x04
-        SPEED_1G=0x05
-        
         SPEED_LIMIT_NONE=0x0000
         SPEED_LIMIT_512K=0x0001
         SPEED_LIMIT_1M  =0x0002
@@ -114,7 +107,24 @@ class psl:
 
 	RECPORT=63321
 	SENDPORT=63322
-	def __init__(self,interface):
+	def __init__(self):
+		self.myhost = None
+		self.srcmac = None
+		self.ssocket = None
+		self.rsocket = None
+
+		self.seq = random.randint(100,2000)
+		self.outdata={}
+		self.debug = False
+		self.mac_cache={}
+		self.cmd_by_id={}
+		self.cmd_by_name={}
+		for key,value in  inspect.getmembers(psl):
+		  if key.startswith("CMD_"):
+		    self.cmd_by_name[value.getName()]=value
+		    self.cmd_by_id[value.getId()]=value
+		    
+        def bind(self,interface):
 		self.myhost = get_ip_address(interface)
 		self.srcmac = pack_mac(getHwAddr(interface))
 
@@ -133,18 +143,17 @@ class psl:
 		self.rsocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 self.rsocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1) 
 	        self.rsocket.bind(("255.255.255.255",self.RECPORT))
-
-		self.seq = random.randint(100,2000)
-		self.outdata={}
-		self.debug = False
-		self.mac_cache={}
-		self.cmd_by_id={}
-		self.cmd_by_name={}
-		for key,value in  inspect.getmembers(psl):
-		  if key.startswith("CMD_"):
-		    self.cmd_by_name[key]=value
-		    self.cmd_by_id[value.getId()]=value
-
+	    
+        def getQueryCmds(self):
+	  rtn=[]
+	  for cmd in self.cmd_by_name.values():
+	     if cmd.isQueryAble():
+	       rtn.append(cmd)
+	  return rtn
+	  
+	def getCmdByName(self,name):
+	   return self.cmd_by_name[name]
+	   
 	def setDebugOutput(self):
 	        self.debug = True
 
@@ -190,7 +199,11 @@ class psl:
 		cmd_id=0
 		while(cmd_id!=self.CMD_END.getId()):
 		  cmd_id= struct.unpack(">H",p[pos:(pos+2)])[0]
-		  cmd=self.cmd_by_id[cmd_id];
+		  if cmd_id in self.cmd_by_id:
+		     cmd=self.cmd_by_id[cmd_id]
+		  else:
+		     print "Unkown Response %d" % cmd_id
+		     cmd=psl_typ.psl_typ_hex(cmd_id,"UNKOWN")
 		  pos=pos+2
 		  len=struct.unpack(">H",p[pos:(pos+2)])[0]
 		  pos=pos+2

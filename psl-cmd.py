@@ -5,6 +5,8 @@ import argparse
 import binascii
 import sys
 from psl import psl
+import psl_typ
+g = psl()
 
 query_cmds={
   "ip":psl.CMD_IP,
@@ -59,7 +61,9 @@ passwd_parser.add_argument("--new",nargs=1,help="new password",required=True)
 query_parser=subparsers.add_parser("query",help="Query values from the switch")
 query_parser.add_argument("--mac",nargs=1,help="Hardware adresse of the switch",required=True)
 query_parser.add_argument("--passwd",nargs=1,help="password")
-ch=query_cmds.keys()
+ch=[]
+for cmd in g.getQueryCmds():
+ ch.append(cmd.getName())
 ch.append("all")
 query_parser.add_argument("query",nargs="+",help="What to query for",choices=ch);
 
@@ -89,7 +93,7 @@ args = parser.parse_args()
 interface=args.interface[0]
 #print interface
 
-g = psl(interface)
+g.bind(interface)
 
 def discover():
   print "Searching for ProSafe Plus Switches ...\n"
@@ -148,33 +152,6 @@ def set():
   print "Changing Values..\n"
   g.transmit(cmd,args.mac[0],g.transfunc)
 
-def display_port_stat(data):
-   print "%-30s%4s%15s%15s %s" %("Port Statistic:","Port","Rec.","Send","FIXME")
-   for row in data:
-      print "%-30s%4d%15d%15d %s" %("",row["port"],row["rec"],row["send"],row["rest"])
-
-def display_speed_stat(data):
-   print "%-30s%4s%15s%10s" %("Speed Statistic:","Port","Speed","FIXME")
-   for row in data:
-      speed=row["speed"]
-      if speed==psl.SPEED_NONE:
-	 speed="Not conn."
-      if speed==psl.SPEED_10MH:
-	 speed="10 Mbit/s H"
-      if speed==psl.SPEED_10ML:
-	 speed="10 Mbit/s L"
-      if speed==psl.SPEED_100MH:
-	 speed="100 Mbit/s H"
-      if speed==psl.SPEED_100ML:
-	 speed="100 Mbit/s L"
-      if speed==psl.SPEED_1G:
-	 speed="1 Gbit/s"
-      print "%-30s%4d%15s%10s" %("",row["port"],speed,row["rest"])
-  
-queryFuncHash={
-  psl.CMD_PORT_STAT:display_port_stat,
-  psl.CMD_SPEED_STAT:display_speed_stat
-  }
 def query():
   print "Query Values..\n";
   if not(args.passwd == None):
@@ -183,20 +160,17 @@ def query():
   cmd=[]
   for q in args.query:
     if q == "all":
-      for k in query_cmds.keys():
-        if ((query_cmds[k]!=psl.CMD_VLAN_ID) and (query_cmds[k]!=psl.CMD_VLAN802_ID)):
-  	  cmd.append(query_cmds[k])
-    if q in query_cmds:
-       cmd.append(query_cmds[q])
+      for k in g.getQueryCmds():
+        if ((k!=psl.CMD_VLAN_ID) and (k!=psl.CMD_VLAN802_ID)):
+  	  cmd.append(k)
+    else:
+       c=g.getCmdByName(q) 
+       cmd.append(c)
   g.query(cmd,args.mac[0],g.storefunc)
   for key in g.outdata.keys():
-    if key in queryFuncHash:
-      func=queryFuncHash[key]
-      func(g.outdata[key])
+    if isinstance(key, psl_typ.psl_typ):
+       key.printResult(g.outdata[key])
     else:
-     if key in query_cmds_rev:
-       print "%-30s%s" %(query_cmds_rev[key].capitalize(),g.outdata[key])
-     else:
        if args.debug:
          print "-%-29s%s" %(key,g.outdata[key])
 

@@ -2,6 +2,7 @@
 import binascii
 import struct
 import ipaddr
+import pprint
 class psl_typ:
       def __init__(self, id,name):
 	  self.id = id
@@ -25,6 +26,9 @@ class psl_typ:
       def unpack_cmd(self,value):
 	  raise NotImplementedError
   
+      def printResult(self,value):
+	  print "%-30s%s" %(self.getName().capitalize(),value)
+	  
       def isSetable(self):
 	  return True
      
@@ -50,6 +54,20 @@ class psl_typ_string(psl_typ):
 	  return value
 
 ###########################################################################################
+class psl_typ_password(psl_typ_string):
+      def __init__(self, id,name,setable):
+	  self.id = id
+	  self.name = name
+	  self.setable=setable
+	  
+      def isQueryAble(self):
+	  return False
+
+      def isSetable(self):
+	  return self.setable
+
+
+###########################################################################################
 
 class psl_typ_boolean(psl_typ):
       def __init__(self, id,name):
@@ -73,6 +91,20 @@ class psl_typ_boolean(psl_typ):
 	    return "on"
 	  else:
 	    return "off"
+	   
+	   
+###########################################################################################
+class psl_typ_action(psl_typ_boolean):
+     def __init__(self, id,name):
+	  self.id = id
+	  self.name = name
+	  
+     def pack_py(self,value):
+         return struct.pack(">b",0x01)
+
+     def isQueryAble(self):
+	 return False
+
 ###########################################################################################
 
 class psl_typ_mac(psl_typ):
@@ -137,10 +169,29 @@ class psl_typ_hex(psl_typ):
 
         def unpack_cmd(self,value):
 	  return self.unpack_py(self,value)
+###########################################################################################
+
+class psl_typ_end(psl_typ_hex):
+      def __init__(self, id,name):
+	  self.id = id
+	  self.name = name
+
+      def isSetable(self):
+	  return False
+     
+      def isQueryAble(self):
+	  return False
+
 
 ###########################################################################################
 
 class psl_typ_speed_stat(psl_typ):
+        SPEED_NONE=0x00
+        SPEED_10MH=0x01
+        SPEED_10ML=0x02
+        SPEED_100MH=0x03
+        SPEED_100ML=0x04
+        SPEED_1G=0x05
         def __init__(self, id,name):
 	  self.id = id
 	  self.name = name
@@ -154,6 +205,23 @@ class psl_typ_speed_stat(psl_typ):
 
         def isSetable(self):
 	   return False
+        def printResult(self,value):
+           print "%-30s%4s%15s%10s" %("Speed Statistic:","Port","Speed","FIXME")
+           for row in value:
+             speed=row["speed"]
+             if speed==psl_typ_speed_stat.SPEED_NONE:
+	       speed="Not conn."
+             if speed==psl_typ_speed_stat.SPEED_10MH:
+	       speed="10 Mbit/s H"
+             if speed==psl_typ_speed_stat.SPEED_10ML:
+	       speed="10 Mbit/s L"
+             if speed==psl_typ_speed_stat.SPEED_100MH:
+	       speed="100 Mbit/s H"
+             if speed==psl_typ_speed_stat.SPEED_100ML:
+	       speed="100 Mbit/s L"
+             if speed==psl_typ_speed_stat.SPEED_1G:
+	       speed="1 Gbit/s"
+             print "%-30s%4d%15s%10s" %("",row["port"],speed,row["rest"])
 
 
 ###########################################################################################
@@ -173,7 +241,10 @@ class psl_typ_port_stat(psl_typ):
           
         def isSetable(self):
 	   return False
-
+        def printResult(self,value):
+           print "%-30s%4s%15s%15s %s" %("Port Statistic:","Port","Rec.","Send","FIXME")
+           for row in value:
+              print "%-30s%4d%15d%15d %s" %("",row["port"],row["rec"],row["send"],row["rest"])
 
 ###########################################################################################
 
