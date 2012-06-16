@@ -103,6 +103,7 @@ def unpack_bandwith(v):
  
 def pack_vlanid(v):
  return v
+
 def unpack_vlanid(v):
   r={
       "port":struct.unpack(">b",v[0])[0],
