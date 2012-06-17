@@ -130,7 +130,7 @@ def query():
     g.query(cmd,args.mac[0],g.storefunc)
     for key in g.outdata.keys():
         if isinstance(key, psl_typ.Psl_typ):
-            key.printResult(g.outdata[key])
+            key.print_result(g.outdata[key])
         else:
             if args.debug:
                 print "-%-29s%s" %(key,g.outdata[key])

@@ -27,7 +27,7 @@ class Psl_typ:
     def unpack_cmd(self, value):
         raise NotImplementedError
 
-    def printResult(self, value):
+    def print_result(self, value):
         print "%-30s%s" % (self.getName(). capitalize(), value)
 
     def isSetable(self):
@@ -210,7 +210,7 @@ class psl_typ_speed_stat(Psl_typ):
 
     def isSetable(self):
         return False
-    def printResult(self,value):
+    def print_result(self,value):
         print "%-30s%4s%15s%10s" %("Speed Statistic:","Port","Speed","FIXME")
         for row in value:
             speed=row["speed"]
@@ -246,7 +246,7 @@ class psl_typ_port_stat(Psl_typ):
 
     def isSetable(self):
         return False
-    def printResult(self,value):
+    def print_result(self,value):
         print "%-30s%4s%15s%15s %s" %("Port Statistic:","Port",
                                       "Rec.","Send","FIXME")
         for row in value:
