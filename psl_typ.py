@@ -3,7 +3,6 @@ import binascii
 import struct
 import ipaddr
 
-
 class PslTyp:
     def __init__(self, cmd_id, name):
         self.cmd_id = cmd_id
@@ -77,8 +76,9 @@ class PslTypBoolean(PslTyp):
             return struct.pack(">b", 0x00)
 
     def unpack_py(self, value):
-        return (value == 0x01)
-
+        numval = struct.unpack(">b",value)[0]
+        return (numval==0x01)
+        
     def pack_cmd(self, value):
         return self.pack_py(value.lowercase == "on")
 
@@ -88,6 +88,16 @@ class PslTypBoolean(PslTyp):
         else:
             return "off"
 
+################################################################################
+
+class PslTypDHCP(PslTypBoolean):
+
+    def pack_py(self, value):
+        if (value):
+            # DHCP on
+            return struct.pack(">b", 0x01)
+        else:
+            return struct.pack(">b", 0x00)
 
 ###############################################################################
 class PslTypAction(PslTypBoolean):
@@ -332,4 +342,27 @@ class PslTypPortBasedQOS(PslTyp):
             "port":struct.unpack(">B", value[0])[0],
             "qos":struct.unpack(">B", value[1:])[0]
         }
-        return rtn    
+        return rtn
+
+################################################################################
+
+class PslTypBroadcastFilter(PslTyp):
+    def unpack_py(self,value):
+        rtn = {
+            "port":struct.unpack(">B", value[0])[0],
+            "rest":struct.unpack(">h", value[1:3])[0],
+            "filter":struct.unpack(">h", value[3:])[0]
+        }
+        return rtn
+
+################################################################################
+
+class PslTypIGMPSnooping(PslTyp):
+    def unpack_py(self,value):
+        enabled=struct.unpack(">h", value[0:2])[0]
+        if (enabled==0):
+            return None
+        if (enabled==0x0001):
+            # VLAN Id
+            return struct.unpack(">h", value[2:])[0]
+        raise "Unkown value %d" % enabled

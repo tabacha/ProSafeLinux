@@ -45,7 +45,7 @@ class ProSafeLinux:
     CMD_GATEWAY  = psl_typ.PslTypIpv4(0x0008, "gateway")
     CMD_NEW_PASSWORD = psl_typ.PslTypPassword(0x0009, "new_password", True)
     CMD_PASSWORD = psl_typ.PslTypPassword(0x000a, "password", False)
-    CMD_DHCP     = psl_typ.PslTypBoolean(0x000b, "dhcp")
+    CMD_DHCP     = psl_typ.PslTypDHCP(0x000b, "dhcp")
     CMD_FIXMEC   = psl_typ.PslTypHex(0x000c, "fixmeC")
     CMD_FIRMWAREV =  psl_typ.PslTypString(0x000d, "firmwarever")
     CMD_FIMXEE    =  psl_typ.PslTypHex(0x000e, "fixmeE")
@@ -68,13 +68,13 @@ class ProSafeLinux:
     CMD_BANDWITH_OUTGOING_LIMIT =  psl_typ.PslTypBandwith(
                                               0x5000, "bandwith-out")
     CMD_FIXME5400 =  psl_typ.PslTypHex(0x5400, "fxime5400")
-    CMD_BROADCAST_FILTER =  psl_typ.PslTypHex(0x5800, "broadcast-filter")
+    CMD_BROADCAST_FILTER =  psl_typ.PslTypBroadcastFilter(0x5800, "broadcast-filter")
     CMD_PORT_MIRROR =  psl_typ.PslTypHex(0x5c00, "port-mirror")
     CMD_NUMBER_OF_PORTS =  psl_typ.PslTypHex(0x6000, "number-of-ports") 
-    CMD_FIXME6800 =  psl_typ.PslTypHex(0x6800, "fixme6800")
+    CMD_IGMP_SNOOPING =  psl_typ.PslTypIGMPSnooping(0x6800, "igmp-snooping")
     CMD_BLOCK_UNKOWN_MULTICAST =  psl_typ.PslTypBoolean(
                                               0x6c00, "block-unknown-multicast")
-    CMD_IGMP_SPOOFING =  psl_typ.PslTypBoolean(0x7000, "igmp-spoofing")
+    CMD_IGMP_HEADER_VALIDATION =  psl_typ.PslTypBoolean(0x7000, "igmp-header-validation")
     CMD_FIXME7400 =  psl_typ.PslTypHex(0x7400, "fixme7400")
     CMD_END	     = psl_typ.PslTypEnd(0xffff, "END")
 
