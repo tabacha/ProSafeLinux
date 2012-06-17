@@ -8,44 +8,6 @@ from psl import psl
 import psl_typ
 g = psl()
 
-query_cmds={
-    "ip":psl.CMD_IP,
-    "name":psl.CMD_NAME,
-    "model":psl.CMD_MODEL,
-    "mac":psl.CMD_MAC,
-    "gateway":psl.CMD_GATEWAY,
-    "dhcp":psl.CMD_DHCP,
-    "netmask":psl.CMD_NETMASK,
-    "firmware_version":psl.CMD_FIRMWAREV,
-    "traffic-statistic":psl.CMD_PORT_STAT,
-    "speed-statistic":psl.CMD_SPEED_STAT,
-    "vlan_engine":psl.CMD_VLAN_SUPP,
-    "vlan_id":psl.CMD_VLAN_ID,
-    "vlan802_id":psl.CMD_VLAN802_ID, 
-    "vlan_pvid":psl.CMD_VLANPVID,
-    "qos_id":psl.CMD_QUALITY_OF_SERVICE,
-    "port_qos":psl.CMD_PORT_BASED_QOS,
-    "bandwith_limit_in":psl.CMD_BANDWITH_INCOMMING_LIMIT,
-    "bandwith_limit_out":psl.CMD_BANDWITH_OUTGOING_LIMIT,
-    "broadcast_filter":psl.CMD_BROADCAST_FILTER,
-    "port_mirror":psl.CMD_PORT_MIRROR,
-    "block_unkown_multicast":psl.CMD_BLOCK_UNKOWN_MULTICAST,
-    "igmp_spoofing":psl.CMD_IGMP_SPOOFING,
-    "fixme_2":psl.CMD_FIMXE2,
-    "fixme_5":psl.CMD_FIMXE5,
-    "fixme_c":psl.CMD_FIXMEC,	
-    "fixme_e":psl.CMD_FIXMEF,
-    "fixme_f":psl.CMD_FIXMEF,
-    "number_of_ports":psl.CMD_NUMBER_OF_PORTS,
-    "fixme_6800":psl.CMD_FIXME6800,
-    "fixme_7400":psl.CMD_FIXME7400,
-}
-
-query_cmds_rev={}
-
-for key in query_cmds: 
-    value=query_cmds[key]
-    query_cmds_rev[value]=key
 
 parser = argparse.ArgumentParser(description='Manage Netgear ProSafe Plus switches under linux.')
 parser.add_argument("--interface",nargs=1,help="Interface",default=["eth0"])
@@ -180,15 +142,21 @@ def query_raw():
         login={g.CMD_PASSWORD:args.passwd[0]}
         g.transmit(login,args.mac[0],g.transfunc)
     i=0x0001
-    while (i<psl.CMD_END):
+    while (i<psl.CMD_END.getId()):
         cmd=[]
-        cmd.append(i)
+        cmd.append(psl_typ.psl_typ_hex(i,"Command %d"%i))
         try:
             g.query(cmd,args.mac[0],g.rec_raw)    
-            if i in g.outdata.keys():
-                print "RES:%04x:%-29s:%s " %(i,g.outdata[i],g.outdata["raw"])
-            else:
+            found=None
+            for c in g.outdata.keys():
+                if (isinstance(c,psl_typ.psl_typ)):
+                    if c.getId()==i:
+                        found=c
+                
+            if found is None:
                 print "NON:%04x:%-29s:%s" % (i,"",g.outdata["raw"])
+            else:
+                print "RES:%04x:%-29s:%s " %(i,g.outdata[found],g.outdata["raw"])
             if args.debug:
                 for key in g.outdata.keys():
                     print "%x-%-29s%s" %(i,key,g.outdata[key])

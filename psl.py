@@ -107,6 +107,7 @@ class psl:
 
     RECPORT=63321
     SENDPORT=63322
+    
     def __init__(self):
         self.myhost = None
         self.srcmac = None
@@ -188,7 +189,7 @@ class psl:
             recvfunc(message,address)
         self.recv(recvfunc,maxlen,timeout)
 
-    def parse_packet(self,p):
+    def parse_packet(self,p,unknown_warn):
         data = {}
         data["seq"]= struct.unpack(">H",p[22:24])[0]
         data["ctype"]= struct.unpack(">H",p[0:2])[0]
@@ -202,8 +203,9 @@ class psl:
             if cmd_id in self.cmd_by_id:
                 cmd=self.cmd_by_id[cmd_id]
             else:
-                print "Unkown Response %d" % cmd_id
-                cmd=psl_typ.psl_typ_hex(cmd_id,"UNKOWN")
+                if unknown_warn:
+                    print "Unkown Response %d" % cmd_id
+                cmd=psl_typ.psl_typ_hex(cmd_id,"UNKOWN %d" %cmd_id)
             pos=pos+2
             len=struct.unpack(">H",p[pos:(pos+2)])[0]
             pos=pos+2
@@ -225,7 +227,7 @@ class psl:
 
     def discoverfunc(self,m,a):
         #print "==FOUND SWITCH=="
-        data = self.parse_packet(m)
+        data = self.parse_packet(m,True)
         dhcpstr=""
         if (data[self.CMD_DHCP]):
             dhcpstr=" DHCP=on"
@@ -233,7 +235,7 @@ class psl:
 
     def storediscoverfunc(self,m,a):
         #print "==FOUND SWITCH=="
-        data = self.parse_packet(m)
+        data = self.parse_packet(m,True)
         if self.debug:
             print "Store MAC,IP: "+data[self.CMD_MAC]+" "+data[self.CMD_IP]
         self.mac_cache[data[self.CMD_MAC]]=data[self.CMD_IP]
@@ -241,7 +243,7 @@ class psl:
 
     def transfunc(self,m,a):
         #print "==FOUND SWITCH=="
-        data = self.parse_packet(m)
+        data = self.parse_packet(m,True)
         if self.debug:
             pprint.pprint(data)
             if data["flags"]==self.FLAG_PASSWORD_ERROR:
@@ -251,7 +253,7 @@ class psl:
 
     def storefunc(self,m,a):
         #print "==FOUND SWITCH=="
-        self.outdata = self.parse_packet(m)
+        self.outdata = self.parse_packet(m,True)
         if self.debug:
             pprint.pprint(self.outdata)
 
@@ -260,9 +262,10 @@ class psl:
 
             if self.outdata["flags"]==0:
                 print "Flags: success"
+                
     def rec_raw(self,m,a):
         try:
-            self.storefunc(m,a)
+            self.outdata = self.parse_packet(m,False)
         except:
             pass
         self.outdata["raw"]=binascii.hexlify(m)
