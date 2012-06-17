@@ -154,6 +154,14 @@ class PslTypHex(PslTyp):
 
     def unpack_cmd(self, value):
         return self.unpack_py(self, value)
+
+################################################################################
+
+class PslTypHexNoQuery(PslTypHex):
+
+    def is_queryable(self):
+        return False
+    
 ################################################################################
 
 class PslTypEnd(PslTypHex):
@@ -164,6 +172,8 @@ class PslTypEnd(PslTypHex):
     def is_queryable(self):
         return False
 
+    def print_result(self, value):
+        pass
 
 ################################################################################
 
@@ -281,10 +291,23 @@ class PslTypBandwith(PslTyp):
 ################################################################################
 
 class PslTypVlanId(PslTyp):
-
+    BIN_PORTS = { 1:0x80,
+                  2:0x40,
+                  3:0x20,
+                  4:0x10,
+                  5:0x08,
+                  6:0x04,
+                  7:0x02,
+                  8:0x01
+                  }
     def unpack_py(self, value):
+        ports = struct.unpack(">B", value[2:])[0]
+        out_ports = []
+        for port in self.BIN_PORTS.keys():
+            if ( ports & self.BIN_PORTS[port] >0 ):
+                out_ports.append(port)
         rtn = {
-            "port":struct.unpack(">b",value[0])[0],
-            "id":struct.unpack(">h",value[1:])[0],
+            "vlan_id":struct.unpack(">h", value[0:2])[0],
+            "ports":out_ports
         }
         return rtn

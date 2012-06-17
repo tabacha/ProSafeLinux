@@ -56,7 +56,7 @@ class ProSafeLinux:
     CMD_PORT_STAT =  psl_typ.PslTypPortStat(0x1000, "port-stat")
     CMD_RESET_PORT_STAT = psl_typ.PslTypAction(0x1400, "reset-port-stat")
     CMD_TEST_CABLE = psl_typ.PslTypAction(0x1800, "test-cable")
-    CMD_TEST_CABLE_RESP = psl_typ.PslTypHex(0x1c00, "test-cable-resp")
+    CMD_TEST_CABLE_RESP = psl_typ.PslTypHexNoQuery(0x1c00, "test-cable-resp")
     CMD_VLAN_SUPP = psl_typ.PslTypHex(0x2000, "vlan-supp")
     CMD_VLAN_ID  = psl_typ.PslTypVlanId(0x2400, "vlan-id")
     CMD_VLAN802_ID = psl_typ.PslTypHex(0x2800, "vlan802-id")
@@ -82,15 +82,6 @@ class ProSafeLinux:
     CTYPE_QUERY_RESPONSE =  0x0102
     CTYPE_TRANSMIT_REQUEST  =  0x103
     CTYPE_TRANSMIT_RESPONSE = 0x104
-
-    BIN_PORT1 = 0x80
-    BIN_PORT2 = 0x40
-    BIN_PORT3 = 0x20
-    BIN_PORT4 = 0x10
-    BIN_PORT5 = 0x08
-    BIN_PORT6 = 0x04
-    BIN_PORT7 = 0x02
-    BIN_PORT8 = 0x01
 
     FLAG_PASSWORD_ERROR = 0x000a        
 
