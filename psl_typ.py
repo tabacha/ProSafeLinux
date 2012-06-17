@@ -375,6 +375,10 @@ class PslTypBroadcastFilter(PslTyp):
 ################################################################################
 
 
+class UnknownValueException(Exception):
+    "Found something wich i dont know"
+
+
 class PslTypIGMPSnooping(PslTyp):
     def unpack_py(self, value):
         enabled = struct.unpack(">h", value[0:2])[0]
@@ -383,4 +387,4 @@ class PslTypIGMPSnooping(PslTyp):
         if (enabled == 0x0001):
             # VLAN Id
             return struct.unpack(">h", value[2:])[0]
-        raise "Unkown value %d" % enabled
+        raise UnknownValueException("Unkown value %d" % enabled)
