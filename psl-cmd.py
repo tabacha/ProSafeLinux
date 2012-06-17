@@ -24,7 +24,7 @@ query_parser.add_argument("--mac",nargs=1,help="Hardware adresse of the switch",
 query_parser.add_argument("--passwd",nargs=1,help="password")
 ch=[]
 for cmd in g.getQueryCmds():
-    ch.append(cmd.getName())
+    ch.append(cmd.get_name())
 ch.append("all")
 query_parser.add_argument("query",nargs="+",help="What to query for",choices=ch);
 

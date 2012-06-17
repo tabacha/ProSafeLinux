@@ -122,7 +122,7 @@ class psl:
         self.cmd_by_name={}
         for key,value in  inspect.getmembers(psl):
             if key.startswith("CMD_"):
-                self.cmd_by_name[value.getName()]=value
+                self.cmd_by_name[value.get_name()]=value
                 self.cmd_by_id[value.getId()]=value
 
     def bind(self,interface):

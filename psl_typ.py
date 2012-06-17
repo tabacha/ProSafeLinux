@@ -12,7 +12,7 @@ class Psl_typ:
     def getId(self):
         return self.cmd_id
 
-    def getName(self):
+    def get_name(self):
         return self.name
 
     def pack_py(self, value):
@@ -28,7 +28,7 @@ class Psl_typ:
         raise NotImplementedError
 
     def print_result(self, value):
-        print "%-30s%s" % (self.getName(). capitalize(), value)
+        print "%-30s%s" % (self.get_name(). capitalize(), value)
 
     def isSetable(self):
         return True
@@ -58,7 +58,7 @@ class psl_typ_string(Psl_typ):
 
 ###############################################################################
 class psl_typ_password(psl_typ_string):
-    def __init__(self, cmd_id,name,setable):
+    def __init__(self, cmd_id,name, setable):
         self.cmd_id = cmd_id
         self.name = name
         self.setable=setable
@@ -73,7 +73,7 @@ class psl_typ_password(psl_typ_string):
 ################################################################################
 
 class psl_typ_boolean(Psl_typ):
-    def __init__(self, cmd_id,name):
+    def __init__(self, cmd_id, name):
         self.cmd_id = cmd_id
         self.name = name
 
@@ -98,7 +98,7 @@ class psl_typ_boolean(Psl_typ):
 
 ###############################################################################
 class psl_typ_action(psl_typ_boolean):
-    def __init__(self, cmd_id,name):
+    def __init__(self, cmd_id, name):
         self.cmd_id = cmd_id
         self.name = name
 
@@ -111,7 +111,7 @@ class psl_typ_action(psl_typ_boolean):
 ################################################################################
 
 class psl_typ_mac(Psl_typ):
-    def __init__(self, cmd_id,name):
+    def __init__(self, cmd_id, name):
         self.cmd_id = cmd_id
         self.name = name
 
@@ -129,15 +129,15 @@ class psl_typ_mac(Psl_typ):
                ":"+mac[8:10]+":"+mac[10:12])
 
     def pack_cmd(self,value):
-        return self.pack_py(self,value)
+        return self.pack_py(self, value)
 
     def unpack_cmd(self,value):
-        return self.unpack_py(self,value)
+        return self.unpack_py(self, value)
 
 ################################################################################
 
 class psl_typ_ipv4(Psl_typ):
-    def __init__(self, cmd_id,name):
+    def __init__(self, cmd_id, name):
         self.cmd_id = cmd_id
         self.name = name
 
