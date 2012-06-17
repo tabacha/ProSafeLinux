@@ -232,7 +232,34 @@ class PslTypPortStat(PslTyp):
 ################################################################################
 
 class PslTypBandwith(PslTyp):
-
+    SPEED_LIMIT_NONE = 0x0000
+    SPEED_LIMIT_512K = 0x0001
+    SPEED_LIMIT_1M   = 0x0002
+    SPEED_LIMIT_2M   = 0x0003
+    SPEED_LIMIT_4M   = 0x0004
+    SPEED_LIMIT_8M   = 0x0005
+    SPEED_LIMIT_16M  = 0x0006
+    SPEED_LIMIT_32M  = 0x0007
+    SPEED_LIMIT_64M  = 0x0008
+    SPEED_LIMIT_128M = 0x0009
+    SPEED_LIMIT_256M = 0x000a
+    SPEED_LIMIT_512M = 0x000b
+    
+    speed_to_string={
+        SPEED_LIMIT_NONE:" NONE ",
+        SPEED_LIMIT_512K:"  0.5M",
+        SPEED_LIMIT_1M  :"  1.0M",
+        SPEED_LIMIT_2M  :"  2.0M",
+        SPEED_LIMIT_4M  :"  4.0M",
+        SPEED_LIMIT_8M  :"  8.0M",
+        SPEED_LIMIT_16M :" 16.0M",
+        SPEED_LIMIT_32M :" 32.0M",
+        SPEED_LIMIT_64M :" 64.0M",
+        SPEED_LIMIT_128M:"128.0M",
+        SPEED_LIMIT_256M:"256.0M",
+        SPEED_LIMIT_512M:"512.0m" 
+        }
+    
     def unpack_py(self, value):
         rtn = {
             "port":struct.unpack(">b", value[0])[0],
@@ -240,6 +267,14 @@ class PslTypBandwith(PslTyp):
             "rest":binascii.hexlify(value[1:2]),
         }
         return rtn
+
+    def print_result(self, value):
+        print "%-30s%4s%15s %s" % (self.get_name().capitalize(), "Port",
+                                      "Limit",  "FIXME")
+        for row in value:
+            print "%-30s%4d%15s %s " % ("", row["port"], self.speed_to_string[row["limit"]],
+                                           row["rest"])
+
 
 ################################################################################
 
