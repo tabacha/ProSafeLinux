@@ -123,7 +123,7 @@ class psl:
         for key,value in  inspect.getmembers(psl):
             if key.startswith("CMD_"):
                 self.cmd_by_name[value.get_name()]=value
-                self.cmd_by_id[value.getId()]=value
+                self.cmd_by_id[value.get_id()]=value
 
     def bind(self,interface):
         self.myhost = get_ip_address(interface)
@@ -148,7 +148,7 @@ class psl:
     def getQueryCmds(self):
         rtn=[]
         for cmd in self.cmd_by_name.values():
-            if cmd.isQueryAble():
+            if cmd.is_queryable():
                 rtn.append(cmd)
         return rtn
 
@@ -180,7 +180,7 @@ class psl:
         data["theirmac"]= binascii.hexlify(p[14:20])
         pos=32
         cmd_id=0
-        while(cmd_id!=self.CMD_END.getId()):
+        while(cmd_id!=self.CMD_END.get_id()):
             cmd_id= struct.unpack(">H",p[pos:(pos+2)])[0]
             if cmd_id in self.cmd_by_id:
                 cmd=self.cmd_by_id[cmd_id]
@@ -270,7 +270,7 @@ class psl:
         return data
 
     def addudp(self,cmd,datain=None):
-        data = struct.pack(">H",cmd.getId())
+        data = struct.pack(">H",cmd.get_id())
         if (datain is None):
             data += struct.pack(">H", 0)
         else:

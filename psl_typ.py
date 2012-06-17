@@ -9,7 +9,7 @@ class PslTyp:
         self.cmd_id = cmd_id
         self.name = name
 
-    def getId(self):
+    def get_id(self):
         return self.cmd_id
 
     def get_name(self):
@@ -30,10 +30,10 @@ class PslTyp:
     def print_result(self, value):
         print "%-30s%s" % (self.get_name(). capitalize(), value)
 
-    def isSetable(self):
+    def is_setable(self):
         return True
 
-    def isQueryAble(self):
+    def is_queryable(self):
         return True
 
 ###############################################################################
@@ -63,10 +63,10 @@ class PslTypPassword(PslTypString):
         self.name = name
         self.setable=setable
 
-    def isQueryAble(self):
+    def is_queryable(self):
         return False
 
-    def isSetable(self):
+    def is_setable(self):
         return self.setable
 
 
@@ -105,7 +105,7 @@ class PslTypAction(PslTypBoolean):
     def pack_py(self,value):
         return struct.pack(">b",0x01)
 
-    def isQueryAble(self):
+    def is_queryable(self):
         return False
 
 ################################################################################
@@ -181,10 +181,10 @@ class PslTypEnd(PslTypHex):
         self.cmd_id = cmd_id
         self.name = name
 
-    def isSetable(self):
+    def is_setable(self):
         return False
 
-    def isQueryAble(self):
+    def is_queryable(self):
         return False
 
 
@@ -208,7 +208,7 @@ class PslTypSpeedStat(PslTyp):
         }
         return r
 
-    def isSetable(self):
+    def is_setable(self):
         return False
     def print_result(self,value):
         print "%-30s%4s%15s%10s" %("Speed Statistic:","Port","Speed","FIXME")
@@ -244,7 +244,7 @@ class PslTypPortStat(PslTyp):
         }
         return r
 
-    def isSetable(self):
+    def is_setable(self):
         return False
     def print_result(self,value):
         print "%-30s%4s%15s%15s %s" %("Port Statistic:","Port",

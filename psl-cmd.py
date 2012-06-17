@@ -141,7 +141,7 @@ def query_raw():
         login={g.CMD_PASSWORD:args.passwd[0]}
         g.transmit(login,args.mac[0],g.transfunc)
     i=0x0001
-    while (i<psl.CMD_END.getId()):
+    while (i<psl.CMD_END.get_id()):
         cmd=[]
         cmd.append(psl_typ.PslTypHex(i,"Command %d"%i))
         try:
@@ -149,7 +149,7 @@ def query_raw():
             found=None
             for c in g.outdata.keys():
                 if (isinstance(c,psl_typ.PslTyp)):
-                    if c.getId()==i:
+                    if c.get_id()==i:
                         found=c
 
             if found is None:
