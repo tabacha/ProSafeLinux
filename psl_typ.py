@@ -4,7 +4,7 @@ import struct
 import ipaddr
 
 
-class Psl_typ:
+class PslTyp:
     def __init__(self, cmd_id, name):
         self.cmd_id = cmd_id
         self.name = name
@@ -39,7 +39,7 @@ class Psl_typ:
 ###############################################################################
 
 
-class psl_typ_string(Psl_typ):
+class PslTypString(PslTyp):
     def __init__(self, cmd_id, name):
         self.cmd_id = cmd_id
         self.name = name
@@ -57,7 +57,7 @@ class psl_typ_string(Psl_typ):
         return value
 
 ###############################################################################
-class psl_typ_password(psl_typ_string):
+class psl_typ_password(PslTypString):
     def __init__(self, cmd_id,name, setable):
         self.cmd_id = cmd_id
         self.name = name
@@ -72,7 +72,7 @@ class psl_typ_password(psl_typ_string):
 
 ################################################################################
 
-class psl_typ_boolean(Psl_typ):
+class psl_typ_boolean(PslTyp):
     def __init__(self, cmd_id, name):
         self.cmd_id = cmd_id
         self.name = name
@@ -110,7 +110,7 @@ class psl_typ_action(psl_typ_boolean):
 
 ################################################################################
 
-class psl_typ_mac(Psl_typ):
+class psl_typ_mac(PslTyp):
     def __init__(self, cmd_id, name):
         self.cmd_id = cmd_id
         self.name = name
@@ -136,7 +136,7 @@ class psl_typ_mac(Psl_typ):
 
 ################################################################################
 
-class psl_typ_ipv4(Psl_typ):
+class psl_typ_ipv4(PslTyp):
     def __init__(self, cmd_id, name):
         self.cmd_id = cmd_id
         self.name = name
@@ -158,7 +158,7 @@ class psl_typ_ipv4(Psl_typ):
 
 ################################################################################
 
-class psl_typ_hex(Psl_typ):
+class psl_typ_hex(PslTyp):
     def __init__(self, cmd_id,name):
         self.cmd_id = cmd_id
         self.name = name
@@ -190,7 +190,7 @@ class psl_typ_end(psl_typ_hex):
 
 ################################################################################
 
-class psl_typ_speed_stat(Psl_typ):
+class psl_typ_speed_stat(PslTyp):
     SPEED_NONE=0x00
     SPEED_10MH=0x01
     SPEED_10ML=0x02
@@ -231,7 +231,7 @@ class psl_typ_speed_stat(Psl_typ):
 
 ################################################################################
 
-class psl_typ_port_stat(Psl_typ):
+class psl_typ_port_stat(PslTyp):
     def __init__(self, cmd_id,name):
         self.cmd_id = cmd_id
         self.name = name
@@ -255,7 +255,7 @@ class psl_typ_port_stat(Psl_typ):
 
 ################################################################################
 
-class psl_typ_bandwith(Psl_typ):
+class psl_typ_bandwith(PslTyp):
     def __init__(self, cmd_id,name):
         self.cmd_id = cmd_id
         self.name = name
@@ -269,7 +269,7 @@ class psl_typ_bandwith(Psl_typ):
 
 ################################################################################
 
-class psl_typ_vlanid(Psl_typ):
+class psl_typ_vlanid(PslTyp):
     def __init__(self, cmd_id,name):
         self.cmd_id = cmd_id
         self.name = name

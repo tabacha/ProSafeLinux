@@ -36,9 +36,9 @@ def unpack_mac(value):
     return mac[0:2]+":"+mac[2:4]+":"+mac[4:6]+":"+mac[6:8]+":"+mac[8:10]+":"+mac[10:12]
 
 class psl:
-    CMD_MODEL    = psl_typ.psl_typ_string(0x0001,"model")
+    CMD_MODEL    = psl_typ.PslTypString(0x0001,"model")
     CMD_FIMXE2   = psl_typ.psl_typ_hex(0x0002,"fixme2")
-    CMD_NAME     = psl_typ.psl_typ_string(0x0003,"name")
+    CMD_NAME     = psl_typ.PslTypString(0x0003,"name")
     CMD_MAC      = psl_typ.psl_typ_mac(0x0004,"MAC")
     CMD_FIMXE5   = psl_typ.psl_typ_hex(0x0005,"fixme5")
     CMD_IP       = psl_typ.psl_typ_ipv4(0x0006,"ip")
@@ -48,7 +48,7 @@ class psl:
     CMD_PASSWORD = psl_typ.psl_typ_password(0x000a,"password",False)
     CMD_DHCP     = psl_typ.psl_typ_boolean(0x000b,"dhcp")
     CMD_FIXMEC   = psl_typ.psl_typ_hex(0x000c,"fixmeC")
-    CMD_FIRMWAREV= psl_typ.psl_typ_string(0x000d,"firmwarever")
+    CMD_FIRMWAREV= psl_typ.PslTypString(0x000d,"firmwarever")
     CMD_FIMXEE   = psl_typ.psl_typ_hex(0x000e,"fixmeE")
     CMD_FIXMEF   = psl_typ.psl_typ_hex(0x000f,"fixmeF")
     CMD_REBOOT   = psl_typ.psl_typ_action(0x0013,"reboot")

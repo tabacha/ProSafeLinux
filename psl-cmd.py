@@ -129,7 +129,7 @@ def query():
             cmd.append(c)
     g.query(cmd,args.mac[0],g.storefunc)
     for key in g.outdata.keys():
-        if isinstance(key, psl_typ.Psl_typ):
+        if isinstance(key, psl_typ.PslTyp):
             key.print_result(g.outdata[key])
         else:
             if args.debug:
@@ -148,7 +148,7 @@ def query_raw():
             g.query(cmd,args.mac[0],g.rec_raw)
             found=None
             for c in g.outdata.keys():
-                if (isinstance(c,psl_typ.Psl_typ)):
+                if (isinstance(c,psl_typ.PslTyp)):
                     if c.getId()==i:
                         found=c
 
