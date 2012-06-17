@@ -245,7 +245,7 @@ class PslTypBandwith(PslTyp):
     SPEED_LIMIT_256M = 0x000a
     SPEED_LIMIT_512M = 0x000b
     
-    speed_to_string={
+    speed_to_string = {
         SPEED_LIMIT_NONE:" NONE ",
         SPEED_LIMIT_512K:"  0.5M",
         SPEED_LIMIT_1M  :"  1.0M",
@@ -272,8 +272,10 @@ class PslTypBandwith(PslTyp):
         print "%-30s%4s%15s %s" % (self.get_name().capitalize(), "Port",
                                       "Limit",  "FIXME")
         for row in value:
-            print "%-30s%4d%15s %s " % ("", row["port"], self.speed_to_string[row["limit"]],
-                                           row["rest"])
+            print "%-30s%4d%15s %s " % ("", 
+                                        row["port"], 
+                                        self.speed_to_string[row["limit"]],
+                                        row["rest"])
 
 
 ################################################################################
