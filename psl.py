@@ -107,7 +107,7 @@ class psl:
 
     RECPORT=63321
     SENDPORT=63322
-    
+
     def __init__(self):
         self.myhost = None
         self.srcmac = None
@@ -158,7 +158,7 @@ class psl:
     def setDebugOutput(self):
         self.debug = True
 
-    
+
     def recv(self,recvfunc,maxlen=8192,timeout=0.005):
         self.rsocket.settimeout(timeout)
         try:
@@ -244,7 +244,7 @@ class psl:
 
             if self.outdata["flags"]==0:
                 print "Flags: success"
-                
+
     def rec_raw(self,m,a):
         try:
             self.outdata = self.parse_packet(m,False)
@@ -343,5 +343,4 @@ class psl:
                    self.CMD_DHCP,
                    self.CMD_IP];
         self.query(query_arr,None,self.discoverfunc)
-
 

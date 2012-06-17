@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-import binascii
 import sys
 from psl import psl
 import psl_typ
@@ -103,7 +102,7 @@ def set():
                 print "When dhcp=on, no ip,gateway nor netmask is allowed"
                 return
         else:
-            if (not((psl.CMD_IP in cmd) and (psl.CMD_GATEWAY in cmd) and (psl.CMD_NETMASK in cmd))): 
+            if (not((psl.CMD_IP in cmd) and (psl.CMD_GATEWAY in cmd) and (psl.CMD_NETMASK in cmd))):
                 print "When dhcp=off, you have to specify ip,gateway and netmask"
                 return
     else:
@@ -126,7 +125,7 @@ def query():
                 if ((k!=psl.CMD_VLAN_ID) and (k!=psl.CMD_VLAN802_ID)):
                     cmd.append(k)
         else:
-            c=g.getCmdByName(q) 
+            c=g.getCmdByName(q)
             cmd.append(c)
     g.query(cmd,args.mac[0],g.storefunc)
     for key in g.outdata.keys():
@@ -146,13 +145,13 @@ def query_raw():
         cmd=[]
         cmd.append(psl_typ.psl_typ_hex(i,"Command %d"%i))
         try:
-            g.query(cmd,args.mac[0],g.rec_raw)    
+            g.query(cmd,args.mac[0],g.rec_raw)
             found=None
             for c in g.outdata.keys():
                 if (isinstance(c,psl_typ.psl_typ)):
                     if c.getId()==i:
                         found=c
-                
+
             if found is None:
                 print "NON:%04x:%-29s:%s" % (i,"",g.outdata["raw"])
             else:
