@@ -158,25 +158,7 @@ class psl:
     def setDebugOutput(self):
         self.debug = True
 
-    def unpackValue(self,cmd,value):
-        #try:
-        if cmd in self.TYPHASH:
-            f=self.TYPHASH[cmd][1]
-            return f(value)
-        else:
-            if self.debug:
-                print "error unpack cmd %d" %(cmd)
-            return binascii.hexlify(value)
-            #except:
-            #  
-
-    def packValue(self,cmd,value):
-        try:
-            f=self.TYPHASH[cmd][0]
-            return f(value)
-        except:
-            return binascii.unhexlify(value)
-
+    
     def recv(self,recvfunc,maxlen=8192,timeout=0.005):
         self.rsocket.settimeout(timeout)
         try:
@@ -292,7 +274,7 @@ class psl:
         if (datain is None):
             data += struct.pack(">H", 0)
         else:
-            pdata=self.packValue(cmd.getId(),datain);
+            pdata=cmd.pack_py(datain)
             data += struct.pack(">H", len(pdata))
             data += pdata
         return data
