@@ -143,7 +143,7 @@ def query_raw():
     i=0x0001
     while (i<psl.CMD_END.getId()):
         cmd=[]
-        cmd.append(psl_typ.psl_typ_hex(i,"Command %d"%i))
+        cmd.append(psl_typ.PslTypHex(i,"Command %d"%i))
         try:
             g.query(cmd,args.mac[0],g.rec_raw)
             found=None

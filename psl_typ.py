@@ -57,7 +57,7 @@ class PslTypString(PslTyp):
         return value
 
 ###############################################################################
-class psl_typ_password(PslTypString):
+class PslTypPassword(PslTypString):
     def __init__(self, cmd_id,name, setable):
         self.cmd_id = cmd_id
         self.name = name
@@ -72,7 +72,7 @@ class psl_typ_password(PslTypString):
 
 ################################################################################
 
-class psl_typ_boolean(PslTyp):
+class PslTypBoolean(PslTyp):
     def __init__(self, cmd_id, name):
         self.cmd_id = cmd_id
         self.name = name
@@ -97,7 +97,7 @@ class psl_typ_boolean(PslTyp):
 
 
 ###############################################################################
-class psl_typ_action(psl_typ_boolean):
+class PslTypAction(PslTypBoolean):
     def __init__(self, cmd_id, name):
         self.cmd_id = cmd_id
         self.name = name
@@ -110,7 +110,7 @@ class psl_typ_action(psl_typ_boolean):
 
 ################################################################################
 
-class psl_typ_mac(PslTyp):
+class PslTypMac(PslTyp):
     def __init__(self, cmd_id, name):
         self.cmd_id = cmd_id
         self.name = name
@@ -136,7 +136,7 @@ class psl_typ_mac(PslTyp):
 
 ################################################################################
 
-class psl_typ_ipv4(PslTyp):
+class PslTypIpv4(PslTyp):
     def __init__(self, cmd_id, name):
         self.cmd_id = cmd_id
         self.name = name
@@ -158,7 +158,7 @@ class psl_typ_ipv4(PslTyp):
 
 ################################################################################
 
-class psl_typ_hex(PslTyp):
+class PslTypHex(PslTyp):
     def __init__(self, cmd_id,name):
         self.cmd_id = cmd_id
         self.name = name
@@ -176,7 +176,7 @@ class psl_typ_hex(PslTyp):
         return self.unpack_py(self,value)
 ################################################################################
 
-class psl_typ_end(psl_typ_hex):
+class PslTypEnd(PslTypHex):
     def __init__(self, cmd_id,name):
         self.cmd_id = cmd_id
         self.name = name
@@ -190,7 +190,7 @@ class psl_typ_end(psl_typ_hex):
 
 ################################################################################
 
-class psl_typ_speed_stat(PslTyp):
+class PslTypSpeedStat(PslTyp):
     SPEED_NONE=0x00
     SPEED_10MH=0x01
     SPEED_10ML=0x02
@@ -214,24 +214,24 @@ class psl_typ_speed_stat(PslTyp):
         print "%-30s%4s%15s%10s" %("Speed Statistic:","Port","Speed","FIXME")
         for row in value:
             speed=row["speed"]
-            if speed==psl_typ_speed_stat.SPEED_NONE:
+            if speed==PslTypSpeedStat.SPEED_NONE:
                 speed="Not conn."
-            if speed==psl_typ_speed_stat.SPEED_10MH:
+            if speed==PslTypSpeedStat.SPEED_10MH:
                 speed="10 Mbit/s H"
-            if speed==psl_typ_speed_stat.SPEED_10ML:
+            if speed==PslTypSpeedStat.SPEED_10ML:
                 speed="10 Mbit/s L"
-            if speed==psl_typ_speed_stat.SPEED_100MH:
+            if speed==PslTypSpeedStat.SPEED_100MH:
                 speed="100 Mbit/s H"
-            if speed==psl_typ_speed_stat.SPEED_100ML:
+            if speed==PslTypSpeedStat.SPEED_100ML:
                 speed="100 Mbit/s L"
-            if speed==psl_typ_speed_stat.SPEED_1G:
+            if speed==PslTypSpeedStat.SPEED_1G:
                 speed="1 Gbit/s"
             print "%-30s%4d%15s%10s" %("",row["port"],speed,row["rest"])
 
 
 ################################################################################
 
-class psl_typ_port_stat(PslTyp):
+class PslTypPortStat(PslTyp):
     def __init__(self, cmd_id,name):
         self.cmd_id = cmd_id
         self.name = name
@@ -255,7 +255,7 @@ class psl_typ_port_stat(PslTyp):
 
 ################################################################################
 
-class psl_typ_bandwith(PslTyp):
+class PslTypBandwith(PslTyp):
     def __init__(self, cmd_id,name):
         self.cmd_id = cmd_id
         self.name = name
@@ -269,7 +269,7 @@ class psl_typ_bandwith(PslTyp):
 
 ################################################################################
 
-class psl_typ_vlanid(PslTyp):
+class PslTypVlanId(PslTyp):
     def __init__(self, cmd_id,name):
         self.cmd_id = cmd_id
         self.name = name
