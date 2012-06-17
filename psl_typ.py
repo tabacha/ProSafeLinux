@@ -311,3 +311,25 @@ class PslTypVlanId(PslTyp):
             "ports":out_ports
         }
         return rtn
+
+################################################################################
+
+    
+class PslTypVlanPVID(PslTyp):
+    def unpack_py(self, value):
+        rtn = {
+            "port":struct.unpack(">B", value[0])[0],
+            "vlan_id":struct.unpack(">h", value[1:])[0]
+        }
+        return rtn    
+
+################################################################################
+
+    
+class PslTypPortBasedQOS(PslTyp):
+    def unpack_py(self, value):
+        rtn = {
+            "port":struct.unpack(">B", value[0])[0],
+            "qos":struct.unpack(">B", value[1:])[0]
+        }
+        return rtn    
