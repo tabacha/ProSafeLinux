@@ -146,8 +146,6 @@ def query_raw():
             print "ERR:%04x:%s" %(i,sys.exc_info()[1])
         i=i+1
 
-
-
 cmdHash = {
     "discover": discover,
     "set": set,
@@ -159,6 +157,6 @@ if (args.debug):
     g.set_debug_output()
 
 if args.operation in cmdHash:
-    cmdHash[args.operation]();
+    cmdHash[args.operation]()
 else:
     print "ERROR: operation not found!"
