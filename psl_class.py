@@ -65,7 +65,7 @@ class ProSafeLinux:
     CMD_TEST_CABLE_RESP = psl_typ.PslTypHexNoQuery(0x1c00, "test_cable_resp")
     CMD_VLAN_SUPPORT = psl_typ.PslTypVlanSupport(0x2000, "vlan_support")
     CMD_VLAN_ID = psl_typ.PslTypVlanId(0x2400, "vlan_id")
-    CMD_VLAN802_ID = psl_typ.PslTypHex(0x2800, "vlan802_id")
+    CMD_VLAN802_ID = psl_typ.PslTypVlan802Id(0x2800, "vlan802_id")
     CMD_VLANPVID = psl_typ.PslTypVlanPVID(0x3000, "vlan_pvid")
     CMD_QUALITY_OF_SERVICE = psl_typ.PslTypHex(0x3400, "qos")
     CMD_PORT_BASED_QOS = psl_typ.PslTypPortBasedQOS(0x3800, "port_bases_qos")

@@ -370,6 +370,38 @@ class PslTypVlanId(PslTyp):
 ################################################################################
 
 
+class PslTypVlan802Id(PslTyp):
+    BIN_PORTS = {1: 0x80,
+                  2: 0x40,
+                  3: 0x20,
+                  4: 0x10,
+                  5: 0x08,
+                  6: 0x04,
+                  7: 0x02,
+                  8: 0x01
+                  }
+
+    def unpack_py(self, value):
+        taged_ports = struct.unpack(">B", value[2])[0]
+        untaged_ports = struct.unpack(">B", value[3])[0]
+        out_taged_ports = []
+        out_untaged_ports = []
+        for port in self.BIN_PORTS.keys():
+            if (taged_ports & self.BIN_PORTS[port] > 0):
+                out_taged_ports.append(port)
+            if (untaged_ports & self.BIN_PORTS[port] > 0):
+                out_untaged_ports.append(port)
+        rtn = {
+            "vlan_id": struct.unpack(">h", value[0:2])[0],
+            "taged_ports": out_taged_ports,
+            "untaged_ports": out_untaged_ports
+
+        }
+        return rtn
+
+################################################################################
+
+
 class PslTypVlanPVID(PslTyp):
     def unpack_py(self, value):
         rtn = {
