@@ -9,15 +9,11 @@ g = ProSafeLinux()
 
 
 parser = argparse.ArgumentParser(description='Manage Netgear ProSafe Plus switches under linux.')
-parser.add_argument("--interface",nargs=1,help="Interface",default=["eth0"])
-parser.add_argument("--debug",help="Debug output",action='store_true')
+parser.add_argument("--interface", nargs=1, help="Interface",default=["eth0"])
+parser.add_argument("--debug", help="Debug output", action='store_true')
 subparsers = parser.add_subparsers(help='operation',dest="operation")
 
 discover_parser=subparsers.add_parser('discover', help='Find all switches in all subnets')
-passwd_parser=subparsers.add_parser("passwd",help="Change Password of a switch")
-passwd_parser.add_argument("--mac",nargs=1,help="Hardware adresse of the switch",required=True)
-passwd_parser.add_argument("--old",nargs=1,help="old password",required=True)
-passwd_parser.add_argument("--new",nargs=1,help="new password",required=True)
 
 query_parser=subparsers.add_parser("query",help="Query values from the switch")
 query_parser.add_argument("--mac",nargs=1,help="Hardware adresse of the switch",required=True)
@@ -32,92 +28,77 @@ query_parser=subparsers.add_parser("query_raw",help="Query raw values from the s
 query_parser.add_argument("--mac",nargs=1,help="Hardware adresse of the switch",required=True)
 query_parser.add_argument("--passwd",nargs=1,help="password")
 
-reboot_parser=subparsers.add_parser("reboot",help="Reboot the switch")
-reboot_parser.add_argument("--mac",nargs=1,help="Hardware adresse of the switch",required=True)
-reboot_parser.add_argument("--passwd",nargs=1,help="password",required=True)
 
-reset_parser=subparsers.add_parser("factory-reset",help="Reset the switch")
-reset_parser.add_argument("--mac",nargs=1,help="Hardware adresse of the switch",required=True)
-reset_parser.add_argument("--passwd",nargs=1,help="password",required=True)
+set_parser = subparsers.add_parser("set", help="Set values to the switch")
+set_parser.add_argument("--mac", nargs=1,
+    help="Hardware adresse of the switch", required=True)
+set_parser.add_argument("--passwd", nargs=1, help="password", required=True)
 
-set_parser=subparsers.add_parser("set",help="Set values to the switch")
-set_parser.add_argument("--mac",nargs=1,help="Hardware adresse of the switch",required=True)
-set_parser.add_argument("--passwd",nargs=1,help="password",required=True)
-set_parser.add_argument("--ip",nargs=1,help="Change IP")
-set_parser.add_argument("--name",nargs=1,help="Change Name")
-set_parser.add_argument("--gateway",nargs=1,help="Default Gateway")
-set_parser.add_argument("--netmask",nargs=1,help="Netmask")
-set_parser.add_argument("--dhcp",nargs=1,help="DHCP?",choices=["on","off"])
-set_parser.add_argument("--reset-traffic-statistic",dest="resettraffictstatistic",action='store_true');
+for cmd in g.get_setable_cmds():
+    if isinstance(cmd, psl_typ.PslTypAction):
+        set_parser.add_argument("--" + cmd.get_name(),
+            dest=cmd.get_name(), action='store_true')
+
+    else:
+        if isinstance(cmd, psl_typ.PslTypBoolean):
+            set_parser.add_argument("--" + cmd.get_name(), nargs=1,
+                choices=["on", "off"])
+        else:
+            set_parser.add_argument("--" + cmd.get_name(), nargs=1)
 
 args = parser.parse_args()
-interface=args.interface[0]
-#print interface
+interface = args.interface[0]
 
 g.bind(interface)
+
 
 def discover():
     print "Searching for ProSafe Plus Switches ...\n"
     g.discover()
 
-def reboot():
-    print "Rebooting Switch...\n";
-    cmd={g.CMD_PASSWORD:args.passwd[0],
-         g.CMD_REBOOT:True}
-    g.transmit(cmd,args.mac[0],g.transfunc)
-
-def factoryReset():
-    print "Reseting Switch to factory defaults...\n";
-    cmd={g.CMD_PASSWORD:args.passwd[0],
-         g.CMD_FACTORY_RESET:True}
-    g.transmit(cmd,args.mac[0],g.transfunc)
-if args.operation=="passwd":
-    print "Changing Password...\n";
-    g.passwd(args.mac[0],args.old[0],args.new[0],g.transfunc)
 
 def set():
-    cmd={ProSafeLinux.CMD_PASSWORD:args.passwd[0]}
+    cmds = {ProSafeLinux.CMD_PASSWORD: args.passwd[0]}
+    for cmd in g.get_setable_cmds():
+        if vars(args)[cmd.get_name()] is not None:
+            if isinstance(cmd, psl_typ.PslTypAction):
+                if vars(args)[cmd.get_name()]:
+                    cmds[cmd] = True
+            else:
+                if isinstance(cmd, psl_typ.PslTypBoolean):
+                    cmds[cmd] = (vars(args)[cmd.get_name()][0] == "on")
+                else:
+                    cmds[cmd] = vars(args)[cmd.get_name()][0]
 
-    if (args.ip):
-        cmd[ProSafeLinux.CMD_IP]=args.ip[0]
-
-    if (args.dhcp):
-        cmd[ProSafeLinux.CMD_DHCP]=(args.dhcp[0]=="on")
-
-    if (args.name):
-        cmd[ProSafeLinux.CMD_NAME]=args.name[0]
-
-    if (args.gateway):
-        cmd[ProSafeLinux.CMD_GATEWAY]=args.gateway[0]
-
-    if (args.netmask):
-        cmd[ProSafeLinux.CMD_NETMASK]=args.netmask[0]
-
-    if (args.resettraffictstatistic):
-        cmd[ProSafeLinux.CMD_RESET_PORT_STAT]=True
-
-    if ProSafeLinux.CMD_DHCP in cmd:
-        if cmd[ProSafeLinux.CMD_DHCP]:
-            if (ProSafeLinux.CMD_IP in cmd) or (ProSafeLinux.CMD_GATEWAY in cmd) or (ProSafeLinux.CMD_NETMASK in cmd):
+    if ProSafeLinux.CMD_DHCP in cmds:
+        if cmds[ProSafeLinux.CMD_DHCP]:
+            if ((ProSafeLinux.CMD_IP in cmds) or
+                (ProSafeLinux.CMD_GATEWAY in cmds) or
+                (ProSafeLinux.CMD_NETMASK in cmds)):
                 print "When dhcp=on, no ip,gateway nor netmask is allowed"
                 return
         else:
-            if (not((ProSafeLinux.CMD_IP in cmd) and (ProSafeLinux.CMD_GATEWAY in cmd) and (ProSafeLinux.CMD_NETMASK in cmd))):
-                print "When dhcp=off, you have to specify ip,gateway and netmask"
+            if (not((ProSafeLinux.CMD_IP in cmds) and
+              (ProSafeLinux.CMD_GATEWAY in cmds) and
+              (ProSafeLinux.CMD_NETMASK in cmds))):
+                print "When dhcp=off, specify ip,gateway and netmask"
                 return
     else:
-        if (ProSafeLinux.CMD_IP in cmd) or (ProSafeLinux.CMD_GATEWAY in cmd) or (ProSafeLinux.CMD_NETMASK in cmd):
-            print "To change network settings use dhcp,ip,gateway and netmask option together"
+        if ((ProSafeLinux.CMD_IP in cmds) or
+          (ProSafeLinux.CMD_GATEWAY in cmds) or
+          (ProSafeLinux.CMD_NETMASK in cmds)):
+            print "Use dhcp on,ip,gateway and netmask option together"
             return
 
     print "Changing Values..\n"
-    g.transmit(cmd,args.mac[0],g.transfunc)
+    g.transmit(cmds, args.mac[0], g.transfunc)
+
 
 def query():
-    print "Query Values..\n";
+    print "Query Values..\n"
     if not(args.passwd == None):
-        login={g.CMD_PASSWORD:args.passwd[0]}
-        g.transmit(login,args.mac[0],g.transfunc)
+        login = {g.CMD_PASSWORD: args.passwd[0]}
+        g.transmit(login, args.mac[0], g.transfunc)
     cmd=[]
     for q in args.query:
         if q == "all":
@@ -167,13 +148,11 @@ def query_raw():
 
 
 
-cmdHash={
-    "reboot":reboot,
-    "discover":discover,
-    "factory-reset":factoryReset,
-    "set":set,
-    "query":query,
-    "query_raw":query_raw,
+cmdHash = {
+    "discover": discover,
+    "set": set,
+    "query": query,
+    "query_raw": query_raw,
 }
 
 if (args.debug):

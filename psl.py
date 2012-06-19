@@ -53,36 +53,36 @@ class ProSafeLinux:
     CMD_PASSWORD = psl_typ.PslTypPassword(0x000a, "password", False)
     CMD_DHCP = psl_typ.PslTypDHCP(0x000b, "dhcp")
     CMD_FIXMEC = psl_typ.PslTypHex(0x000c, "fixmeC")
-    CMD_FIRMWAREV = psl_typ.PslTypString(0x000d, "firmwarever")
+    CMD_FIRMWAREV = psl_typ.PslTypStringQueryOnly(0x000d, "firmwarever")
     CMD_FIMXEE = psl_typ.PslTypHex(0x000e, "fixmeE")
     CMD_FIXMEF = psl_typ.PslTypHex(0x000f, "fixmeF")
     CMD_REBOOT = psl_typ.PslTypAction(0x0013, "reboot")
     CMD_FACTORY_RESET = psl_typ.PslTypAction(0x0400, "factory_reset")
-    CMD_SPEED_STAT = psl_typ.PslTypSpeedStat(0x0c00, "speed-stat")
-    CMD_PORT_STAT = psl_typ.PslTypPortStat(0x1000, "port-stat")
-    CMD_RESET_PORT_STAT = psl_typ.PslTypAction(0x1400, "reset-port-stat")
-    CMD_TEST_CABLE = psl_typ.PslTypAction(0x1800, "test-cable")
-    CMD_TEST_CABLE_RESP = psl_typ.PslTypHexNoQuery(0x1c00, "test-cable-resp")
-    CMD_VLAN_SUPP = psl_typ.PslTypHex(0x2000, "vlan-supp")
-    CMD_VLAN_ID = psl_typ.PslTypVlanId(0x2400, "vlan-id")
-    CMD_VLAN802_ID = psl_typ.PslTypHex(0x2800, "vlan802-id")
-    CMD_VLANPVID = psl_typ.PslTypVlanPVID(0x3000, "vlan-pvid")
+    CMD_SPEED_STAT = psl_typ.PslTypSpeedStat(0x0c00, "speed_stat")
+    CMD_PORT_STAT = psl_typ.PslTypPortStat(0x1000, "port_stat")
+    CMD_RESET_PORT_STAT = psl_typ.PslTypAction(0x1400, "reset_port_stat")
+    CMD_TEST_CABLE = psl_typ.PslTypHexNoQuery(0x1800, "test_cable")
+    CMD_TEST_CABLE_RESP = psl_typ.PslTypHexNoQuery(0x1c00, "test_cable_resp")
+    CMD_VLAN_SUPP = psl_typ.PslTypHex(0x2000, "vlan_supp")
+    CMD_VLAN_ID = psl_typ.PslTypVlanId(0x2400, "vlan_id")
+    CMD_VLAN802_ID = psl_typ.PslTypHex(0x2800, "vlan802_id")
+    CMD_VLANPVID = psl_typ.PslTypVlanPVID(0x3000, "vlan_pvid")
     CMD_QUALITY_OF_SERVICE = psl_typ.PslTypHex(0x3400, "qos")
-    CMD_PORT_BASED_QOS = psl_typ.PslTypPortBasedQOS(0x3800, "port-bases-qos")
+    CMD_PORT_BASED_QOS = psl_typ.PslTypPortBasedQOS(0x3800, "port_bases_qos")
     CMD_BANDWITH_INCOMMING_LIMIT = psl_typ.PslTypBandwith(
-                                              0x4c00, "bandwith-in")
+                                              0x4c00, "bandwith_in")
     CMD_BANDWITH_OUTGOING_LIMIT = psl_typ.PslTypBandwith(
-                                              0x5000, "bandwith-out")
+                                              0x5000, "bandwith_out")
     CMD_FIXME5400 = psl_typ.PslTypHex(0x5400, "fxime5400")
     CMD_BROADCAST_FILTER = psl_typ.PslTypBroadcastFilter(0x5800,
-                 "broadcast-filter")
-    CMD_PORT_MIRROR = psl_typ.PslTypHex(0x5c00, "port-mirror")
-    CMD_NUMBER_OF_PORTS = psl_typ.PslTypHex(0x6000, "number-of-ports")
-    CMD_IGMP_SNOOPING = psl_typ.PslTypIGMPSnooping(0x6800, "igmp-snooping")
+                 "broadcast_filter")
+    CMD_PORT_MIRROR = psl_typ.PslTypHex(0x5c00, "port_mirror")
+    CMD_NUMBER_OF_PORTS = psl_typ.PslTypHex(0x6000, "number_of_ports")
+    CMD_IGMP_SNOOPING = psl_typ.PslTypIGMPSnooping(0x6800, "igmp_snooping")
     CMD_BLOCK_UNKOWN_MULTICAST = psl_typ.PslTypBoolean(
-                                              0x6c00, "block-unknown-multicast")
+                                              0x6c00, "block_unknown_multicast")
     CMD_IGMP_HEADER_VALIDATION = psl_typ.PslTypBoolean(0x7000,
-        "igmp-header-validation")
+        "igmp_header_validation")
     CMD_FIXME7400 = psl_typ.PslTypHex(0x7400, "fixme7400")
     CMD_END = psl_typ.PslTypEnd(0xffff, "END")
 
@@ -138,6 +138,13 @@ class ProSafeLinux:
         rtn = []
         for cmd in self.cmd_by_name.values():
             if cmd.is_queryable():
+                rtn.append(cmd)
+        return rtn
+
+    def get_setable_cmds(self):
+        rtn = []
+        for cmd in self.cmd_by_name.values():
+            if cmd.is_setable():
                 rtn.append(cmd)
         return rtn
 
