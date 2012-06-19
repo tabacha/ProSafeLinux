@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+"Main Programm executed by the user"
 
 import argparse
 import sys
