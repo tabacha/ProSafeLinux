@@ -63,7 +63,7 @@ class ProSafeLinux:
     CMD_RESET_PORT_STAT = psl_typ.PslTypAction(0x1400, "reset_port_stat")
     CMD_TEST_CABLE = psl_typ.PslTypHexNoQuery(0x1800, "test_cable")
     CMD_TEST_CABLE_RESP = psl_typ.PslTypHexNoQuery(0x1c00, "test_cable_resp")
-    CMD_VLAN_SUPP = psl_typ.PslTypHex(0x2000, "vlan_supp")
+    CMD_VLAN_SUPPORT = psl_typ.PslTypVlanSupport(0x2000, "vlan_support")
     CMD_VLAN_ID = psl_typ.PslTypVlanId(0x2400, "vlan_id")
     CMD_VLAN802_ID = psl_typ.PslTypHex(0x2800, "vlan802_id")
     CMD_VLANPVID = psl_typ.PslTypVlanPVID(0x3000, "vlan_pvid")

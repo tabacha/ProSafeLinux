@@ -161,11 +161,8 @@ def main():
                 dest=cmd.get_name(), action='store_true')
 
         else:
-            if isinstance(cmd, psl_typ.PslTypBoolean):
-                set_parser.add_argument("--" + cmd.get_name(), nargs=1,
-                    choices=["on", "off"])
-            else:
-                set_parser.add_argument("--" + cmd.get_name(), nargs=1)
+            set_parser.add_argument("--" + cmd.get_name(), nargs=1,
+                choices=cmd.get_choices())
 
     args = parser.parse_args()
     interface = args.interface[0]

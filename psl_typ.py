@@ -36,6 +36,9 @@ class PslTyp:
     def is_queryable(self):
         return True
 
+    def get_choices(self):
+        return None
+
 ###############################################################################
 
 
@@ -104,6 +107,9 @@ class PslTypBoolean(PslTyp):
 
     def is_setable(self):
         return True
+
+    def get_choices(self):
+        return ["on", "off"]
 
 
 ###############################################################################
@@ -411,3 +417,41 @@ class PslTypIGMPSnooping(PslTyp):
             # VLAN Id
             return struct.unpack(">h", value[2:])[0]
         raise UnknownValueException("Unkown value %d" % enabled)
+
+################################################################################
+
+
+class PslTypVlanSupport(PslTyp):
+    VLAN_NONE = 0x00
+    VLAN_PORT_BASED = 0x01
+    VLAN_ID_BASED = 0x02
+    VLAN_8021Q_PORT_BASED = 0x03
+    VLAN_8021Q_EXTENDED = 0x04
+    id2str = {
+        VLAN_NONE: "none",
+        VLAN_PORT_BASED: "port",
+        VLAN_ID_BASED: "id",
+        VLAN_8021Q_PORT_BASED: "802.1q_id",
+        VLAN_8021Q_EXTENDED: "802.1q_extended"
+        }
+
+    def unpack_py(self, value):
+        support = struct.unpack(">b", value[0])[0]
+        if support in self.id2str:
+            return self.id2str[support]
+        raise UnknownValueException("Unkown value %d" % support)
+
+    def pack_py(self, value):
+        found = None
+        for key in self.id2str:
+            if self.id2str[key] == value:
+                found = key
+        if found is None:
+            raise UnknownValueException("Unkown value %s" % value)
+        return struct.pack(">b", found)
+
+    def is_setable(self):
+        return True
+
+    def get_choices(self):
+        return self.id2str.values()
