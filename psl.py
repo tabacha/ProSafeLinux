@@ -7,11 +7,14 @@ import sys
 from psl_class import ProSafeLinux
 import psl_typ
 
+# pylint: disable=W0613
+
 
 def discover(args, switch):
     "Search for Switches"
     print "Searching for ProSafe Plus Switches ...\n"
     switch.discover()
+# pylint: enable=W0613
 
 
 def set_switch(args, switch):
