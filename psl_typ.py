@@ -31,7 +31,7 @@ class PslTyp:
         print "%-30s%s" % (self.get_name(). capitalize(), value)
 
     def is_setable(self):
-        return True
+        return False
 
     def is_queryable(self):
         return True
@@ -53,9 +53,20 @@ class PslTypString(PslTyp):
     def unpack_cmd(self, value):
         return value
 
+    def is_setable(self):
+        return True
+
+
 ###############################################################################
 
 
+class PslTypStringQueryOnly(PslTypString):
+
+    def is_setable(self):
+        return False
+
+
+###############################################################################
 class PslTypPassword(PslTypString):
     def __init__(self, cmd_id, name, setable):
         PslTypString.__init__(self, cmd_id, name)
@@ -91,6 +102,10 @@ class PslTypBoolean(PslTyp):
         else:
             return "off"
 
+    def is_setable(self):
+        return True
+
+
 ###############################################################################
 
 
@@ -113,6 +128,10 @@ class PslTypAction(PslTypBoolean):
 
     def is_queryable(self):
         return False
+
+    def is_setable(self):
+        return True
+
 
 ###############################################################################
 
@@ -156,6 +175,10 @@ class PslTypIpv4(PslTyp):
 
     def unpack_cmd(self, value):
         return self.unpack_py(self, value)
+
+    def is_setable(self):
+        return True
+
 
 ################################################################################
 
