@@ -230,11 +230,11 @@ class ProSafeLinux:
         data = self.parse_packet(msg, True)
         if self.debug:
             pprint.pprint(data)
-            if data["flags"] == self.FLAG_PASSWORD_ERROR:
-                print "wrong password"
             if data["flags"] == 0:
                 print "success"
-
+        if data["flags"] == self.FLAG_PASSWORD_ERROR:
+            print "wrong password"
+ 
     def storefunc(self, msg, adr):
         #print "==FOUND SWITCH=="
         self.outdata = self.parse_packet(msg, True)
