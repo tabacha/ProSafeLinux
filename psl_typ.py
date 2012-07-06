@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import binascii
 import struct
-import ipaddr
 
 
 class PslTyp:
@@ -169,12 +168,25 @@ class PslTypMac(PslTyp):
 class PslTypIpv4(PslTyp):
 
     def pack_py(self, value):
-        i = (int)(ipaddr.IPv4Address(value))
-        return struct.pack(">I", i)
+        print value
+        adr = value.split(".")
+        if len(adr)!= 4:
+            raise ValueError("Ipadress wrong format %s" % value)
+        for i in range(4):
+            try:
+                num = int(adr[i])
+            except ValueError:
+                raise ValueError("Ipadress wrong format %s (String?)" % value)
+            if num > 255:
+                raise ValueError("Ipadress wrong format %s (>255)" % value)
+            if num < 0:
+                raise ValueError("Ipadress wrong format %s (<0)" % value)
+        return struct.pack(">BBBB", int(adr[0]), int(adr[1]), int(adr[2]),
+                int(adr[3]))
 
     def unpack_py(self, value):
-        adr = struct.unpack(">I", value)[0]
-        return "%s" % ipaddr.IPv4Address(adr)
+        adr = struct.unpack(">BBBB", value)
+        return "%d.%d.%d.%d" % (adr[0], adr[1], adr[2], adr[3])
 
     def pack_cmd(self, value):
         return self.pack_py(self, value)

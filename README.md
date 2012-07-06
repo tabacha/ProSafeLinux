@@ -9,11 +9,6 @@ If your interface is **not** eth0 please specify it, when you call *psl.py*.
 
     ./psl.py --help gives a overview over the options
 
-# DEPENDENCYS
-
-
-http://code.google.com/p/ipaddr-py/downloads/detail?name=3144.tar.gz
-
 # Help wanted
 
 * If you have a switch which show CRC errors on statistic page,
