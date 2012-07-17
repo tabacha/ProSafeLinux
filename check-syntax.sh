@@ -22,7 +22,7 @@ if [ "$M" != "0" ] ; then
     cat $LOG
 fi
 
-pylint -d $DOCSTRING  -d $FIXME -d $UNUSED_ARG -d $EXCEPTION_TYPE \
+pylint -d $FIXME -d $UNUSED_ARG -d $EXCEPTION_TYPE \
        -d $INSTANCE_ATTRIBUTE  -d $METHOD_FUNCTION \
        -d $ABSTRACT psl_typ.py >$LOG 2>&1
 
