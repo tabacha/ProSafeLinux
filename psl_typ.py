@@ -37,6 +37,7 @@ class PslTyp:
         raise NotImplementedError
 
     def print_result(self, value):
+        "print a result for a query action"
         print "%-30s%s" % (self.get_name(). capitalize(), value)
 
     def is_setable(self):
@@ -76,7 +77,7 @@ class PslTypString(PslTyp):
 
 
 class PslTypStringQueryOnly(PslTypString):
-    "A String type which can only be queryed but not changed like firmware version"
+    "A String type which can only be queryed but not changed like firmware ver."
     def is_setable(self):
         return False
 
@@ -433,6 +434,7 @@ class PslTypVlan802Id(PslTyp):
 
 
 class PslTypVlanPVID(PslTyp):
+    "The PVID"
     def unpack_py(self, value):
         rtn = {
             "port": struct.unpack(">B", value[0])[0],
@@ -444,6 +446,7 @@ class PslTypVlanPVID(PslTyp):
 
 
 class PslTypPortBasedQOS(PslTyp):
+    "Port based qualiyt of servcie"
     def unpack_py(self, value):
         rtn = {
             "port": struct.unpack(">B", value[0])[0],
@@ -455,6 +458,7 @@ class PslTypPortBasedQOS(PslTyp):
 
 
 class PslTypBroadcastFilter(PslTyp):
+    "limit broadcast"
     def unpack_py(self, value):
         rtn = {
             "port": struct.unpack(">B", value[0])[0],
@@ -471,6 +475,7 @@ class UnknownValueException(Exception):
 
 
 class PslTypIGMPSnooping(PslTyp):
+    "IGMP Snooping"
     def unpack_py(self, value):
         enabled = struct.unpack(">h", value[0:2])[0]
         if (enabled == 0):
@@ -484,6 +489,7 @@ class PslTypIGMPSnooping(PslTyp):
 
 
 class PslTypVlanSupport(PslTyp):
+    "VLAN Support can be none, port-, ip-, 802-port- or 802 ext-based"
     VLAN_NONE = 0x00
     VLAN_PORT_BASED = 0x01
     VLAN_ID_BASED = 0x02
