@@ -32,7 +32,7 @@ if [ "$T" != "0" ] ; then
     cat $LOG
 fi
 
-pylint -d $DOCSTRING  -d $FIXME -d $UNUSED_ARG -d $EXCEPTION_TYPE \
+pylint -d $FIXME -d $UNUSED_ARG -d $EXCEPTION_TYPE \
        -d $INSTANCE_ATTRIBUTE psl_class.py >$LOG 2>&1
 
 C=$?

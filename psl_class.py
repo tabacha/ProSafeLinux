@@ -1,5 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+
+"Mail Class to comunicate with gs108e and gs105e netgear switches"
 import time
 import binascii
 import pprint
@@ -12,12 +14,14 @@ import inspect
 
 
 def get_hw_addr(ifname):
+    "gives the hardware (mac) adress of an interface (eth0,eth1..)"
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     info = fcntl.ioctl(sock.fileno(), 0x8927, struct.pack('256s', ifname[:15]))
     return ''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1]
 
 
 def get_ip_address(ifname):
+    "returns the frist ip adress of an inteface"
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     # 0x8915 = SIOCGIFADDR
     return socket.inet_ntoa(fcntl.ioctl(sock.fileno(), 0x8915,
@@ -26,6 +30,7 @@ def get_ip_address(ifname):
 
 
 def pack_mac(value):
+    "packs the hardware adress (mac) to the internal representation"
     if (len(value) == 17):
         return binascii.unhexlify(value[0:2] + value[3:5] + value[6:8] +
                                   value[9:11] + value[12:14] + value[15:17])
@@ -35,12 +40,14 @@ def pack_mac(value):
 
 
 def unpack_mac(value):
+    "unpack an internal representation to an hardware address"
     mac = binascii.hexlify(value)
     return (mac[0:2] + ":" + mac[2:4] + ":" + mac[4:6] + ":" + mac[6:8] +
             ":" + mac[8:10] + ":" + mac[10:12])
 
 
 class ProSafeLinux:
+    "Main class to comunicate with an ProSafe gs108e gs105e Switch"
     CMD_MODEL = psl_typ.PslTypString(0x0001, "model")
     CMD_FIMXE2 = psl_typ.PslTypHex(0x0002, "fixme2")
     CMD_NAME = psl_typ.PslTypString(0x0003, "name")
@@ -97,6 +104,7 @@ class ProSafeLinux:
     SENDPORT = 63322
 
     def __init__(self):
+        "constructor"
         self.myhost = None
         self.srcmac = None
         self.ssocket = None
@@ -114,6 +122,7 @@ class ProSafeLinux:
                 self.cmd_by_id[value.get_id()] = value
 
     def bind(self, interface):
+        "bind to an interface"
         self.myhost = get_ip_address(interface)
         self.srcmac = pack_mac(get_hw_addr(interface))
 
@@ -135,6 +144,7 @@ class ProSafeLinux:
         self.rsocket.bind(("255.255.255.255", self.RECPORT))
 
     def get_query_cmds(self):
+        "return all commands which can be used in an query"
         rtn = []
         for cmd in self.cmd_by_name.values():
             if cmd.is_queryable():
@@ -142,6 +152,7 @@ class ProSafeLinux:
         return rtn
 
     def get_setable_cmds(self):
+        "returns all commands which can be set"
         rtn = []
         for cmd in self.cmd_by_name.values():
             if cmd.is_setable():
@@ -149,12 +160,15 @@ class ProSafeLinux:
         return rtn
 
     def get_cmd_by_name(self, name):
+        "return a comand by its name"
         return self.cmd_by_name[name]
 
     def set_debug_output(self):
+        "set debuging"
         self.debug = True
 
     def recv(self, recvfunc, maxlen=8192, timeout=0.005):
+        "recieve a package from the switch"
         self.rsocket.settimeout(timeout)
         try:
             message, address = self.rsocket.recvfrom(maxlen)
@@ -167,6 +181,7 @@ class ProSafeLinux:
         self.recv(recvfunc, maxlen, timeout)
 
     def parse_packet(self, pack, unknown_warn):
+        "unpack package send by the switch"
         data = {}
         data["seq"] = struct.unpack(">H", pack[22:24])[0]
         data["ctype"] = struct.unpack(">H", pack[0:2])[0]
@@ -204,7 +219,7 @@ class ProSafeLinux:
         return data
 
     def discoverfunc(self, msg, adr):
-        #print "==FOUND SWITCH=="
+        "executed by discover to display any switch in the network"
         data = self.parse_packet(msg, True)
         dhcpstr = ""
         if (data[self.CMD_DHCP]):
@@ -216,7 +231,7 @@ class ProSafeLinux:
                                          dhcpstr)
 
     def storediscoverfunc(self, msg, adr):
-        #print "==FOUND SWITCH=="
+        "store discover ip"
         data = self.parse_packet(msg, True)
         if self.debug:
             print "Store MAC, IP: " + (data[self.CMD_MAC] + " " +
@@ -226,6 +241,7 @@ class ProSafeLinux:
         # data[self.CMD_IP], data[self.CMD_MODEL], data[self.CMD_NAME], dhcpstr)
 
     def transfunc(self, msg, adr):
+        "analyse response, after transfer"
         #print "==FOUND SWITCH=="
         data = self.parse_packet(msg, True)
         if self.debug:
@@ -236,18 +252,17 @@ class ProSafeLinux:
             print "wrong password"
  
     def storefunc(self, msg, adr):
-        #print "==FOUND SWITCH=="
+        "store data in outdata"
         self.outdata = self.parse_packet(msg, True)
+        if self.outdata["flags"] == self.FLAG_PASSWORD_ERROR:
+            print "Flags: wrong password"
         if self.debug:
             pprint.pprint(self.outdata)
-
-            if self.outdata["flags"] == self.FLAG_PASSWORD_ERROR:
-                print "Flags: wrong password"
-
             if self.outdata["flags"] == 0:
                 print "Flags: success"
 
     def rec_raw(self, msg, adr):
+        "recive raw data"
         try:
             self.outdata = self.parse_packet(msg, False)
         except:
@@ -255,12 +270,14 @@ class ProSafeLinux:
         self.outdata["raw"] = binascii.hexlify(msg)
 
     def send(self, host, port, data):
+        "send data to host on port"
         if self.debug:
             print "send to ip " + host + " data = " + binascii.hexlify(data)
         self.ssocket.sendto(data, (host, port))
         self.seq += 1
 
     def baseudp(self, ctype, destmac):
+        "Base UDP Package"
         reserved = "\x00"
         if destmac is None:
             destmac = 6 * "\x00"
@@ -274,6 +291,7 @@ class ProSafeLinux:
 
     @staticmethod
     def addudp(cmd, datain=None):
+        "Additional data to the base package"
         data = struct.pack(">H", cmd.get_id())
         if (datain is None):
             data += struct.pack(">H", 0)
@@ -284,6 +302,7 @@ class ProSafeLinux:
         return data
 
     def ip_from_mac(self, mac):
+        "query for the ip of a switch with a given mac address"
         if mac is None:
             return "255.255.255.255"
         if mac in self.mac_cache:
@@ -301,6 +320,7 @@ class ProSafeLinux:
         return "255.255.255.255"
 
     def query(self, cmd_arr, mac, func, use_ip_func=True):
+        "get some values from the switch, but do not change them"
         if use_ip_func:
             ipadr = self.ip_from_mac(mac)
         else:
@@ -315,6 +335,7 @@ class ProSafeLinux:
         self.recv(func)
 
     def transmit(self, cmd_arr, mac, func):
+        "change something in the switch, like name, mac ..."
         ipadr = self.ip_from_mac(mac)
         data = self.baseudp(destmac=mac, ctype=self.CTYPE_TRANSMIT_REQUEST)
         if self.CMD_PASSWORD in cmd_arr:
@@ -328,6 +349,7 @@ class ProSafeLinux:
         self.recv(func)
 
     def passwd(self, mac, old, new, func):
+        "change password from old to new"
         # The Order of the CMD_PASSWORD and CMD_NEW_PASSWORD is important
         ipadr = self.ip_from_mac(mac)
         data = self.baseudp(destmac=mac, ctype=self.CTYPE_TRANSMIT_REQUEST)
@@ -339,6 +361,7 @@ class ProSafeLinux:
         self.recv(func)
 
     def discover(self):
+        "find any switch in the network"
         query_arr = [self.CMD_MODEL,
                    self.CMD_NAME,
                    self.CMD_MAC,
