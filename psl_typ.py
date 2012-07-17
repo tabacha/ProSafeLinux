@@ -1,48 +1,61 @@
 # -*- coding: utf-8 -*-
+"Base Types for ProSafeLinux Class"
+
 import binascii
 import struct
 
 
 class PslTyp:
+    "Base type every other type is inherited by this"
     def __init__(self, cmd_id, name):
+        "constructor"
         self.cmd_id = cmd_id
         self.name = name
 
     def get_id(self):
+        "id of the command used by the switch to identify the command"
         return self.cmd_id
 
     def get_name(self):
+        "name used by a human to identify the command"
         return self.name
 
     def pack_py(self, value):
+        "pack a value to a represenation used by the switch"
         raise NotImplementedError
 
     def unpack_py(self, value):
+        "unpack a switch value to a represenation used by the programm"
         raise NotImplementedError
 
     def pack_cmd(self, value):
+        "pack something given from the cmd line"
         raise NotImplementedError
 
     def unpack_cmd(self, value):
+        "umpack something given from the cmd line"
         raise NotImplementedError
 
     def print_result(self, value):
         print "%-30s%s" % (self.get_name(). capitalize(), value)
 
     def is_setable(self):
+        "can this command be set like name (not like firmware version)"
         return False
 
     def is_queryable(self):
+        "can the command be queryed like name (not like reboot switch)"
         return True
 
     def get_choices(self):
+        "if there is more than one choice you can query it here"
         return None
 
 ###############################################################################
 
 
 class PslTypString(PslTyp):
-
+    "A String typ line name"
     def pack_py(self, value):
         return value
 
@@ -63,13 +76,14 @@ class PslTypString(PslTyp):
 
 
 class PslTypStringQueryOnly(PslTypString):
-
+    "A String type which can only be queryed but not changed like firmware version"
     def is_setable(self):
         return False
 
 
 ###############################################################################
 class PslTypPassword(PslTypString):
+    "A password can be set, but not query for"
     def __init__(self, cmd_id, name, setable):
         PslTypString.__init__(self, cmd_id, name)
         self.setable = setable
@@ -84,7 +98,7 @@ class PslTypPassword(PslTypString):
 
 
 class PslTypBoolean(PslTyp):
-
+    " A boolean type, like dhcp on or off"
     def pack_py(self, value):
         if (value):
             return struct.pack(">b", 0x01)
@@ -115,7 +129,7 @@ class PslTypBoolean(PslTyp):
 
 
 class PslTypDHCP(PslTypBoolean):
-
+    "DHCP"
     def pack_py(self, value):
         if (value):
             # DHCP on
@@ -127,7 +141,7 @@ class PslTypDHCP(PslTypBoolean):
 
 
 class PslTypAction(PslTypBoolean):
-
+    "An action like reset or reboot switch"
     def pack_py(self, value):
         return struct.pack(">b", 0x01)
 
@@ -142,7 +156,7 @@ class PslTypAction(PslTypBoolean):
 
 
 class PslTypMac(PslTyp):
-
+    "the mac address"
     def pack_py(self, val):
         if (len(val) == 17):
             return binascii.unhexlify(val[0:2] + val[3:5] + val[6:8] +
@@ -166,7 +180,7 @@ class PslTypMac(PslTyp):
 
 
 class PslTypIpv4(PslTyp):
-
+    "IPv4 adrresss, gateway or netmask"
     def pack_py(self, value):
         print value
         adr = value.split(".")
@@ -202,7 +216,7 @@ class PslTypIpv4(PslTyp):
 
 
 class PslTypHex(PslTyp):
-
+    "just decode to hex"
     def pack_py(self, value):
         return binascii.unhexlify(value)
 
@@ -219,7 +233,7 @@ class PslTypHex(PslTyp):
 
 
 class PslTypHexNoQuery(PslTypHex):
-
+    "not query hex"
     def is_queryable(self):
         return False
 
@@ -227,7 +241,7 @@ class PslTypHexNoQuery(PslTypHex):
 
 
 class PslTypEnd(PslTypHex):
-
+    "the last cmd of an query is End"
     def is_setable(self):
         return False
 
@@ -241,6 +255,7 @@ class PslTypEnd(PslTypHex):
 
 
 class PslTypSpeedStat(PslTyp):
+    "Speed statisik 10/100/1000 per port"
     SPEED_NONE = 0x00
     SPEED_10MH = 0x01
     SPEED_10ML = 0x02
@@ -283,7 +298,7 @@ class PslTypSpeedStat(PslTyp):
 
 
 class PslTypPortStat(PslTyp):
-
+    "how many bytes are recieved/send on each port"
     def unpack_py(self, val):
         rtn = {
             "port": struct.unpack(">b", val[0])[0],
@@ -307,6 +322,7 @@ class PslTypPortStat(PslTyp):
 
 
 class PslTypBandwith(PslTyp):
+    "limit bandwith"
     SPEED_LIMIT_NONE = 0x0000
     SPEED_LIMIT_512K = 0x0001
     SPEED_LIMIT_1M = 0x0002
@@ -357,15 +373,16 @@ class PslTypBandwith(PslTyp):
 
 
 class PslTypVlanId(PslTyp):
+    "Vlan ports are binary coded"
     BIN_PORTS = {1: 0x80,
-                  2: 0x40,
-                  3: 0x20,
-                  4: 0x10,
-                  5: 0x08,
-                  6: 0x04,
-                  7: 0x02,
-                  8: 0x01
-                  }
+                 2: 0x40,
+                 3: 0x20,
+                 4: 0x10,
+                 5: 0x08,
+                 6: 0x04,
+                 7: 0x02,
+                 8: 0x01
+                 }
 
     def unpack_py(self, value):
         ports = struct.unpack(">B", value[2:])[0]
@@ -383,6 +400,7 @@ class PslTypVlanId(PslTyp):
 
 
 class PslTypVlan802Id(PslTyp):
+    "802Vlan is binary coded"
     BIN_PORTS = {1: 0x80,
                   2: 0x40,
                   3: 0x20,
