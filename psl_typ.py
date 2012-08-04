@@ -52,15 +52,19 @@ class PslTyp:
         return None
 
     def get_num_args(self):
+        "Number of arguments needed to set"
         return 1
 
     def get_metavar(self):
+        "argparse metavar to set"
         return None
     
     def get_set_type(self):
+        "argparse type to set"
         return None
     
     def get_set_help(self):
+        "argparse help argument for set operation"
         return None
 
 ###############################################################################
@@ -442,6 +446,7 @@ class PslTypVlan802Id(PslTyp):
         return rtn
         
     def pack_port(self, ports):
+        "helper method to pack ports to binary"
         rtn = 0
         for port in ports.split(","):
             rtn = rtn + self.BIN_PORTS[int(port)]
