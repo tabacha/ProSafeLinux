@@ -2,7 +2,6 @@
 import binascii
 import struct
 
-
 class PslTyp:
     def __init__(self, cmd_id, name):
         self.cmd_id = cmd_id
@@ -36,6 +35,12 @@ class PslTyp:
         return True
 
     def get_choices(self):
+        return None
+
+    def get_num_args(self):
+        return 1
+
+    def get_metavar(self):
         return None
 
 ###############################################################################
@@ -421,6 +426,19 @@ class PslTypVlanPVID(PslTyp):
             "vlan_id": struct.unpack(">h", value[1:])[0]
         }
         return rtn
+
+    def pack_py(self, value):
+        rtn = struct.pack(">Bh", int(value[0]), int(value[1]))
+        return rtn
+
+    def is_setable(self):
+        return True
+
+    def get_num_args(self):
+        return 2
+
+    def get_metavar(self):
+        return ("PORT","VLAN_ID")
 
 ################################################################################
 
