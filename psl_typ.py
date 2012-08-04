@@ -42,6 +42,12 @@ class PslTyp:
 
     def get_metavar(self):
         return None
+    
+    def get_set_type(self):
+        return None
+    
+    def get_set_help(self):
+        return None
 
 ###############################################################################
 
@@ -462,6 +468,11 @@ class PslTypVlanPVID(PslTyp):
     def get_metavar(self):
         return ("PORT","VLAN_ID")
 
+    def get_set_type(self):
+        return int
+        
+    def get_set_help(self):
+        return "a untaged package on PORT will get this VLAN_ID"
 ################################################################################
 
 
@@ -539,3 +550,4 @@ class PslTypVlanSupport(PslTyp):
 
     def get_choices(self):
         return self.id2str.values()
+

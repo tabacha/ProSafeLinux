@@ -167,6 +167,8 @@ def main():
         else:
             set_parser.add_argument("--" + cmd.get_name(), 
                 nargs=cmd.get_num_args(),
+                type=cmd.get_set_type(),
+                help=cmd.get_set_help(),
                 metavar=cmd.get_metavar(),
                 choices=cmd.get_choices())
 
