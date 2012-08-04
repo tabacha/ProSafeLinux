@@ -48,7 +48,7 @@ def unpack_mac(value):
 
 class ProSafeLinux:
     "Main class to comunicate with an ProSafe gs108e gs105e Switch"
-    CMD_MODEL = psl_typ.PslTypString(0x0001, "model")
+    CMD_MODEL = psl_typ.PslTypStringQueryOnly(0x0001, "model")
     CMD_FIMXE2 = psl_typ.PslTypHex(0x0002, "fixme2")
     CMD_NAME = psl_typ.PslTypString(0x0003, "name")
     CMD_MAC = psl_typ.PslTypMac(0x0004, "MAC")

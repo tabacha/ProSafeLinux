@@ -4,7 +4,6 @@
 import binascii
 import struct
 
-
 class PslTyp:
     "Base type every other type is inherited by this"
     def __init__(self, cmd_id, name):
@@ -50,6 +49,18 @@ class PslTyp:
 
     def get_choices(self):
         "if there is more than one choice you can query it here"
+        return None
+
+    def get_num_args(self):
+        return 1
+
+    def get_metavar(self):
+        return None
+    
+    def get_set_type(self):
+        return None
+    
+    def get_set_help(self):
         return None
 
 ###############################################################################
@@ -429,7 +440,29 @@ class PslTypVlan802Id(PslTyp):
 
         }
         return rtn
+        
+    def pack_port(self, ports):
+        rtn = 0
+        for port in ports.split(","):
+            rtn = rtn + self.BIN_PORTS[int(port)]
+        return rtn
 
+    def pack_py(self, value):
+        taged = self.pack_port(value[1])
+        untaged = self.pack_port(value[2])
+        rtn = struct.pack(">hBB", int(value[0]), taged, untaged)
+        return rtn
+        
+    def is_setable(self):
+        return True
+
+    def get_num_args(self):
+        return 3
+
+    def get_metavar(self):
+        return ("VLAN_ID", "TAGED_PORTS", "UNTAGED_PORTS")
+
+        
 ################################################################################
 
 
@@ -442,6 +475,24 @@ class PslTypVlanPVID(PslTyp):
         }
         return rtn
 
+    def pack_py(self, value):
+        rtn = struct.pack(">Bh", int(value[0]), int(value[1]))
+        return rtn
+
+    def is_setable(self):
+        return True
+
+    def get_num_args(self):
+        return 2
+
+    def get_metavar(self):
+        return ("PORT","VLAN_ID")
+
+    def get_set_type(self):
+        return int
+        
+    def get_set_help(self):
+        return "a untaged package on PORT will get this VLAN_ID"
 ################################################################################
 
 
@@ -523,3 +574,4 @@ class PslTypVlanSupport(PslTyp):
 
     def get_choices(self):
         return self.id2str.values()
+

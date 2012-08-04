@@ -29,7 +29,11 @@ def set_switch(args, switch):
                 if isinstance(scmd, psl_typ.PslTypBoolean):
                     cmds[scmd] = (vars(args)[scmd.get_name()][0] == "on")
                 else:
-                    cmds[scmd] = vars(args)[scmd.get_name()][0]
+                    if len(vars(args)[scmd.get_name()])==1:
+                        cmds[scmd] = vars(args)[scmd.get_name()][0]
+                    else:
+                        cmds[scmd] = vars(args)[scmd.get_name()]
+
 
     if ProSafeLinux.CMD_DHCP in cmds:
         if cmds[ProSafeLinux.CMD_DHCP]:
@@ -161,7 +165,11 @@ def main():
                 dest=cmd.get_name(), action='store_true')
 
         else:
-            set_parser.add_argument("--" + cmd.get_name(), nargs=1,
+            set_parser.add_argument("--" + cmd.get_name(), 
+                nargs=cmd.get_num_args(),
+                type=cmd.get_set_type(),
+                help=cmd.get_set_help(),
+                metavar=cmd.get_metavar(),
                 choices=cmd.get_choices())
 
     args = parser.parse_args()
