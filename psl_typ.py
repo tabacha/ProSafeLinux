@@ -415,7 +415,29 @@ class PslTypVlan802Id(PslTyp):
 
         }
         return rtn
+        
+    def pack_port(self, ports):
+        rtn = 0
+        for port in ports.split(","):
+            rtn = rtn + self.BIN_PORTS[int(port)]
+        return rtn
 
+    def pack_py(self, value):
+        taged = self.pack_port(value[1])
+        untaged = self.pack_port(value[2])
+        rtn = struct.pack(">hBB", int(value[0]), taged, untaged)
+        return rtn
+        
+    def is_setable(self):
+        return True
+
+    def get_num_args(self):
+        return 3
+
+    def get_metavar(self):
+        return ("VLAN_ID", "TAGED_PORTS", "UNTAGED_PORTS")
+
+        
 ################################################################################
 
 
