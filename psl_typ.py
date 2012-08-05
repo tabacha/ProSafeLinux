@@ -585,6 +585,15 @@ class PslTypIGMPSnooping(PslTyp):
             # VLAN Id
             return struct.unpack(">h", value[2:])[0]
         raise UnknownValueException("Unkown value %d" % enabled)
+      
+    def pack_py(self, value):
+        if (value == "none"):
+            return struct.pack(">hh", 0, 0)
+        return struct.pack(">hh", 0x0001, int(value))
+       
+    def is_setable(self):
+        return True
+       
 
 ################################################################################
 
