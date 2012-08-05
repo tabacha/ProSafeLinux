@@ -75,7 +75,7 @@ class ProSafeLinux:
     CMD_VLAN802_ID = psl_typ.PslTypVlan802Id(0x2800, "vlan802_id")
     CMD_VLANPVID = psl_typ.PslTypVlanPVID(0x3000, "vlan_pvid")
     CMD_QUALITY_OF_SERVICE = psl_typ.PslTypQos(0x3400, "qos")
-    CMD_PORT_BASED_QOS = psl_typ.PslTypPortBasedQOS(0x3800, "port_bases_qos")
+    CMD_PORT_BASED_QOS = psl_typ.PslTypPortBasedQOS(0x3800, "port_based_qos")
     CMD_BANDWITH_INCOMMING_LIMIT = psl_typ.PslTypBandwith(
                                               0x4c00, "bandwith_in")
     CMD_BANDWITH_OUTGOING_LIMIT = psl_typ.PslTypBandwith(

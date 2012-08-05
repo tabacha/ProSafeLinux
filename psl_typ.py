@@ -565,12 +565,42 @@ class PslTypQos(PslTyp):
 
 class PslTypPortBasedQOS(PslTyp):
     "Port based qualiyt of servcie"
+    
+    QOS_PRIORITY = {
+      0x01:"HIGH",
+      0x02:"MIDDLE",
+      0x03:"NORMAL",
+      0x04:"LOW"
+     }
     def unpack_py(self, value):
         rtn = {
             "port": struct.unpack(">B", value[0])[0],
-            "qos": struct.unpack(">B", value[1:])[0]
+            "qos": self.QOS_PRIORITY[struct.unpack(">B", value[1:])[0]]
         }
         return rtn
+
+    def pack_py(self, value):
+        qos = None
+        for k in self.QOS_PRIORITY.keys():
+            val = self.QOS_PRIORITY[k]
+            if val == value[1]:
+                qos = k
+        if qos == None:
+            raise UnknownValueException("Unkown value %s" % value[1])
+        return struct.pack(">BB", int(value[0]), qos)
+       
+    def is_setable(self):
+        return True
+
+    def get_num_args(self):
+        return 2
+
+    def get_metavar(self):
+        return ("PORT","QOS")
+        
+    def get_set_help(self):
+        return "QOS can be HIGH,MIDDLE,NORMAL or LOW"
+
 
 ################################################################################
 
