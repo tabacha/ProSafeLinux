@@ -622,6 +622,13 @@ class PslTypPortBasedQOS(PslTyp):
     def get_set_help(self):
         return "QOS can be HIGH,MIDDLE,NORMAL or LOW"
 
+    def print_result(self, value):
+        print "%-30s%4s %s" % (self.get_name().capitalize(), "Port",
+                                      "Priority")
+        for row in value:
+            print "%-30s%4d %s" % ("",
+                                   row["port"],
+                                   row["qos"])
 
 ################################################################################
 
