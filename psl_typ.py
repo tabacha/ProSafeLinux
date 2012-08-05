@@ -545,19 +545,6 @@ class PslTypPortBasedQOS(PslTyp):
 ################################################################################
 
 
-class PslTypBroadcastFilter(PslTyp):
-    "limit broadcast"
-    def unpack_py(self, value):
-        rtn = {
-            "port": struct.unpack(">B", value[0])[0],
-            "rest": struct.unpack(">h", value[1:3])[0],
-            "filter": struct.unpack(">h", value[3:])[0]
-        }
-        return rtn
-
-################################################################################
-
-
 class UnknownValueException(Exception):
     "Found something wich i dont know"
 
