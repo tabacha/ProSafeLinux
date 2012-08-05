@@ -364,17 +364,37 @@ class PslTypBandwith(PslTyp):
         SPEED_LIMIT_64M: " 64.0M",
         SPEED_LIMIT_128M: "128.0M",
         SPEED_LIMIT_256M: "256.0M",
-        SPEED_LIMIT_512M: "512.0m"
+        SPEED_LIMIT_512M: "512.0M"
         }
 
+    string_to_speed = {
+        "NONE":SPEED_LIMIT_NONE,
+        "512K":SPEED_LIMIT_512K,
+        "1M":SPEED_LIMIT_1M,
+        "2M":SPEED_LIMIT_2M,
+        "4M":SPEED_LIMIT_4M,
+        "8M":SPEED_LIMIT_8M,
+        "16M":SPEED_LIMIT_16M,
+        "32M":SPEED_LIMIT_32M,
+        "64M":SPEED_LIMIT_64M,
+        "128M":SPEED_LIMIT_128M,
+        "256M":SPEED_LIMIT_256M,
+        "512M":SPEED_LIMIT_512M
+
+    }
     def unpack_py(self, value):
         rtn = {
             "port": struct.unpack(">b", value[0])[0],
             "limit": struct.unpack(">h", value[3::])[0],
-            "rest": binascii.hexlify(value[1:2]),
+            "rest": binascii.hexlify(value[1:3]),
         }
         return rtn
 
+    def pack_py(self, value):
+        limit = self.string_to_speed[value[1]]
+        rtn = struct.pack(">bbbh", int(value[0]), 0, 0, limit)
+        return rtn
+        
     def print_result(self, value):
         print "%-30s%4s%15s %s" % (self.get_name().capitalize(), "Port",
                                       "Limit", "FIXME")
@@ -384,6 +404,18 @@ class PslTypBandwith(PslTyp):
                                         self.speed_to_string[row["limit"]],
                                         row["rest"])
 
+    def is_setable(self):
+        return True
+
+    def get_num_args(self):
+        return 2
+
+    def get_metavar(self):
+        return ("PORT", "LIMIT")
+
+    def get_set_help(self):
+        out = "LIMIT can be: NONE,512K,1M,2M,4M,16M,32M,64M,128M,256M,512M"
+        return out
 
 ################################################################################
 
