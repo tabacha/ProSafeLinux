@@ -470,8 +470,8 @@ class PslTypVlanId(PslTyp):
                                       "Ports")
         for row in value:
             print "%-30s%7d %s" % ("",
-                                        row["vlan_id"],
-                                        ",".join(map(str,row["ports"])))
+                                   row["vlan_id"],
+                                   ",".join([str(x) for x in row["ports"]]))
 
 
 ################################################################################
