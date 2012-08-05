@@ -533,6 +533,36 @@ class PslTypVlanPVID(PslTyp):
 ################################################################################
 
 
+class UnknownValueException(Exception):
+    "Found something wich i dont know"
+
+
+class PslTypQos(PslTyp):
+    "Quality of servcie is port_based or 802.1p"
+    def unpack_py(self, value):
+        val=struct.unpack(">B", value[0])[0]
+        if (val == 0x01):
+	   return "port_based"
+	if (val == 0x02):
+	   return "802.1p"
+        return val
+        
+    def pack_py(self,value):
+       if (value == "802.1p"):
+          return struct.pack(">B",0x02)
+       if (value == "port_based"):
+          return struct.pack(">B",0x01)
+       raise UnknownValueException("Unkown value %s" % value)
+       
+    def is_setable(self):
+       return True
+       
+    def get_choices(self):
+       return ["port_based","802.1p"]
+    
+################################################################################
+
+
 class PslTypPortBasedQOS(PslTyp):
     "Port based qualiyt of servcie"
     def unpack_py(self, value):
@@ -543,10 +573,6 @@ class PslTypPortBasedQOS(PslTyp):
         return rtn
 
 ################################################################################
-
-
-class UnknownValueException(Exception):
-    "Found something wich i dont know"
 
 
 class PslTypIGMPSnooping(PslTyp):
