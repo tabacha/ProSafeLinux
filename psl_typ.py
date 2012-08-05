@@ -539,7 +539,16 @@ class PslTypVlanPVID(PslTyp):
 
     def get_set_type(self):
         return int
-        
+
+    def print_result(self, value):
+        print "%-30s%4s %s" % (self.get_name().capitalize(), "Port",
+                                      "VLAN_ID")
+        for row in value:
+            print "%-30s%4d %7d" % ("",
+                                        row["port"],
+                                        row["vlan_id"])
+
+
     def get_set_help(self):
         return "a untaged package on PORT will get this VLAN_ID"
 ################################################################################
