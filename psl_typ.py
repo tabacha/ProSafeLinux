@@ -664,3 +664,54 @@ class PslTypVlanSupport(PslTyp):
     def get_choices(self):
         return self.id2str.values()
 
+################################################################################
+
+
+class PslTypPortMirror(PslTyp):
+    "Port Mirroring"
+    BIN_PORTS = {1: 0x80,
+                 2: 0x40,
+                 3: 0x20,
+                 4: 0x10,
+                 5: 0x08,
+                 6: 0x04,
+                 7: 0x02,
+                 8: 0x01
+                 }
+
+    def unpack_py(self, value):
+        dst_port, fixme, src_ports = struct.unpack(">bbb", value)
+        out_src_ports = []
+        for port in self.BIN_PORTS.keys():
+            if (src_ports & self.BIN_PORTS[port] > 0):
+                out_src_ports.append(port)
+
+        if dst_port == 0:
+            return None
+        rtn = {
+            "dst_port": dst_port,
+            "fixme": fixme,
+            "src_ports": out_src_ports,
+        }
+        return rtn
+
+    def pack_py(self, value):
+        if int(value[0]) == 0:
+            return struct.pack(">bbb", 0, 0, 0)
+        dst_ports = 0
+        for dport in value[1].split(","):
+            dst_ports += self.BIN_PORTS[int(dport)]
+        return struct.pack(">bbb", int(value[0]), 0, dst_ports)
+        
+
+    def is_setable(self):
+        return True
+
+    def get_num_args(self):
+        return 2
+
+    def get_metavar(self):
+        return ("DST_PORTS","SRC_PORTS")
+
+    def get_set_help(self):
+        return "SET DST_PORTS and SRC_PORTS to 0 to disable"
