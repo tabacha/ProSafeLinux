@@ -465,6 +465,15 @@ class PslTypVlanId(PslTyp):
     def get_metavar(self):
         return ("VLAN_ID", "PORTS")
 
+    def print_result(self, value):
+        print "%-30s%7s %s" % (self.get_name().capitalize(), "VLAN_ID",
+                                      "Ports")
+        for row in value:
+            print "%-30s%7d %s" % ("",
+                                        row["vlan_id"],
+                                        ",".join(map(str,row["ports"])))
+
+
 ################################################################################
 
 
