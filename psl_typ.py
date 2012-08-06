@@ -447,6 +447,8 @@ class PslTypVlanId(PslTyp):
     def pack_port(self, ports):
         "helper method to pack ports to binary"
         rtn = 0
+	if ports == "":
+	    return rtn
         for port in ports.split(","):
             rtn = rtn + self.BIN_PORTS[int(port)]
         return rtn
@@ -470,7 +472,7 @@ class PslTypVlanId(PslTyp):
                                       "Ports")
         for row in value:
             print "%-30s%7d %s" % ("",
-                                   row["vlan_id"],
+                                   int(row["vlan_id"]),
                                    ",".join([str(x) for x in row["ports"]]))
 
 
@@ -510,6 +512,22 @@ class PslTypVlan802Id(PslTypVlanId):
 
     def get_metavar(self):
         return ("VLAN_ID", "TAGED_PORTS", "UNTAGED_PORTS")
+
+    def print_result(self, value):
+        print "%-30s%7s %14s %s" % (self.get_name().capitalize(), "VLAN_ID",
+                                      "Taged-Ports","Untaged-Ports")
+        if type(value) is list:
+            for row in value:
+                print "%-30s%7d %14s %s" % ("",
+                                   int(row["vlan_id"]),
+                                   ",".join([str(x) for x in row["taged_ports"]]),
+                                   ",".join([str(x) for x in row["untaged_ports"]]))
+        else:
+            print "%-30s%7d %14s %s" % ("",
+                                   int(value["vlan_id"]),
+                                   ",".join([str(x) for x in value["taged_ports"]]),
+                                   ",".join([str(x) for x in value["untaged_ports"]]))
+	  
 
         
 ################################################################################
