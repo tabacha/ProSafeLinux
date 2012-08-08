@@ -16,7 +16,7 @@ class PslTyp:
         return self.cmd_id
 
     def get_name(self):
-        "name used by a human to identify the command"
+        "name used by humans to identify the command"
         return self.name
 
     def pack_py(self, value):
@@ -92,14 +92,14 @@ class PslTypString(PslTyp):
 
 
 class PslTypStringQueryOnly(PslTypString):
-    "A String type which can only be queryed but not changed like firmware ver."
+    "a string type which can only be queried but not changed like firmware ver."
     def is_setable(self):
         return False
 
 
 ###############################################################################
 class PslTypPassword(PslTypString):
-    "A password can be set, but not query for"
+    "a password can be set, but not queried"
     def __init__(self, cmd_id, name, setable):
         PslTypString.__init__(self, cmd_id, name)
         self.setable = setable
