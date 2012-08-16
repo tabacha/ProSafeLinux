@@ -185,7 +185,6 @@ class ProSafeLinux:
 #        data["seq"] = struct.unpack(">H", pack[22:24])[0]
 #        data["ctype"] = struct.unpack(">H", pack[0:2])[0]
 #        data["mymac"] = binascii.hexlify(pack[8:14])
-# we can use these to set them. So no arp-mac-recovery-stuff is needed
         data["theirmac"] = binascii.hexlify(pack[14:20])
         pos = 32
         cmd_id = 0
@@ -198,7 +197,6 @@ class ProSafeLinux:
                     print "Unkown Response %d" % cmd_id
                 cmd = psl_typ.PslTypHex(cmd_id, "UNKOWN %d" % cmd_id)
             pos = pos + 2
-            # that gives us back the decimal length?
             cmdlen = struct.unpack(">H", pack[pos:(pos + 2)])[0]
             pos = pos + 2
             if cmdlen > 0:
@@ -304,6 +302,7 @@ class ProSafeLinux:
             data += pdata
         return data
 
+    # why? we get the ip address in the reply back?
     def ip_from_mac(self, mac):
         "query for the ip of a switch with a given mac address"
         if mac is None:
