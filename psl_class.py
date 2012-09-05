@@ -107,7 +107,7 @@ class ProSafeLinux:
         self.ssocket = None
         self.rsocket = None
 
-        self.seq = 1
+        self.seq = random.randint(100, 2000)
         self.outdata = {}
         self.debug = False
         self.mac_cache = {}
