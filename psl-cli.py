@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-"Main Programm executed by the user"
+"Main Program executed by the user"
 
 import argparse
 import sys
@@ -21,7 +21,7 @@ def exploit(args, switch):
     switch.passwd_exploit(args.mac[0], args.new_password[0], switch.transfunc)
     
 def set_switch(args, switch):
-    "Set values in one switch"
+    "Set values on switch"
     cmds = {ProSafeLinux.CMD_PASSWORD: args.passwd[0]}
     for scmd in switch.get_setable_cmds():
         if vars(args)[scmd.get_name()] is not None:

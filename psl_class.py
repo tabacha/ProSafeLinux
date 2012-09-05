@@ -1,12 +1,11 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-"Mail Class to comunicate with gs108e and gs105e netgear switches"
+"Main Class to comunicate with gs108e and gs105e netgear switches"
 import time
 import binascii
 import pprint
 import struct
-import random
 import socket
 import fcntl
 import psl_typ
@@ -21,12 +20,12 @@ def get_hw_addr(ifname):
 
 
 def get_ip_address(ifname):
-    "returns the frist ip adress of an inteface"
+    "returns the first ip address of an interface"
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     # 0x8915 = SIOCGIFADDR
     return socket.inet_ntoa(fcntl.ioctl(sock.fileno(), 0x8915,
-                                         struct.pack('256s',
-                                                     ifname[:15]))[20:24])
+                                        struct.pack('256s',
+                                        ifname[:15]))[20:24])
 
 
 def pack_mac(value):
@@ -94,11 +93,9 @@ class ProSafeLinux:
     CMD_END = psl_typ.PslTypEnd(0xffff, "END")
 
     CTYPE_QUERY_REQUEST = 0x0101
-    CTYPE_QUERY_RESPONSE = 0x0102
+#    CTYPE_QUERY_RESPONSE = 0x0102
     CTYPE_TRANSMIT_REQUEST = 0x103
-    CTYPE_TRANSMIT_RESPONSE = 0x104
-
-    FLAG_PASSWORD_ERROR = 0x000a
+#    CTYPE_TRANSMIT_RESPONSE = 0x104
 
     RECPORT = 63321
     SENDPORT = 63322
@@ -110,7 +107,7 @@ class ProSafeLinux:
         self.ssocket = None
         self.rsocket = None
 
-        self.seq = random.randint(100, 2000)
+        self.seq = 1
         self.outdata = {}
         self.debug = False
         self.mac_cache = {}
@@ -183,10 +180,11 @@ class ProSafeLinux:
     def parse_packet(self, pack, unknown_warn):
         "unpack package send by the switch"
         data = {}
-        data["seq"] = struct.unpack(">H", pack[22:24])[0]
-        data["ctype"] = struct.unpack(">H", pack[0:2])[0]
-        data["flags"] = struct.unpack(">H", pack[4:6])[0]
-        data["mymac"] = binascii.hexlify(pack[8:14])
+        if struct.unpack(">H", pack[2:3]) != '0x0000':
+            data["error"] = struct.unpack(">H", pack[4:5])[0]
+#        data["seq"] = struct.unpack(">H", pack[22:24])[0]
+#        data["ctype"] = struct.unpack(">H", pack[0:2])[0]
+#        data["mymac"] = binascii.hexlify(pack[8:14])
         data["theirmac"] = binascii.hexlify(pack[14:20])
         pos = 32
         cmd_id = 0
@@ -199,23 +197,23 @@ class ProSafeLinux:
                     print "Unkown Response %d" % cmd_id
                 cmd = psl_typ.PslTypHex(cmd_id, "UNKOWN %d" % cmd_id)
             pos = pos + 2
-            leng = struct.unpack(">H", pack[pos:(pos + 2)])[0]
+            cmdlen = struct.unpack(">H", pack[pos:(pos + 2)])[0]
             pos = pos + 2
-            if leng > 0:
-                value = cmd.unpack_py(pack[pos:(pos + leng)])
+            if cmdlen > 0:
+                value = cmd.unpack_py(pack[pos:(pos + cmdlen)])
             else:
                 value = None
-            if cmd in data:
+            if cmd in data and value != None:
                 if type(data[cmd]) != type(list()):
                     data[cmd] = [data[cmd]]
                 data[cmd].append(value)
-            else:
+            elif value != None:
                 data[cmd] = value
             if self.debug:
-                print "cmd=", cmd_id, " len=", leng, " data=", binascii.hexlify(
-                    pack[pos:(pos + leng)])
-            pos = pos + leng
-        #pprint.pprint(data)
+                print "cmd_id " + cmd_id + " of length " + cmdlen  + ':'
+                print "data=" + binascii.hexlify(
+                    pack[pos:(pos + cmdlen)])
+            pos = pos + cmdlen
         return data
 
     def discoverfunc(self, msg, adr):
@@ -246,20 +244,23 @@ class ProSafeLinux:
         data = self.parse_packet(msg, True)
         if self.debug:
             pprint.pprint(data)
-            if data["flags"] == 0:
-                print "success"
-        if data["flags"] == self.FLAG_PASSWORD_ERROR:
-            print "wrong password"
+            if data["error"]:
+                try:
+                    print "Error with " + self.cmd_by_id(self.outdata["error"])
+                except KeyError:
+                    print "Unknown Error"
  
     def storefunc(self, msg, adr):
         "store data in outdata"
         self.outdata = self.parse_packet(msg, True)
-        if self.outdata["flags"] == self.FLAG_PASSWORD_ERROR:
-            print "Flags: wrong password"
         if self.debug:
             pprint.pprint(self.outdata)
-            if self.outdata["flags"] == 0:
-                print "Flags: success"
+            if self.outdata["error"]:
+                try:
+                    print "Error with " + self.cmd_by_id(self.outdata["error"])
+                except KeyError:
+                    print "Unknown Error"
+
 
     def rec_raw(self, msg, adr):
         "recive raw data"
@@ -301,6 +302,7 @@ class ProSafeLinux:
             data += pdata
         return data
 
+    # why? we get the ip address in the reply back?
     def ip_from_mac(self, mac):
         "query for the ip of a switch with a given mac address"
         if mac is None:
