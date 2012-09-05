@@ -16,7 +16,10 @@ def discover(args, switch):
     switch.discover()
 # pylint: enable=W0613
 
-
+def exploit(args, switch):
+    "exploit in current (2012) fw, can set a a new password"
+    switch.passwd_exploit(args.mac[0], args.new_password[0], switch.transfunc)
+    
 def set_switch(args, switch):
     "Set values in one switch"
     cmds = {ProSafeLinux.CMD_PASSWORD: args.passwd[0]}
@@ -123,6 +126,7 @@ def main():
         "set": set_switch,
         "query": query,
         "query_raw": query_raw,
+        "exploit": exploit,
     }
 
     switch = ProSafeLinux()
@@ -134,6 +138,13 @@ def main():
     subparsers = parser.add_subparsers(help='operation', dest="operation")
 
     subparsers.add_parser('discover', help='Find all switches in all subnets')
+    
+    exploit_parser = subparsers.add_parser("exploit",
+       help="set a password without knowing the old one")
+    exploit_parser.add_argument("--mac", nargs=1,
+        help="Hardware adresse of the switch", required=True)
+    exploit_parser.add_argument("--new_password", nargs=1,
+        help="password",required=True)
 
     query_parser = subparsers.add_parser("query",
         help="Query values from the switch")
@@ -144,6 +155,7 @@ def main():
     for cmd in switch.get_query_cmds():
         choices.append(cmd.get_name())
     choices.append("all")
+    
     query_parser.add_argument("query", nargs="+", help="What to query for",
         choices=choices)
 

