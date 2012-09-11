@@ -5,6 +5,7 @@
 import time
 import binascii
 import pprint
+import random
 import struct
 import socket
 import fcntl
@@ -179,9 +180,10 @@ class ProSafeLinux:
 
     def parse_packet(self, pack, unknown_warn):
         "unpack package send by the switch"
+	pprint.pprint(len(pack[2:4]))
         data = {}
-        if struct.unpack(">H", pack[2:3]) != '0x0000':
-            data["error"] = struct.unpack(">H", pack[4:5])[0]
+        if struct.unpack(">H", pack[2:4])[0] != 0x0000:
+         data["error"] = struct.unpack(">H", pack[4:6])[0]
 #        data["seq"] = struct.unpack(">H", pack[22:24])[0]
 #        data["ctype"] = struct.unpack(">H", pack[0:2])[0]
 #        data["mymac"] = binascii.hexlify(pack[8:14])
