@@ -212,7 +212,7 @@ class ProSafeLinux:
             elif value != None:
                 data[cmd] = value
             if self.debug:
-                print "cmd_id " + cmd_id + " of length " + cmdlen  + ':'
+                print "cmd_id %d of length %d :" % (cmd_id, cmdlen) 
                 print "data=" + binascii.hexlify(
                     pack[pos:(pos + cmdlen)])
             pos = pos + cmdlen
