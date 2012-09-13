@@ -180,7 +180,8 @@ class ProSafeLinux:
 
     def parse_packet(self, pack, unknown_warn):
         "unpack package send by the switch"
-	pprint.pprint(len(pack[2:4]))
+	if self.debug:
+	    pprint.pprint(len(pack[2:4])) 
         data = {}
         if struct.unpack(">H", pack[2:4])[0] != 0x0000:
          data["error"] = struct.unpack(">H", pack[4:6])[0]
@@ -190,7 +191,9 @@ class ProSafeLinux:
         data["theirmac"] = binascii.hexlify(pack[14:20])
         pos = 32
         cmd_id = 0
-        while(cmd_id != self.CMD_END.get_id()):
+        while (pos<len(pack)):
+	    if self.debug:
+	        print "pos:%d len: %d" %(pos,len(pack))
             cmd_id = struct.unpack(">H", pack[pos:(pos + 2)])[0]
             if cmd_id in self.cmd_by_id:
                 cmd = self.cmd_by_id[cmd_id]
