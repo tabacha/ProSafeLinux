@@ -122,7 +122,10 @@ class PslTypBoolean(PslTyp):
             return struct.pack(">b", 0x00)
 
     def unpack_py(self, value):
-        numval = struct.unpack(">b", value)[0]
+	if len(value)==1:
+            numval = struct.unpack(">b", value)[0]
+	else:
+	    numval = struct.unpack(">h",value)[0]
         return (numval == 0x01)
 
     def pack_cmd(self, value):
