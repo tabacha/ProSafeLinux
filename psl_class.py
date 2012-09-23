@@ -175,7 +175,7 @@ class ProSafeLinux:
         if self.debug:
             print "recv=" + binascii.hexlify(message)
         if recvfunc is not None:
-            recvfunc(message, address)
+            return recvfunc(message, address)
         self.recv(recvfunc, maxlen, timeout)
 
     def parse_packet(self, pack, unknown_warn):
@@ -223,15 +223,7 @@ class ProSafeLinux:
 
     def discoverfunc(self, msg, adr):
         "executed by discover to display any switch in the network"
-        data = self.parse_packet(msg, True)
-        dhcpstr = ""
-        if (data[self.CMD_DHCP]):
-            dhcpstr = " DHCP=on"
-        print " * %s\t%s\t%s\t%s\t%s" % (data[self.CMD_MAC],
-                                         data[self.CMD_IP],
-                                         data[self.CMD_MODEL],
-                                         data[self.CMD_NAME],
-                                         dhcpstr)
+        return self.parse_packet(msg, True)
 
     def storediscoverfunc(self, msg, adr):
         "store discover ip"
@@ -307,7 +299,8 @@ class ProSafeLinux:
             data += pdata
         return data
 
-    # why? we get the ip address in the reply back?
+    # we should use the address we got back as discovery reply.
+    # store it and use it....we can implement that later
     def ip_from_mac(self, mac):
         "query for the ip of a switch with a given mac address"
         if mac is None:
@@ -339,7 +332,7 @@ class ProSafeLinux:
         self.outdata = {}
         self.send(ipadr, self.SENDPORT, data)
         time.sleep(0.7)
-        self.recv(func)
+        return self.recv(func)
 
     def transmit(self, cmd_arr, mac, func):
         "change something in the switch, like name, mac ..."
@@ -386,4 +379,4 @@ class ProSafeLinux:
                    self.CMD_MAC,
                    self.CMD_DHCP,
                    self.CMD_IP]
-        self.query(query_arr, None, self.discoverfunc)
+        return self.query(query_arr, None, self.discoverfunc)

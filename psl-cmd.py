@@ -19,11 +19,10 @@ class NetgearCMD(cmd.Cmd): # {{{
                 while count < argumentcount:
                     splitline.append(None)
                     count += 1
-            elif argumentcount == 1:
+            if argumentcount == 1:
                 return splitline[0]
             return splitline
     # }}}
-
 
     def do_discover(self, line): # {{{
         '''Discover the switches available.
@@ -32,8 +31,22 @@ class NetgearCMD(cmd.Cmd): # {{{
         if iface == None:
             iface = 'eth0'
         self.switch.bind(iface)
-        self.switch.discover()
+        data = self.switch.discover()
+        if (data[self.switch.CMD_DHCP]):
+            dhcpstr = " DHCP=on"
+        print " * %s\t%s\t%s\t%s\t%s" % (data[self.switch.CMD_MAC],
+                                         data[self.switch.CMD_IP],
+                                         data[self.switch.CMD_MODEL],
+                                         data[self.switch.CMD_NAME],
+                                         dhcpstr)
+
     # }}}
+
+    def do_quit(self, line): # {{{
+        '''Quit the Application'''
+        return True
+    # }}}
+    do_EOF = do_quit
 
 # }}}
 

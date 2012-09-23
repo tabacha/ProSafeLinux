@@ -12,8 +12,18 @@ import psl_typ
 
 def discover(args, switch):
     "Search for Switches"
+    dhcpstr = ""
     print "Searching for ProSafe Plus Switches ...\n"
-    switch.discover()
+    data = switch.discover()
+    if (data[switch.CMD_DHCP]):
+        dhcpstr = " DHCP=on"
+    print " * %s\t%s\t%s\t%s\t%s" % (data[switch.CMD_MAC],
+                                     data[switch.CMD_IP],
+                                     data[switch.CMD_MODEL],
+                                     data[switch.CMD_NAME],
+                                     dhcpstr)
+
+
 # pylint: enable=W0613
 
 def exploit(args, switch):
