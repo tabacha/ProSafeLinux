@@ -80,7 +80,7 @@ class ProSafeLinux:
                                               0x4c00, "bandwith_in")
     CMD_BANDWITH_OUTGOING_LIMIT = psl_typ.PslTypBandwith(
                                               0x5000, "bandwith_out")
-    CMD_FIXME5400 = psl_typ.PslTypHex(0x5400, "fxime5400")
+    CMD_FIXME5400 = psl_typ.PslTypHex(0x5400, "fixme5400")
     CMD_BROADCAST_BANDWITH = psl_typ.PslTypBandwith(0x5800,
                  "broadcast_bandwith")
     CMD_PORT_MIRROR = psl_typ.PslTypPortMirror(0x5c00, "port_mirror")
@@ -145,7 +145,7 @@ class ProSafeLinux:
         "return all commands which can be used in an query"
         rtn = []
         for cmd in self.cmd_by_name.values():
-            if cmd.is_queryable():
+            if cmd.is_queryable() and cmd.get_name()[0:5] != 'fixme':
                 rtn.append(cmd)
         return rtn
 
@@ -153,7 +153,7 @@ class ProSafeLinux:
         "returns all commands which can be set"
         rtn = []
         for cmd in self.cmd_by_name.values():
-            if cmd.is_setable():
+            if cmd.is_setable() and cmd.get_name()[0:5] != 'fixme':
                 rtn.append(cmd)
         return rtn
 
@@ -175,25 +175,23 @@ class ProSafeLinux:
         if self.debug:
             print "recv=" + binascii.hexlify(message)
         if recvfunc is not None:
-            return recvfunc(message, address)
+            return getattr(self, recvfunc)(message, address)
         self.recv(recvfunc, maxlen, timeout)
 
     def parse_packet(self, pack, unknown_warn):
         "unpack package send by the switch"
-	if self.debug:
-	    pprint.pprint(len(pack[2:4])) 
         data = {}
         if struct.unpack(">H", pack[2:4])[0] != 0x0000:
-         data["error"] = struct.unpack(">H", pack[4:6])[0]
-#        data["seq"] = struct.unpack(">H", pack[22:24])[0]
-#        data["ctype"] = struct.unpack(">H", pack[0:2])[0]
-#        data["mymac"] = binascii.hexlify(pack[8:14])
-        data["theirmac"] = binascii.hexlify(pack[14:20])
+            data["error"] = struct.unpack(">H", pack[4:6])[0]
+#            data["seq"] = struct.unpack(">H", pack[22:24])[0]
+#            data["ctype"] = struct.unpack(">H", pack[0:2])[0]
+#            data["mymac"] = binascii.hexlify(pack[8:14])
+#            data["switchmac"] = binascii.hexlify(pack[14:20])
         pos = 32
         cmd_id = 0
         while (pos<len(pack)):
-	    if self.debug:
-	        print "pos:%d len: %d" %(pos,len(pack))
+            if self.debug:
+                print "pos:%d len: %d" %(pos,len(pack))
             cmd_id = struct.unpack(">H", pack[pos:(pos + 2)])[0]
             if cmd_id in self.cmd_by_id:
                 cmd = self.cmd_by_id[cmd_id]
@@ -210,7 +208,7 @@ class ProSafeLinux:
                 value = None
             if cmd in data and value != None:
                 if type(data[cmd]) != type(list()):
-                    data[cmd] = [data[cmd]]
+                    data[cmd] += ' ' +[data[cmd]]
                 data[cmd].append(value)
             elif value != None:
                 data[cmd] = value
@@ -237,13 +235,12 @@ class ProSafeLinux:
 
     def transfunc(self, msg, adr):
         "analyse response, after transfer"
-        #print "==FOUND SWITCH=="
         data = self.parse_packet(msg, True)
         if self.debug:
             pprint.pprint(data)
-            if data["error"]:
+            if 'error' in data:
                 try:
-                    print "Error with " + self.cmd_by_id(self.outdata["error"])
+                    print "Error with " + self.cmd_by_id(data["error"])
                 except KeyError:
                     print "Unknown Error"
  
@@ -313,7 +310,7 @@ class ProSafeLinux:
         # for line in f:
         #   print line
         query_arr = [self.CMD_MAC, self.CMD_IP]
-        self.query(query_arr, mac, self.storediscoverfunc, use_ip_func=False)
+        self.query(query_arr, mac, 'storediscoverfunc', use_ip_func=False)
         if mac in self.mac_cache:
             return self.mac_cache[mac]
         print "cant find mac: " + mac
@@ -379,4 +376,4 @@ class ProSafeLinux:
                    self.CMD_MAC,
                    self.CMD_DHCP,
                    self.CMD_IP]
-        return self.query(query_arr, None, self.discoverfunc)
+        return self.query(query_arr, None, 'discoverfunc')

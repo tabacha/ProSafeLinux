@@ -30,6 +30,9 @@ https://github.com/Z3po/Netgearizer (We are merging code together.)
 * Svenne Krap
 * Sven Anders
 
+# Contributors
+* Sebastian Cabrera &lt;psl-github@portachtzig.de&gt;
+
 See also: http://git.asbjorn.biz/?p=gs105e.git;a=summary
 
 It would be nice if you pay attribution to this project if you use this code.

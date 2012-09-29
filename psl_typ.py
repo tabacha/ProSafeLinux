@@ -122,20 +122,21 @@ class PslTypBoolean(PslTyp):
             return struct.pack(">b", 0x00)
 
     def unpack_py(self, value):
+        if (self.unpack_cmd(value)):
+            return "on"
+        else:
+            return "off"
+
+    def pack_cmd(self, value):
+        return self.pack_py(value.lowercase == "on")
+
+    def unpack_cmd(self, value):
 	if len(value)==1:
             numval = struct.unpack(">b", value)[0]
 	else:
 	    numval = struct.unpack(">h",value)[0]
         return (numval == 0x01)
 
-    def pack_cmd(self, value):
-        return self.pack_py(value.lowercase == "on")
-
-    def unpack_cmd(self, value):
-        if (self.unpack_py(value)):
-            return "on"
-        else:
-            return "off"
 
     def is_setable(self):
         return True

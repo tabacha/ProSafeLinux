@@ -12,23 +12,16 @@ import psl_typ
 
 def discover(args, switch):
     "Search for Switches"
-    dhcpstr = ""
     print "Searching for ProSafe Plus Switches ...\n"
     data = switch.discover()
-    if (data[switch.CMD_DHCP]):
-        dhcpstr = " DHCP=on"
-    print " * %s\t%s\t%s\t%s\t%s" % (data[switch.CMD_MAC],
-                                     data[switch.CMD_IP],
-                                     data[switch.CMD_MODEL],
-                                     data[switch.CMD_NAME],
-                                     dhcpstr)
-
-
+    for entry in data.keys():
+        print entry.get_name() + ': ' + data[entry]
+    print ''
 # pylint: enable=W0613
 
 def exploit(args, switch):
     "exploit in current (2012) fw, can set a a new password"
-    switch.passwd_exploit(args.mac[0], args.new_password[0], switch.transfunc)
+    switch.passwd_exploit(args.mac[0], args.new_password[0], 'transfunc')
     
 def set_switch(args, switch):
     "Set values on switch"
@@ -69,7 +62,7 @@ def set_switch(args, switch):
             return
 
     print "Changing Values..\n"
-    switch.transmit(cmds, args.mac[0], switch.transfunc)
+    switch.transmit(cmds, args.mac[0], 'transfunc')
 
 
 def query(args, switch):
@@ -77,7 +70,7 @@ def query(args, switch):
     print "Query Values..\n"
     if not(args.passwd == None):
         login = {switch.CMD_PASSWORD: args.passwd[0]}
-        switch.transmit(login, args.mac[0], switch.transfunc)
+        switch.transmit(login, args.mac[0], 'transfunc')
     query_cmd = []
     for qarg in args.query:
         if qarg == "all":
@@ -87,7 +80,7 @@ def query(args, switch):
                     query_cmd.append(k)
         else:
             query_cmd.append(switch.get_cmd_by_name(qarg))
-    switch.query(query_cmd, args.mac[0], switch.storefunc)
+    switch.query(query_cmd, args.mac[0], 'storefunc')
     for key in switch.outdata.keys():
         if isinstance(key, psl_typ.PslTyp):
             key.print_result(switch.outdata[key])
@@ -101,13 +94,13 @@ def query_raw(args, switch):
     print "QUERY DEBUG RAW"
     if not(args.passwd == None):
         login = {switch.CMD_PASSWORD: args.passwd[0]}
-        switch.transmit(login, args.mac[0], switch.transfunc)
+        switch.transmit(login, args.mac[0], 'transfunc')
     i = 0x0001
     while (i < ProSafeLinux.CMD_END.get_id()):
         query_cmd = []
         query_cmd.append(psl_typ.PslTypHex(i, "Command %d" % i))
         try:
-            switch.query(query_cmd, args.mac[0], switch.rec_raw)
+            switch.query(query_cmd, args.mac[0], 'rec_raw')
             found = None
             for qcmd in switch.outdata.keys():
                 if (isinstance(qcmd, psl_typ.PslTyp)):

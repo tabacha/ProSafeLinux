@@ -7,6 +7,8 @@ from psl_class import ProSafeLinux
 
 class NetgearCMD(cmd.Cmd): # {{{
     switch = ProSafeLinux()
+    selectedswitch = {}
+    discovereddata = {}
 
     def __splitLine(self,argumentcount,line): # {{{
         splitline = line.split()
@@ -32,21 +34,41 @@ class NetgearCMD(cmd.Cmd): # {{{
             iface = 'eth0'
         self.switch.bind(iface)
         data = self.switch.discover()
-        if (data[self.switch.CMD_DHCP]):
-            dhcpstr = " DHCP=on"
-        print " * %s\t%s\t%s\t%s\t%s" % (data[self.switch.CMD_MAC],
-                                         data[self.switch.CMD_IP],
-                                         data[self.switch.CMD_MODEL],
-                                         data[self.switch.CMD_NAME],
-                                         dhcpstr)
+        self.discovereddata = data
+        for entry in data.keys():
+            print entry.get_name() + ': ' + data[entry]
+    # }}}
 
+    def do_selectSwitch(self, line): # {{{
+        '''Select a switch by IP you wanna use all through the session'''
+        switchip = self.__splitLine(1,line)
+        if switchip == None:
+            print 'Please give a IP'
+            return False
+        else:
+            if switchip == self.discovereddata[self.switch.CMD_IP]:
+                self.selectedswitch = { "ip" : self.discovereddata[self.switch.CMD_IP],
+                                        "mac" : self.discovereddata[self.switch.CMD_MAC] }
+            else:
+                print 'No valid ip given...'
+                return False
     # }}}
 
     def do_quit(self, line): # {{{
         '''Quit the Application'''
         return True
-    # }}}
     do_EOF = do_quit
+    # }}}
+
+    def do_exploitPassword(self, line): # {{{
+        '''Exploit the switches password and set a new one'''
+        newpass = self.__splitLine(1,line)
+        if newpass == None:
+            print 'Please give a new password'
+            return False
+        else:
+            self.switch.passwd_exploit(self.selectedswitch['mac'], newpass, 'transfunc')
+    # }}}
 
 # }}}
 
