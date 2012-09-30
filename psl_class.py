@@ -146,7 +146,7 @@ class ProSafeLinux:
         rtn = []
         for cmd in self.cmd_by_name.values():
             if cmd.is_queryable() and cmd.get_name()[0:5] != 'fixme':
-                rtn.append(cmd)
+                rtn.append(cmd.get_name())
         return rtn
 
     def get_setable_cmds(self):
@@ -208,7 +208,7 @@ class ProSafeLinux:
                 value = None
             if cmd in data and value != None:
                 if type(data[cmd]) != type(list()):
-                    data[cmd] += ' ' +[data[cmd]]
+                    data[cmd] += ' ' + value
                 data[cmd].append(value)
             elif value != None:
                 data[cmd] = value
@@ -249,7 +249,7 @@ class ProSafeLinux:
         self.outdata = self.parse_packet(msg, True)
         if self.debug:
             pprint.pprint(self.outdata)
-            if self.outdata["error"]:
+            if 'error' in self.outdata:
                 try:
                     print "Error with " + self.cmd_by_id(self.outdata["error"])
                 except KeyError:
@@ -284,9 +284,10 @@ class ProSafeLinux:
         data += "NSDP" + 4 * reserved
         return data
 
-    @staticmethod
-    def addudp(cmd, datain=None):
+    def addudp(self, cmd, datain=None):
         "Additional data to the base package"
+        if type(cmd).__name__ == 'str':
+            cmd = self.get_cmd_by_name(cmd)
         data = struct.pack(">H", cmd.get_id())
         if (datain is None):
             data += struct.pack(">H", 0)
@@ -323,8 +324,11 @@ class ProSafeLinux:
         else:
             ipadr = "255.255.255.255"
         data = self.baseudp(destmac=mac, ctype=self.CTYPE_QUERY_REQUEST)
-        for cmd in cmd_arr:
-            data += self.addudp(cmd)
+        if type(cmd_arr).__name__ == 'list':
+            for cmd in cmd_arr:
+                data += self.addudp(cmd)
+        else:
+            data += self.addudp(cmd_arr)
         data += self.addudp(self.CMD_END)
         self.outdata = {}
         self.send(ipadr, self.SENDPORT, data)

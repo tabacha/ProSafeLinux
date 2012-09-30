@@ -12,7 +12,7 @@ class NetgearCMD(cmd.Cmd): # {{{
 
     def __splitLine(self,argumentcount,line): # {{{
         splitline = line.split()
-        if len(splitline) > argumentcount:
+        if len(splitline) > argumentcount and argumentcount != 0:
             print 'Too many arguments!'
             return False
         else:
@@ -52,6 +52,21 @@ class NetgearCMD(cmd.Cmd): # {{{
             else:
                 print 'No valid ip given...'
                 return False
+    # }}}
+
+    def do_query(self, line): # {{{
+        """Query Values from Switch.
+        If no query command is given it prints out the possibilities"""
+        querycmds = self.switch.get_query_cmds()
+        query = self.__splitLine(0,line)
+        if query == None:
+            print str(querycmds)
+            return False
+        else:
+            self.switch.query(query, self.selectedswitch['mac'], 'storefunc')
+            for key in self.switch.outdata.keys():
+                print "%s - %s" % (key.get_name(), self.switch.outdata[key])
+
     # }}}
 
     def do_quit(self, line): # {{{

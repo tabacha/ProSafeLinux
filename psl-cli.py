@@ -75,8 +75,8 @@ def query(args, switch):
     for qarg in args.query:
         if qarg == "all":
             for k in switch.get_query_cmds():
-                if ((k != ProSafeLinux.CMD_VLAN_ID) and
-                    (k != ProSafeLinux.CMD_VLAN802_ID)):
+                if ((k != 'vlan_id') and
+                    (k != 'vlan802_id')):
                     query_cmd.append(k)
         else:
             query_cmd.append(switch.get_cmd_by_name(qarg))
@@ -86,7 +86,7 @@ def query(args, switch):
             key.print_result(switch.outdata[key])
         else:
             if args.debug:
-                print "-%-29s%s" % (key, switch. outdata[key])
+                print "-%-29s%s" % (key, switch.outdata[key])
 
 
 def query_raw(args, switch):
@@ -154,9 +154,7 @@ def main():
     query_parser.add_argument("--mac", nargs=1,
         help="Hardware adresse of the switch", required=True)
     query_parser.add_argument("--passwd", nargs=1, help="password")
-    choices = []
-    for cmd in switch.get_query_cmds():
-        choices.append(cmd.get_name())
+    choices = switch.get_query_cmds()
     choices.append("all")
     
     query_parser.add_argument("query", nargs="+", help="What to query for",
