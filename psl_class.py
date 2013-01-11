@@ -230,7 +230,7 @@ class ProSafeLinux:
         print " * %s\t%s\t%s\t%s\t%s" % (data[self.CMD_MAC],
                                          data[self.CMD_IP],
                                          data[self.CMD_MODEL],
-                                         data[self.CMD_NAME],
+                                         data.get(self.CMD_NAME, ''),
                                          dhcpstr)
 
     def storediscoverfunc(self, msg, adr):
