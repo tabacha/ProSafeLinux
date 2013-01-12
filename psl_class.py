@@ -11,6 +11,7 @@ import socket
 import fcntl
 import psl_typ
 import inspect
+import errno
 
 
 def get_hw_addr(ifname):
@@ -23,11 +24,16 @@ def get_hw_addr(ifname):
 def get_ip_address(ifname):
     "returns the first ip address of an interface"
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
     # 0x8915 = SIOCGIFADDR
-    return socket.inet_ntoa(fcntl.ioctl(sock.fileno(), 0x8915,
-                                        struct.pack('256s',
-                                        ifname[:15]))[20:24])
-
+        addr = socket.inet_ntoa(fcntl.ioctl(sock.fileno(), 0x8915,
+                                            struct.pack('256s',
+                                            ifname[:15]))[20:24])
+        return addr
+    except IOError as err:
+        if err.errno == errno.EADDRNOTAVAIL:
+            return None
+        raise
 
 def pack_mac(value):
     "packs the hardware address (mac) to the internal representation"
@@ -122,6 +128,8 @@ class ProSafeLinux:
     def bind(self, interface):
         "bind to an interface"
         self.myhost = get_ip_address(interface)
+        if not self.myhost:
+            return False
         self.srcmac = pack_mac(get_hw_addr(interface))
 
             # send socket
@@ -135,11 +143,13 @@ class ProSafeLinux:
 
         self.ssocket.bind((self.myhost, self.RECPORT))
 
-        # recive socket
+        # receive socket
         self.rsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.rsocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.rsocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.rsocket.bind(("255.255.255.255", self.RECPORT))
+
+        return True
 
     def get_query_cmds(self):
         "return all commands which can be used in a query"

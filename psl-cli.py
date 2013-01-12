@@ -187,7 +187,9 @@ def main():
     args = parser.parse_args()
     interface = args.interface[0]
 
-    switch.bind(interface)
+    if not switch.bind(interface):
+        print "Interface has no addresses, cannot talk to switch"
+        return
 
     if (args.debug):
         switch.set_debug_output()
