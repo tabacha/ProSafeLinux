@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-"Main Class to comunicate with gs108e and gs105e netgear switches"
+"Main Class to communicate with gs108e and gs105e netgear switches"
 import time
 import binascii
 import pprint
@@ -14,7 +14,7 @@ import inspect
 
 
 def get_hw_addr(ifname):
-    "gives the hardware (mac) adress of an interface (eth0,eth1..)"
+    "gives the hardware (mac) address of an interface (eth0,eth1..)"
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     info = fcntl.ioctl(sock.fileno(), 0x8927, struct.pack('256s', ifname[:15]))
     return ''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1]
@@ -30,24 +30,24 @@ def get_ip_address(ifname):
 
 
 def pack_mac(value):
-    "packs the hardware adress (mac) to the internal representation"
+    "packs the hardware address (mac) to the internal representation"
     if (len(value) == 17):
         return binascii.unhexlify(value[0:2] + value[3:5] + value[6:8] +
                                   value[9:11] + value[12:14] + value[15:17])
     if (len(value) == 12):
         return binascii.unhexlify(value)
-    raise "unkown mac format=" + value
+    raise "unknown mac format=" + value
 
 
 def unpack_mac(value):
-    "unpack an internal representation to an hardware address"
+    "unpack an internal representation to a hardware address"
     mac = binascii.hexlify(value)
     return (mac[0:2] + ":" + mac[2:4] + ":" + mac[4:6] + ":" + mac[6:8] +
             ":" + mac[8:10] + ":" + mac[10:12])
 
 
 class ProSafeLinux:
-    "Main class to comunicate with an ProSafe gs108e gs105e Switch"
+    "Main class to communicate with a ProSafe gs108e gs105e Switch"
     CMD_MODEL = psl_typ.PslTypStringQueryOnly(0x0001, "model")
     CMD_FIMXE2 = psl_typ.PslTypHex(0x0002, "fixme2")
     CMD_NAME = psl_typ.PslTypString(0x0003, "name")
@@ -142,7 +142,7 @@ class ProSafeLinux:
         self.rsocket.bind(("255.255.255.255", self.RECPORT))
 
     def get_query_cmds(self):
-        "return all commands which can be used in an query"
+        "return all commands which can be used in a query"
         rtn = []
         for cmd in self.cmd_by_name.values():
             if cmd.is_queryable():
@@ -158,15 +158,15 @@ class ProSafeLinux:
         return rtn
 
     def get_cmd_by_name(self, name):
-        "return a comand by its name"
+        "return a command by its name"
         return self.cmd_by_name[name]
 
     def set_debug_output(self):
-        "set debuging"
+        "set debugging"
         self.debug = True
 
     def recv(self, recvfunc, maxlen=8192, timeout=0.005):
-        "recieve a package from the switch"
+        "receive a packet from the switch"
         self.rsocket.settimeout(timeout)
         try:
             message, address = self.rsocket.recvfrom(maxlen)
@@ -179,7 +179,7 @@ class ProSafeLinux:
         self.recv(recvfunc, maxlen, timeout)
 
     def parse_packet(self, pack, unknown_warn):
-        "unpack package send by the switch"
+        "unpack packet send by the switch"
         if self.debug:
             pprint.pprint(len(pack[2:4])) 
         data = {}
@@ -199,8 +199,8 @@ class ProSafeLinux:
                 cmd = self.cmd_by_id[cmd_id]
             else:
                 if unknown_warn:
-                    print "Unkown Response %d" % cmd_id
-                cmd = psl_typ.PslTypHex(cmd_id, "UNKOWN %d" % cmd_id)
+                    print "Unknown Response %d" % cmd_id
+                cmd = psl_typ.PslTypHex(cmd_id, "UNKNOWN %d" % cmd_id)
             pos = pos + 2
             cmdlen = struct.unpack(">H", pack[pos:(pos + 2)])[0]
             pos = pos + 2
@@ -268,7 +268,7 @@ class ProSafeLinux:
 
 
     def rec_raw(self, msg, adr):
-        "recive raw data"
+        "receive raw data"
         try:
             self.outdata = self.parse_packet(msg, False)
         except:
@@ -323,7 +323,7 @@ class ProSafeLinux:
         self.query(query_arr, mac, self.storediscoverfunc, use_ip_func=False)
         if mac in self.mac_cache:
             return self.mac_cache[mac]
-        print "cant find mac: " + mac
+        print "can't find mac: " + mac
         return "255.255.255.255"
 
     def query(self, cmd_arr, mac, func, use_ip_func=True):
@@ -367,7 +367,7 @@ class ProSafeLinux:
         self.recv(func)
 
     def passwd_exploit(self, mac, new, func):
-        "exploit in current (2012) firmware version, set a a new password"
+        "exploit in current (2012) firmware version, set a new password"
         # The Order of the CMD_PASSWORD and CMD_NEW_PASSWORD is important
         ipadr = self.ip_from_mac(mac)
         data = self.baseudp(destmac=mac, ctype=self.CTYPE_TRANSMIT_REQUEST)
