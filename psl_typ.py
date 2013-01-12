@@ -340,8 +340,8 @@ class PslTypPortStat(PslTyp):
 ################################################################################
 
 
-class PslTypBandwith(PslTyp):
-    "limit bandwith"
+class PslTypBandwidth(PslTyp):
+    "limit bandwidth"
     SPEED_LIMIT_NONE = 0x0000
     SPEED_LIMIT_512K = 0x0001
     SPEED_LIMIT_1M = 0x0002

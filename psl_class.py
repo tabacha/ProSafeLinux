@@ -76,13 +76,13 @@ class ProSafeLinux:
     CMD_VLANPVID = psl_typ.PslTypVlanPVID(0x3000, "vlan_pvid")
     CMD_QUALITY_OF_SERVICE = psl_typ.PslTypQos(0x3400, "qos")
     CMD_PORT_BASED_QOS = psl_typ.PslTypPortBasedQOS(0x3800, "port_based_qos")
-    CMD_BANDWITH_INCOMMING_LIMIT = psl_typ.PslTypBandwith(
-                                              0x4c00, "bandwith_in")
-    CMD_BANDWITH_OUTGOING_LIMIT = psl_typ.PslTypBandwith(
-                                              0x5000, "bandwith_out")
+    CMD_BANDWIDTH_INCOMMING_LIMIT = psl_typ.PslTypBandwidth(
+                                              0x4c00, "bandwidth_in")
+    CMD_BANDWIDTH_OUTGOING_LIMIT = psl_typ.PslTypBandwidth(
+                                              0x5000, "bandwidth_out")
     CMD_FIXME5400 = psl_typ.PslTypHex(0x5400, "fxime5400")
-    CMD_BROADCAST_BANDWITH = psl_typ.PslTypBandwith(0x5800,
-                 "broadcast_bandwith")
+    CMD_BROADCAST_BANDWIDTH = psl_typ.PslTypBandwidth(0x5800,
+                 "broadcast_bandwidth")
     CMD_PORT_MIRROR = psl_typ.PslTypPortMirror(0x5c00, "port_mirror")
     CMD_NUMBER_OF_PORTS = psl_typ.PslTypHex(0x6000, "number_of_ports")
     CMD_IGMP_SNOOPING = psl_typ.PslTypIGMPSnooping(0x6800, "igmp_snooping")
