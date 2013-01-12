@@ -17,7 +17,7 @@ def discover(args, switch):
 # pylint: enable=W0613
 
 def exploit(args, switch):
-    "exploit in current (2012) fw, can set a a new password"
+    "exploit in current (2012) fw, can set a new password"
     switch.passwd_exploit(args.mac[0], args.new_password[0], switch.transfunc)
     
 def set_switch(args, switch):
@@ -131,7 +131,7 @@ def main():
 
     switch = ProSafeLinux()
     parser = argparse.ArgumentParser(
-        description='Manage Netgear ProSafe Plus switches under linux.')
+        description='Manage Netgear ProSafe Plus switches under Linux.')
     parser.add_argument("--interface", nargs=1, help="Interface",
         default=["eth0"])
     parser.add_argument("--debug", help="Debug output", action='store_true')
@@ -142,14 +142,14 @@ def main():
     exploit_parser = subparsers.add_parser("exploit",
        help="set a password without knowing the old one")
     exploit_parser.add_argument("--mac", nargs=1,
-        help="Hardware adresse of the switch", required=True)
+        help="Hardware address of the switch", required=True)
     exploit_parser.add_argument("--new_password", nargs=1,
         help="password",required=True)
 
     query_parser = subparsers.add_parser("query",
         help="Query values from the switch")
     query_parser.add_argument("--mac", nargs=1,
-        help="Hardware adresse of the switch", required=True)
+        help="Hardware address of the switch", required=True)
     query_parser.add_argument("--passwd", nargs=1, help="password")
     choices = []
     for cmd in switch.get_query_cmds():
@@ -162,13 +162,13 @@ def main():
     query_parser = subparsers.add_parser("query_raw",
         help="Query raw values from the switch")
     query_parser.add_argument("--mac", nargs=1,
-        help="Hardware adresse of the switch", required=True)
+        help="Hardware address of the switch", required=True)
     query_parser.add_argument("--passwd", nargs=1,
         help="password")
 
     set_parser = subparsers.add_parser("set", help="Set values to the switch")
     set_parser.add_argument("--mac", nargs=1,
-        help="Hardware adresse of the switch", required=True)
+        help="Hardware address of the switch", required=True)
     set_parser.add_argument("--passwd", nargs=1, help="password", required=True)
 
     for cmd in switch.get_setable_cmds():
@@ -187,7 +187,9 @@ def main():
     args = parser.parse_args()
     interface = args.interface[0]
 
-    switch.bind(interface)
+    if not switch.bind(interface):
+        print "Interface has no addresses, cannot talk to switch"
+        return
 
     if (args.debug):
         switch.set_debug_output()
