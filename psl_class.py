@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-"Main Class to comunicate with gs108e and gs105e netgear switches"
+"Main Class to communicate with gs108e and gs105e netgear switches"
 import time
 import binascii
 import pprint
@@ -11,10 +11,11 @@ import socket
 import fcntl
 import psl_typ
 import inspect
+import errno
 
 
 def get_hw_addr(ifname):
-    "gives the hardware (mac) adress of an interface (eth0,eth1..)"
+    "gives the hardware (mac) address of an interface (eth0,eth1..)"
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     info = fcntl.ioctl(sock.fileno(), 0x8927, struct.pack('256s', ifname[:15]))
     return ''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1]
@@ -23,31 +24,36 @@ def get_hw_addr(ifname):
 def get_ip_address(ifname):
     "returns the first ip address of an interface"
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
     # 0x8915 = SIOCGIFADDR
-    return socket.inet_ntoa(fcntl.ioctl(sock.fileno(), 0x8915,
-                                        struct.pack('256s',
-                                        ifname[:15]))[20:24])
-
+        addr = socket.inet_ntoa(fcntl.ioctl(sock.fileno(), 0x8915,
+                                            struct.pack('256s',
+                                            ifname[:15]))[20:24])
+        return addr
+    except IOError as err:
+        if err.errno == errno.EADDRNOTAVAIL:
+            return None
+        raise
 
 def pack_mac(value):
-    "packs the hardware adress (mac) to the internal representation"
+    "packs the hardware address (mac) to the internal representation"
     if (len(value) == 17):
         return binascii.unhexlify(value[0:2] + value[3:5] + value[6:8] +
                                   value[9:11] + value[12:14] + value[15:17])
     if (len(value) == 12):
         return binascii.unhexlify(value)
-    raise "unkown mac format=" + value
+    raise "unknown mac format=" + value
 
 
 def unpack_mac(value):
-    "unpack an internal representation to an hardware address"
+    "unpack an internal representation to a hardware address"
     mac = binascii.hexlify(value)
     return (mac[0:2] + ":" + mac[2:4] + ":" + mac[4:6] + ":" + mac[6:8] +
             ":" + mac[8:10] + ":" + mac[10:12])
 
 
 class ProSafeLinux:
-    "Main class to comunicate with an ProSafe gs108e gs105e Switch"
+    "Main class to communicate with a ProSafe gs108e gs105e Switch"
     CMD_MODEL = psl_typ.PslTypStringQueryOnly(0x0001, "model")
     CMD_FIMXE2 = psl_typ.PslTypHex(0x0002, "fixme2")
     CMD_NAME = psl_typ.PslTypString(0x0003, "name")
@@ -76,13 +82,13 @@ class ProSafeLinux:
     CMD_VLANPVID = psl_typ.PslTypVlanPVID(0x3000, "vlan_pvid")
     CMD_QUALITY_OF_SERVICE = psl_typ.PslTypQos(0x3400, "qos")
     CMD_PORT_BASED_QOS = psl_typ.PslTypPortBasedQOS(0x3800, "port_based_qos")
-    CMD_BANDWITH_INCOMMING_LIMIT = psl_typ.PslTypBandwith(
-                                              0x4c00, "bandwith_in")
-    CMD_BANDWITH_OUTGOING_LIMIT = psl_typ.PslTypBandwith(
-                                              0x5000, "bandwith_out")
+    CMD_BANDWIDTH_INCOMMING_LIMIT = psl_typ.PslTypBandwidth(
+                                              0x4c00, "bandwidth_in")
+    CMD_BANDWIDTH_OUTGOING_LIMIT = psl_typ.PslTypBandwidth(
+                                              0x5000, "bandwidth_out")
     CMD_FIXME5400 = psl_typ.PslTypHex(0x5400, "fxime5400")
-    CMD_BROADCAST_BANDWITH = psl_typ.PslTypBandwith(0x5800,
-                 "broadcast_bandwith")
+    CMD_BROADCAST_BANDWIDTH = psl_typ.PslTypBandwidth(0x5800,
+                 "broadcast_bandwidth")
     CMD_PORT_MIRROR = psl_typ.PslTypPortMirror(0x5c00, "port_mirror")
     CMD_NUMBER_OF_PORTS = psl_typ.PslTypHex(0x6000, "number_of_ports")
     CMD_IGMP_SNOOPING = psl_typ.PslTypIGMPSnooping(0x6800, "igmp_snooping")
@@ -122,6 +128,8 @@ class ProSafeLinux:
     def bind(self, interface):
         "bind to an interface"
         self.myhost = get_ip_address(interface)
+        if not self.myhost:
+            return False
         self.srcmac = pack_mac(get_hw_addr(interface))
 
             # send socket
@@ -135,14 +143,16 @@ class ProSafeLinux:
 
         self.ssocket.bind((self.myhost, self.RECPORT))
 
-        # recive socket
+        # receive socket
         self.rsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.rsocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.rsocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.rsocket.bind(("255.255.255.255", self.RECPORT))
 
+        return True
+
     def get_query_cmds(self):
-        "return all commands which can be used in an query"
+        "return all commands which can be used in a query"
         rtn = []
         for cmd in self.cmd_by_name.values():
             if cmd.is_queryable():
@@ -158,15 +168,15 @@ class ProSafeLinux:
         return rtn
 
     def get_cmd_by_name(self, name):
-        "return a comand by its name"
+        "return a command by its name"
         return self.cmd_by_name[name]
 
     def set_debug_output(self):
-        "set debuging"
+        "set debugging"
         self.debug = True
 
     def recv(self, recvfunc, maxlen=8192, timeout=0.005):
-        "recieve a package from the switch"
+        "receive a packet from the switch"
         self.rsocket.settimeout(timeout)
         try:
             message, address = self.rsocket.recvfrom(maxlen)
@@ -179,9 +189,9 @@ class ProSafeLinux:
         self.recv(recvfunc, maxlen, timeout)
 
     def parse_packet(self, pack, unknown_warn):
-        "unpack package send by the switch"
-	if self.debug:
-	    pprint.pprint(len(pack[2:4])) 
+        "unpack packet send by the switch"
+        if self.debug:
+            pprint.pprint(len(pack[2:4])) 
         data = {}
         if struct.unpack(">H", pack[2:4])[0] != 0x0000:
          data["error"] = struct.unpack(">H", pack[4:6])[0]
@@ -192,15 +202,15 @@ class ProSafeLinux:
         pos = 32
         cmd_id = 0
         while (pos<len(pack)):
-	    if self.debug:
-	        print "pos:%d len: %d" %(pos,len(pack))
+            if self.debug:
+                print "pos:%d len: %d" %(pos,len(pack))
             cmd_id = struct.unpack(">H", pack[pos:(pos + 2)])[0]
             if cmd_id in self.cmd_by_id:
                 cmd = self.cmd_by_id[cmd_id]
             else:
                 if unknown_warn:
-                    print "Unkown Response %d" % cmd_id
-                cmd = psl_typ.PslTypHex(cmd_id, "UNKOWN %d" % cmd_id)
+                    print "Unknown Response %d" % cmd_id
+                cmd = psl_typ.PslTypHex(cmd_id, "UNKNOWN %d" % cmd_id)
             pos = pos + 2
             cmdlen = struct.unpack(">H", pack[pos:(pos + 2)])[0]
             pos = pos + 2
@@ -230,7 +240,7 @@ class ProSafeLinux:
         print " * %s\t%s\t%s\t%s\t%s" % (data[self.CMD_MAC],
                                          data[self.CMD_IP],
                                          data[self.CMD_MODEL],
-                                         data[self.CMD_NAME],
+                                         data.get(self.CMD_NAME, ''),
                                          dhcpstr)
 
     def storediscoverfunc(self, msg, adr):
@@ -268,7 +278,7 @@ class ProSafeLinux:
 
 
     def rec_raw(self, msg, adr):
-        "recive raw data"
+        "receive raw data"
         try:
             self.outdata = self.parse_packet(msg, False)
         except:
@@ -323,7 +333,7 @@ class ProSafeLinux:
         self.query(query_arr, mac, self.storediscoverfunc, use_ip_func=False)
         if mac in self.mac_cache:
             return self.mac_cache[mac]
-        print "cant find mac: " + mac
+        print "can't find mac: " + mac
         return "255.255.255.255"
 
     def query(self, cmd_arr, mac, func, use_ip_func=True):
@@ -338,7 +348,6 @@ class ProSafeLinux:
         data += self.addudp(self.CMD_END)
         self.outdata = {}
         self.send(ipadr, self.SENDPORT, data)
-        time.sleep(0.7)
         self.recv(func)
 
     def transmit(self, cmd_arr, mac, func):
@@ -368,7 +377,7 @@ class ProSafeLinux:
         self.recv(func)
 
     def passwd_exploit(self, mac, new, func):
-        "exploit in current (2012) firmware version, set a a new password"
+        "exploit in current (2012) firmware version, set a new password"
         # The Order of the CMD_PASSWORD and CMD_NEW_PASSWORD is important
         ipadr = self.ip_from_mac(mac)
         data = self.baseudp(destmac=mac, ctype=self.CTYPE_TRANSMIT_REQUEST)

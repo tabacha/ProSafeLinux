@@ -32,7 +32,7 @@ class PslTyp:
         raise NotImplementedError
 
     def unpack_cmd(self, value):
-        "umpack something given from the cmd line"
+        "unpack something given from the cmd line"
         raise NotImplementedError
 
     def print_result(self, value):
@@ -204,16 +204,16 @@ class PslTypIpv4(PslTyp):
         print value
         adr = value.split(".")
         if len(adr)!= 4:
-            raise ValueError("Ipadress wrong format %s" % value)
+            raise ValueError("IP address wrong format %s" % value)
         for i in range(4):
             try:
                 num = int(adr[i])
             except ValueError:
-                raise ValueError("Ipadress wrong format %s (String?)" % value)
+                raise ValueError("IP address wrong format %s (String?)" % value)
             if num > 255:
-                raise ValueError("Ipadress wrong format %s (>255)" % value)
+                raise ValueError("IP address wrong format %s (>255)" % value)
             if num < 0:
-                raise ValueError("Ipadress wrong format %s (<0)" % value)
+                raise ValueError("IP address wrong format %s (<0)" % value)
         return struct.pack(">BBBB", int(adr[0]), int(adr[1]), int(adr[2]),
                 int(adr[3]))
 
@@ -274,7 +274,7 @@ class PslTypEnd(PslTypHex):
 
 
 class PslTypSpeedStat(PslTyp):
-    "Speed statisik 10/100/1000 per port"
+    "Speed statistic 10/100/1000 per port"
     SPEED_NONE = 0x00
     SPEED_10MH = 0x01
     SPEED_10ML = 0x02
@@ -317,7 +317,7 @@ class PslTypSpeedStat(PslTyp):
 
 
 class PslTypPortStat(PslTyp):
-    "how many bytes are recieved/send on each port"
+    "how many bytes are received/send on each port"
     def unpack_py(self, val):
         rtn = {
             "port": struct.unpack(">b", val[0])[0],
@@ -340,8 +340,8 @@ class PslTypPortStat(PslTyp):
 ################################################################################
 
 
-class PslTypBandwith(PslTyp):
-    "limit bandwith"
+class PslTypBandwidth(PslTyp):
+    "limit bandwidth"
     SPEED_LIMIT_NONE = 0x0000
     SPEED_LIMIT_512K = 0x0001
     SPEED_LIMIT_1M = 0x0002
@@ -486,50 +486,50 @@ class PslTypVlan802Id(PslTypVlanId):
     "802Vlan is binary coded"
 
     def unpack_py(self, value):
-        taged_ports = struct.unpack(">B", value[2])[0]
-        untaged_ports = struct.unpack(">B", value[3])[0]
-        out_taged_ports = []
-        out_untaged_ports = []
+        tagged_ports = struct.unpack(">B", value[2])[0]
+        untagged_ports = struct.unpack(">B", value[3])[0]
+        out_tagged_ports = []
+        out_untagged_ports = []
         for port in self.BIN_PORTS.keys():
-            if (taged_ports & self.BIN_PORTS[port] > 0):
-                out_taged_ports.append(port)
-            if (untaged_ports & self.BIN_PORTS[port] > 0):
-                out_untaged_ports.append(port)
+            if (tagged_ports & self.BIN_PORTS[port] > 0):
+                out_tagged_ports.append(port)
+            if (untagged_ports & self.BIN_PORTS[port] > 0):
+                out_untagged_ports.append(port)
         rtn = {
             "vlan_id": struct.unpack(">h", value[0:2])[0],
-            "taged_ports": out_taged_ports,
-            "untaged_ports": out_untaged_ports
+            "tagged_ports": out_tagged_ports,
+            "untagged_ports": out_untagged_ports
 
         }
         return rtn
         
 
     def pack_py(self, value):
-        taged = self.pack_port(value[1])
-        untaged = self.pack_port(value[2])
-        rtn = struct.pack(">hBB", int(value[0]), taged, untaged)
+        tagged = self.pack_port(value[1])
+        untagged = self.pack_port(value[2])
+        rtn = struct.pack(">hBB", int(value[0]), tagged, untagged)
         return rtn
         
     def get_num_args(self):
         return 3
 
     def get_metavar(self):
-        return ("VLAN_ID", "TAGED_PORTS", "UNTAGED_PORTS")
+        return ("VLAN_ID", "TAGGED_PORTS", "UNTAGGED_PORTS")
 
     def print_result(self, value):
         print "%-30s%7s %14s %s" % (self.get_name().capitalize(), "VLAN_ID",
-                                      "Taged-Ports","Untaged-Ports")
+                                      "Tagged-Ports","Untagged-Ports")
         if type(value) is list:
             for row in value:
                 print "%-30s%7d %14s %s" % ("",
                         int(row["vlan_id"]),
-                        ",".join([str(x) for x in row["taged_ports"]]),
-                        ",".join([str(x) for x in row["untaged_ports"]]))
+                        ",".join([str(x) for x in row["tagged_ports"]]),
+                        ",".join([str(x) for x in row["untagged_ports"]]))
         else:
             print "%-30s%7d %14s %s" % ("",
                         int(value["vlan_id"]),
-                        ",".join([str(x) for x in value["taged_ports"]]),
-                        ",".join([str(x) for x in value["untaged_ports"]]))
+                        ",".join([str(x) for x in value["tagged_ports"]]),
+                        ",".join([str(x) for x in value["untagged_ports"]]))
 	  
 
         
@@ -571,16 +571,16 @@ class PslTypVlanPVID(PslTyp):
 
 
     def get_set_help(self):
-        return "a untaged package on PORT will get this VLAN_ID"
+        return "an untagged package on PORT will get this VLAN_ID"
 ################################################################################
 
 
 class UnknownValueException(Exception):
-    "Found something wich i dont know"
+    "Found something which I don't know"
 
 
 class PslTypQos(PslTyp):
-    "Quality of servcie is port_based or 802.1p"
+    "Quality of service is port_based or 802.1p"
     def unpack_py(self, value):
         val = struct.unpack(">B", value[0])[0]
         if (val == 0x01):
@@ -594,7 +594,7 @@ class PslTypQos(PslTyp):
             return struct.pack(">B", 0x02)
         if (value == "port_based"):
             return struct.pack(">B", 0x01)
-        raise UnknownValueException("Unkown value %s" % value)
+        raise UnknownValueException("Unknown value %s" % value)
        
     def is_setable(self):
         return True
@@ -606,7 +606,7 @@ class PslTypQos(PslTyp):
 
 
 class PslTypPortBasedQOS(PslTyp):
-    "Port based qualiyt of servcie"
+    "Port based quality of service"
     
     QOS_PRIORITY = {
       0x01:"HIGH",
@@ -628,7 +628,7 @@ class PslTypPortBasedQOS(PslTyp):
             if val == value[1]:
                 qos = k
         if qos == None:
-            raise UnknownValueException("Unkown value %s" % value[1])
+            raise UnknownValueException("Unknown value %s" % value[1])
         return struct.pack(">BB", int(value[0]), qos)
        
     def is_setable(self):
@@ -641,7 +641,7 @@ class PslTypPortBasedQOS(PslTyp):
         return ("PORT","QOS")
         
     def get_set_help(self):
-        return "QOS can be HIGH,MIDDLE,NORMAL or LOW"
+        return "QOS can be HIGH, MIDDLE, NORMAL, or LOW"
 
     def print_result(self, value):
         print "%-30s%4s %s" % (self.get_name().capitalize(), "Port",
@@ -663,7 +663,7 @@ class PslTypIGMPSnooping(PslTyp):
         if (enabled == 0x0001):
             # VLAN Id
             return struct.unpack(">h", value[2:])[0]
-        raise UnknownValueException("Unkown value %d" % enabled)
+        raise UnknownValueException("Unknown value %d" % enabled)
       
     def pack_py(self, value):
         if (value == "none"):
@@ -696,7 +696,7 @@ class PslTypVlanSupport(PslTyp):
         support = struct.unpack(">b", value[0])[0]
         if support in self.id2str:
             return self.id2str[support]
-        raise UnknownValueException("Unkown value %d" % support)
+        raise UnknownValueException("Unknown value %d" % support)
 
     def pack_py(self, value):
         found = None
@@ -704,7 +704,7 @@ class PslTypVlanSupport(PslTyp):
             if self.id2str[key] == value:
                 found = key
         if found is None:
-            raise UnknownValueException("Unkown value %s" % value)
+            raise UnknownValueException("Unknown value %s" % value)
         return struct.pack(">b", found)
 
     def is_setable(self):
