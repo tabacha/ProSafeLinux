@@ -63,7 +63,7 @@ def set_switch(args, switch):
 
 
 def query(args, switch):
-    "query values form the switch"
+    "query values from the switch"
     print "Query Values..\n"
     if not(args.passwd == None):
         login = {switch.CMD_PASSWORD: args.passwd[0]}
@@ -87,7 +87,7 @@ def query(args, switch):
 
 
 def query_raw(args, switch):
-    "get all values, even unkown"
+    "get all values, even unknown"
     print "QUERY DEBUG RAW"
     if not(args.passwd == None):
         login = {switch.CMD_PASSWORD: args.passwd[0]}

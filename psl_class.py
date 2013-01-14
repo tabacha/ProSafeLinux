@@ -25,7 +25,7 @@ def get_ip_address(ifname):
     "returns the first ip address of an interface"
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
-    # 0x8915 = SIOCGIFADDR
+        # 0x8915 = SIOCGIFADDR
         addr = socket.inet_ntoa(fcntl.ioctl(sock.fileno(), 0x8915,
                                             struct.pack('256s',
                                             ifname[:15]))[20:24])
@@ -186,7 +186,12 @@ class ProSafeLinux:
             print "recv=" + binascii.hexlify(message)
         if recvfunc is not None:
             recvfunc(message, address)
-        self.recv(recvfunc, maxlen, timeout)
+        return (message, address)
+
+    def recv_all(self, recvfunc, maxlen=8192, timeout=0.005):
+        "receive all pending packets"
+        while self.recv(recvfunc, maxlen, timeout):
+            pass
 
     def parse_packet(self, pack, unknown_warn):
         "unpack packet send by the switch"
@@ -336,8 +341,8 @@ class ProSafeLinux:
         print "can't find mac: " + mac
         return "255.255.255.255"
 
-    def query(self, cmd_arr, mac, func, use_ip_func=True):
-        "get some values from the switch, but do not change them"
+    def send_query(self, cmd_arr, mac, use_ip_func=True):
+        "request some values from a switch, without changing them"
         if use_ip_func:
             ipadr = self.ip_from_mac(mac)
         else:
@@ -348,7 +353,11 @@ class ProSafeLinux:
         data += self.addudp(self.CMD_END)
         self.outdata = {}
         self.send(ipadr, self.SENDPORT, data)
-        self.recv(func)
+
+    def query(self, cmd_arr, mac, func, use_ip_func=True):
+        "get some values from the switch, but do not change them"
+        self.send_query(cmd_arr, mac, use_ip_func)
+        self.recv_all(func)
 
     def transmit(self, cmd_arr, mac, func):
         "change something in the switch, like name, mac ..."
@@ -362,11 +371,11 @@ class ProSafeLinux:
         data += self.addudp(self.CMD_END)
         self.send(ipadr, self.SENDPORT, data)
         time.sleep(0.7)
-        self.recv(func)
+        self.recv_all(func)
 
     def passwd(self, mac, old, new, func):
         "change password from old to new"
-        # The Order of the CMD_PASSWORD and CMD_NEW_PASSWORD is important
+        # The order of the CMD_PASSWORD and CMD_NEW_PASSWORD is important
         ipadr = self.ip_from_mac(mac)
         data = self.baseudp(destmac=mac, ctype=self.CTYPE_TRANSMIT_REQUEST)
         data += self.addudp(self.CMD_PASSWORD, old)
@@ -374,11 +383,11 @@ class ProSafeLinux:
         data += self.addudp(self.CMD_END)
         self.send(ipadr, self.SENDPORT, data)
         time.sleep(0.7)
-        self.recv(func)
+        self.recv_all(func)
 
     def passwd_exploit(self, mac, new, func):
         "exploit in current (2012) firmware version, set a new password"
-        # The Order of the CMD_PASSWORD and CMD_NEW_PASSWORD is important
+        # The order of the CMD_PASSWORD and CMD_NEW_PASSWORD is important
         ipadr = self.ip_from_mac(mac)
         data = self.baseudp(destmac=mac, ctype=self.CTYPE_TRANSMIT_REQUEST)
         data += self.addudp(self.CMD_NEW_PASSWORD, new)
@@ -386,8 +395,17 @@ class ProSafeLinux:
         data += self.addudp(self.CMD_END)
         self.send(ipadr, self.SENDPORT, data)
         time.sleep(0.7)
-        self.recv(func)
+        self.recv_all(func)
         
+    def send_discover(self):
+        "find any switch in the network"
+        query_arr = [self.CMD_MODEL,
+                     self.CMD_NAME,
+                     self.CMD_MAC,
+                     self.CMD_DHCP,
+                    self.CMD_IP]
+        self.send_query(query_arr, None)
+
     def discover(self):
         "find any switch in the network"
         query_arr = [self.CMD_MODEL,
