@@ -82,7 +82,7 @@ class ProSafeLinux:
     CMD_VLANPVID = psl_typ.PslTypVlanPVID(0x3000, "vlan_pvid")
     CMD_QUALITY_OF_SERVICE = psl_typ.PslTypQos(0x3400, "qos")
     CMD_PORT_BASED_QOS = psl_typ.PslTypPortBasedQOS(0x3800, "port_based_qos")
-    CMD_BANDWIDTH_INCOMMING_LIMIT = psl_typ.PslTypBandwidth(
+    CMD_BANDWIDTH_INCOMING_LIMIT = psl_typ.PslTypBandwidth(
                                               0x4c00, "bandwidth_in")
     CMD_BANDWIDTH_OUTGOING_LIMIT = psl_typ.PslTypBandwidth(
                                               0x5000, "bandwidth_out")
@@ -92,7 +92,7 @@ class ProSafeLinux:
     CMD_PORT_MIRROR = psl_typ.PslTypPortMirror(0x5c00, "port_mirror")
     CMD_NUMBER_OF_PORTS = psl_typ.PslTypHex(0x6000, "number_of_ports")
     CMD_IGMP_SNOOPING = psl_typ.PslTypIGMPSnooping(0x6800, "igmp_snooping")
-    CMD_BLOCK_UNKOWN_MULTICAST = psl_typ.PslTypBoolean(
+    CMD_BLOCK_UNKNOWN_MULTICAST = psl_typ.PslTypBoolean(
                                               0x6c00, "block_unknown_multicast")
     CMD_IGMP_HEADER_VALIDATION = psl_typ.PslTypBoolean(0x7000,
         "igmp_header_validation")
@@ -181,7 +181,7 @@ class ProSafeLinux:
         try:
             message, address = self.rsocket.recvfrom(maxlen)
         except socket.timeout:
-            return None
+            return (None, None)
         if self.debug:
             print "recv=" + binascii.hexlify(message)
         if recvfunc is not None:
@@ -190,8 +190,10 @@ class ProSafeLinux:
 
     def recv_all(self, recvfunc, maxlen=8192, timeout=0.005):
         "receive all pending packets"
-        while self.recv(recvfunc, maxlen, timeout):
-            pass
+        while True:
+            (message, address) = self.recv(recvfunc, maxlen, timeout)
+            if message is None:
+                return
 
     def parse_packet(self, pack, unknown_warn):
         "unpack packet send by the switch"
