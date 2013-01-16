@@ -180,6 +180,12 @@ class ProSafeLinux:
         self.rsocket.settimeout(timeout)
         try:
             message, address = self.rsocket.recvfrom(maxlen)
+        except socket.error as error:
+            # according to the Python documentation this error
+            # is system-specifc; this works on Linux
+            if error.errno == errno.EAGAIN: 
+                return (None, None)
+            raise
         except socket.timeout:
             return (None, None)
         if self.debug:
