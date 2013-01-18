@@ -12,7 +12,7 @@ import psl_typ
 
 def discover(args, switch):
     "Search for Switches"
-    print "Searching for ProSafe Plus Switches ...\n"
+    print("Searching for ProSafe Plus Switches ...\n")
     switch.discover()
 # pylint: enable=W0613
 
@@ -43,28 +43,28 @@ def set_switch(args, switch):
             if ((ProSafeLinux.CMD_IP in cmds) or
                 (ProSafeLinux.CMD_GATEWAY in cmds) or
                 (ProSafeLinux.CMD_NETMASK in cmds)):
-                print "When dhcp=on, no ip,gateway nor netmask is allowed"
+                print("When dhcp=on, no ip,gateway nor netmask is allowed")
                 return
         else:
             if (not((ProSafeLinux.CMD_IP in cmds) and
               (ProSafeLinux.CMD_GATEWAY in cmds) and
               (ProSafeLinux.CMD_NETMASK in cmds))):
-                print "When dhcp=off, specify ip,gateway and netmask"
+                print("When dhcp=off, specify ip,gateway and netmask")
                 return
     else:
         if ((ProSafeLinux.CMD_IP in cmds) or
           (ProSafeLinux.CMD_GATEWAY in cmds) or
           (ProSafeLinux.CMD_NETMASK in cmds)):
-            print "Use dhcp on,ip,gateway and netmask option together"
+            print("Use dhcp on,ip,gateway and netmask option together")
             return
 
-    print "Changing Values..\n"
+    print("Changing Values..\n")
     switch.transmit(cmds, args.mac[0], switch.transfunc)
 
 
 def query(args, switch):
     "query values from the switch"
-    print "Query Values..\n"
+    print("Query Values..\n")
     if not(args.passwd == None):
         login = {switch.CMD_PASSWORD: args.passwd[0]}
         switch.transmit(login, args.mac[0], switch.transfunc)
@@ -78,17 +78,17 @@ def query(args, switch):
         else:
             query_cmd.append(switch.get_cmd_by_name(qarg))
     switch.query(query_cmd, args.mac[0], switch.storefunc)
-    for key in switch.outdata.keys():
+    for key in list(switch.outdata.keys()):
         if isinstance(key, psl_typ.PslTyp):
             key.print_result(switch.outdata[key])
         else:
             if args.debug:
-                print "-%-29s%s" % (key, switch. outdata[key])
+                print("-%-29s%s" % (key, switch. outdata[key]))
 
 
 def query_raw(args, switch):
     "get all values, even unknown"
-    print "QUERY DEBUG RAW"
+    print("QUERY DEBUG RAW")
     if not(args.passwd == None):
         login = {switch.CMD_PASSWORD: args.passwd[0]}
         switch.transmit(login, args.mac[0], switch.transfunc)
@@ -99,23 +99,23 @@ def query_raw(args, switch):
         try:
             switch.query(query_cmd, args.mac[0], switch.rec_raw)
             found = None
-            for qcmd in switch.outdata.keys():
+            for qcmd in list(switch.outdata.keys()):
                 if (isinstance(qcmd, psl_typ.PslTyp)):
                     if qcmd.get_id() == i:
                         found = qcmd
 
             if found is None:
-                print "NON:%04x:%-29s:%s" % (i, "", switch.outdata["raw"])
+                print("NON:%04x:%-29s:%s" % (i, "", switch.outdata["raw"]))
             else:
-                print "RES:%04x:%-29s:%s " % (i, switch.outdata[found],
-                    switch.outdata["raw"])
+                print("RES:%04x:%-29s:%s " % (i, switch.outdata[found],
+                    switch.outdata["raw"]))
             if args.debug:
-                for key in switch.outdata.keys():
-                    print "%x-%-29s%s" % (i, key, switch.outdata[key])
+                for key in list(switch.outdata.keys()):
+                    print("%x-%-29s%s" % (i, key, switch.outdata[key]))
         except (KeyboardInterrupt, SystemExit):
             raise
         except:
-            print "ERR:%04x:%s" % (i, sys.exc_info()[1])
+            print("ERR:%04x:%s" % (i, sys.exc_info()[1]))
         i = i + 1
 
 
@@ -188,7 +188,7 @@ def main():
     interface = args.interface[0]
 
     if not switch.bind(interface):
-        print "Interface has no addresses, cannot talk to switch"
+        print("Interface has no addresses, cannot talk to switch")
         return
 
     if (args.debug):
@@ -197,6 +197,6 @@ def main():
     if args.operation in cmd_funcs:
         cmd_funcs[args.operation](args, switch)
     else:
-        print "ERROR: operation not found!"
+        print("ERROR: operation not found!")
 
 main()

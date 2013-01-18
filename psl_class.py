@@ -17,13 +17,18 @@ import errno
 def get_hw_addr(ifname):
     "gives the hardware (mac) address of an interface (eth0,eth1..)"
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    ifname = ifname.encode('ascii')  # struct.pack requires bytes in Python 3
     info = fcntl.ioctl(sock.fileno(), 0x8927, struct.pack('256s', ifname[:15]))
-    return ''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1]
-
+    if type(info) is str:
+        return ''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1]
+    else:
+        # Python 3 returns a list of bytes from ioctl, no need for ord()
+        return ''.join(['%02x:' % char for char in info[18:24]])[:-1]
 
 def get_ip_address(ifname):
     "returns the first ip address of an interface"
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    ifname = ifname.encode('ascii')  # struct.pack requires bytes in Python 3
     try:
         # 0x8915 = SIOCGIFADDR
         addr = socket.inet_ntoa(fcntl.ioctl(sock.fileno(), 0x8915,
@@ -37,6 +42,7 @@ def get_ip_address(ifname):
 
 def pack_mac(value):
     "packs the hardware address (mac) to the internal representation"
+    value = value.encode()  # binascii.unhexlify() requires bytes in Python 3
     if (len(value) == 17):
         return binascii.unhexlify(value[0:2] + value[3:5] + value[6:8] +
                                   value[9:11] + value[12:14] + value[15:17])
@@ -154,7 +160,7 @@ class ProSafeLinux:
     def get_query_cmds(self):
         "return all commands which can be used in a query"
         rtn = []
-        for cmd in self.cmd_by_name.values():
+        for cmd in list(self.cmd_by_name.values()):
             if cmd.is_queryable():
                 rtn.append(cmd)
         return rtn
@@ -162,7 +168,7 @@ class ProSafeLinux:
     def get_setable_cmds(self):
         "returns all commands which can be set"
         rtn = []
-        for cmd in self.cmd_by_name.values():
+        for cmd in list(self.cmd_by_name.values()):
             if cmd.is_setable():
                 rtn.append(cmd)
         return rtn
@@ -180,16 +186,17 @@ class ProSafeLinux:
         self.rsocket.settimeout(timeout)
         try:
             message, address = self.rsocket.recvfrom(maxlen)
+        except socket.timeout:
+            return (None, None)
         except socket.error as error:
             # according to the Python documentation this error
             # is system-specifc; this works on Linux
             if error.errno == errno.EAGAIN: 
                 return (None, None)
             raise
-        except socket.timeout:
-            return (None, None)
         if self.debug:
-            print "recv=" + binascii.hexlify(message)
+            message_hex = binascii.hexlify(message).decode()
+            print("recv=" + message_hex)
         if recvfunc is not None:
             recvfunc(message, address)
         return (message, address)
@@ -211,18 +218,18 @@ class ProSafeLinux:
 #        data["seq"] = struct.unpack(">H", pack[22:24])[0]
 #        data["ctype"] = struct.unpack(">H", pack[0:2])[0]
 #        data["mymac"] = binascii.hexlify(pack[8:14])
-        data["theirmac"] = binascii.hexlify(pack[14:20])
+        data["theirmac"] = binascii.hexlify(pack[14:20]).decode()
         pos = 32
         cmd_id = 0
         while (pos<len(pack)):
             if self.debug:
-                print "pos:%d len: %d" %(pos,len(pack))
+                print("pos:%d len: %d" %(pos,len(pack)))
             cmd_id = struct.unpack(">H", pack[pos:(pos + 2)])[0]
             if cmd_id in self.cmd_by_id:
                 cmd = self.cmd_by_id[cmd_id]
             else:
                 if unknown_warn:
-                    print "Unknown Response %d" % cmd_id
+                    print("Unknown Response %d" % cmd_id)
                 cmd = psl_typ.PslTypHex(cmd_id, "UNKNOWN %d" % cmd_id)
             pos = pos + 2
             cmdlen = struct.unpack(">H", pack[pos:(pos + 2)])[0]
@@ -238,9 +245,9 @@ class ProSafeLinux:
             elif value != None:
                 data[cmd] = value
             if self.debug:
-                print "cmd_id %d of length %d :" % (cmd_id, cmdlen) 
-                print "data=" + binascii.hexlify(
-                    pack[pos:(pos + cmdlen)])
+                print("cmd_id %d of length %d :" % (cmd_id, cmdlen)) 
+                data_hex = binascii.hexlify(pack[pos:(pos + cmdlen)]).decode()
+                print("data=" + data_hex)
             pos = pos + cmdlen
         return data
 
@@ -250,18 +257,18 @@ class ProSafeLinux:
         dhcpstr = ""
         if (data[self.CMD_DHCP]):
             dhcpstr = " DHCP=on"
-        print " * %s\t%s\t%s\t%s\t%s" % (data[self.CMD_MAC],
+        print(" * %s\t%s\t%s\t%s\t%s" % (data[self.CMD_MAC],
                                          data[self.CMD_IP],
                                          data[self.CMD_MODEL],
                                          data.get(self.CMD_NAME, ''),
-                                         dhcpstr)
+                                         dhcpstr))
 
     def storediscoverfunc(self, msg, adr):
         "store discover ip"
         data = self.parse_packet(msg, True)
         if self.debug:
-            print "Store MAC, IP: " + (data[self.CMD_MAC] + " " +
-               data[self.CMD_IP])
+            print("Store MAC, IP: " + (data[self.CMD_MAC] + " " +
+               data[self.CMD_IP]))
         self.mac_cache[data[self.CMD_MAC]] = data[self.CMD_IP]
         #print " * %s\t%s\t%s\t%s\t%s" % (data[self.CMD_MAC],
         # data[self.CMD_IP], data[self.CMD_MODEL], data[self.CMD_NAME], dhcpstr)
@@ -274,20 +281,20 @@ class ProSafeLinux:
             pprint.pprint(data)
             if data["error"]:
                 try:
-                    print "Error with " + self.cmd_by_id(self.outdata["error"])
+                    print("Error with " + self.cmd_by_id(self.outdata["error"]))
                 except KeyError:
-                    print "Unknown Error"
+                    print("Unknown Error")
  
     def storefunc(self, msg, adr):
         "store data in outdata"
         self.outdata = self.parse_packet(msg, True)
         if self.debug:
             pprint.pprint(self.outdata)
-            if self.outdata["error"]:
+            if "error" in self.outdata:
                 try:
-                    print "Error with " + self.cmd_by_id(self.outdata["error"])
+                    print("Error with " + self.cmd_by_id(self.outdata["error"]))
                 except KeyError:
-                    print "Unknown Error"
+                    print("Unknown Error")
 
 
     def rec_raw(self, msg, adr):
@@ -301,21 +308,23 @@ class ProSafeLinux:
     def send(self, host, port, data):
         "send data to host on port"
         if self.debug:
-            print "send to ip " + host + " data = " + binascii.hexlify(data)
+            # binascii.unhexlify() requires bytes in Python 3
+            data_hex = binascii.hexlify(data).decode()
+            print("send to ip " + host + " data = " + data_hex)
         self.ssocket.sendto(data, (host, port))
         self.seq += 1
 
     def baseudp(self, ctype, destmac):
         "Base UDP Package"
-        reserved = "\x00"
+        reserved = b"\x00"
         if destmac is None:
-            destmac = 6 * "\x00"
+            destmac = 6 * b"\x00"
         if len(destmac) > 6:
             destmac = pack_mac(destmac)
         data = (struct.pack(">h", ctype) + 6 * reserved + self.srcmac +
                      destmac + 2 * reserved)
         data += struct.pack(">h", self.seq)
-        data += "NSDP" + 4 * reserved
+        data += b"NSDP" + 4 * reserved
         return data
 
     @staticmethod
@@ -346,7 +355,7 @@ class ProSafeLinux:
         self.query(query_arr, mac, self.storediscoverfunc, use_ip_func=False)
         if mac in self.mac_cache:
             return self.mac_cache[mac]
-        print "can't find mac: " + mac
+        print("can't find mac: " + mac)
         return "255.255.255.255"
 
     def send_query(self, cmd_arr, mac, use_ip_func=True):
@@ -373,7 +382,7 @@ class ProSafeLinux:
         data = self.baseudp(destmac=mac, ctype=self.CTYPE_TRANSMIT_REQUEST)
         if self.CMD_PASSWORD in cmd_arr:
             data += self.addudp(self.CMD_PASSWORD, cmd_arr[self.CMD_PASSWORD])
-        for cmd, pdata in cmd_arr.items():
+        for cmd, pdata in list(cmd_arr.items()):
             if cmd != self.CMD_PASSWORD:
                 data += self.addudp(cmd, pdata)
         data += self.addudp(self.CMD_END)
