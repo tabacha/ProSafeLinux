@@ -1,6 +1,5 @@
 
 
-
 If your interface is **not** eth0 please specify it, when you call *psl.py*.
 
 ##Example:
@@ -28,10 +27,8 @@ https://github.com/Z3po/Netgearizer (We are merging code together.)
 * Asbjørn Sloth Tønnesen 
 * Lars Dennis Renneberg Andersen
 * Svenne Krap
+* Shane Kerr
 * Sven Anders
-
-# Contributors
-* Sebastian Cabrera &lt;psl-github@portachtzig.de&gt;
 
 See also: http://git.asbjorn.biz/?p=gs105e.git;a=summary
 

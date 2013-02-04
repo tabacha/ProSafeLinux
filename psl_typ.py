@@ -32,12 +32,12 @@ class PslTyp:
         raise NotImplementedError
 
     def unpack_cmd(self, value):
-        "umpack something given from the cmd line"
+        "unpack something given from the cmd line"
         raise NotImplementedError
 
     def print_result(self, value):
         "print a result for a query action"
-        print "%-30s%s" % (self.get_name(). capitalize(), value)
+        print("%-30s%s" % (self.get_name(). capitalize(), value))
 
     def is_setable(self):
         "can this command be set like name (not like firmware version)"
@@ -73,16 +73,16 @@ class PslTyp:
 class PslTypString(PslTyp):
     "A String typ line name"
     def pack_py(self, value):
-        return value
+        return value.encode()
 
     def unpack_py(self, value):
-        return value
+        return value.decode()
 
     def pack_cmd(self, value):
-        return value
+        return value.encode()
 
     def unpack_cmd(self, value):
-        return value
+        return value.decode()
 
     def is_setable(self):
         return True
@@ -122,21 +122,20 @@ class PslTypBoolean(PslTyp):
             return struct.pack(">b", 0x00)
 
     def unpack_py(self, value):
-        if (self.unpack_cmd(value)):
-            return "on"
+        if len(value)==1:
+            numval = struct.unpack(">b", value)[0]
         else:
-            return "off"
+            numval = struct.unpack(">h",value)[0]
+        return (numval == 0x01)
 
     def pack_cmd(self, value):
         return self.pack_py(value.lowercase == "on")
 
     def unpack_cmd(self, value):
-	if len(value)==1:
-            numval = struct.unpack(">b", value)[0]
-	else:
-	    numval = struct.unpack(">h",value)[0]
-        return (numval == 0x01)
-
+        if (self.unpack_py(value)):
+            return "on"
+        else:
+            return "off"
 
     def is_setable(self):
         return True
@@ -187,6 +186,7 @@ class PslTypMac(PslTyp):
 
     def unpack_py(self, value):
         mac = binascii.hexlify(value)
+        mac = mac.decode()  # binascii.hexlify() yields a byte list in Python 3
         return (mac[0:2] + ":" + mac[2:4] + ":" + mac[4:6] + ":" + mac[6:8] +
                ":" + mac[8:10] + ":" + mac[10:12])
 
@@ -202,19 +202,19 @@ class PslTypMac(PslTyp):
 class PslTypIpv4(PslTyp):
     "IPv4 adrresss, gateway or netmask"
     def pack_py(self, value):
-        print value
+        print(value)
         adr = value.split(".")
         if len(adr)!= 4:
-            raise ValueError("Ipadress wrong format %s" % value)
+            raise ValueError("IP address wrong format %s" % value)
         for i in range(4):
             try:
                 num = int(adr[i])
             except ValueError:
-                raise ValueError("Ipadress wrong format %s (String?)" % value)
+                raise ValueError("IP address wrong format %s (String?)" % value)
             if num > 255:
-                raise ValueError("Ipadress wrong format %s (>255)" % value)
+                raise ValueError("IP address wrong format %s (>255)" % value)
             if num < 0:
-                raise ValueError("Ipadress wrong format %s (<0)" % value)
+                raise ValueError("IP address wrong format %s (<0)" % value)
         return struct.pack(">BBBB", int(adr[0]), int(adr[1]), int(adr[2]),
                 int(adr[3]))
 
@@ -241,13 +241,13 @@ class PslTypHex(PslTyp):
         return binascii.unhexlify(value)
 
     def unpack_py(self, value):
-        return binascii.hexlify(value)
+        return binascii.hexlify(value).decode()
 
     def pack_cmd(self, value):
         return self.pack_py(self, value)
 
     def unpack_cmd(self, value):
-        return self.unpack_py(self, value)
+        return self.unpack_py(self, value).decode()
 
 ################################################################################
 
@@ -275,7 +275,7 @@ class PslTypEnd(PslTypHex):
 
 
 class PslTypSpeedStat(PslTyp):
-    "Speed statisik 10/100/1000 per port"
+    "Speed statistic 10/100/1000 per port"
     SPEED_NONE = 0x00
     SPEED_10MH = 0x01
     SPEED_10ML = 0x02
@@ -284,19 +284,27 @@ class PslTypSpeedStat(PslTyp):
     SPEED_1G = 0x05
 
     def unpack_py(self, value):
-        rtn = {
-            "port": struct.unpack(">b", value[0])[0],
-            "speed": struct.unpack(">b", value[1])[0],
-            "rest": binascii.hexlify(value[2:]),
-        }
+        # Python 3 uses an array of bytes, Python 2 uses a string
+        if type(value) is str:
+            rtn = {
+                "port": struct.unpack(">b", value[0])[0],
+                "speed": struct.unpack(">b", value[1])[0],
+                "rest": binascii.hexlify(value[2:]),
+            }
+        else:
+            rtn = {
+                "port": value[0],
+                "speed": value[1],
+                "rest": binascii.hexlify(value[2:]).decode(),
+            }
         return rtn
 
     def is_setable(self):
         return False
 
     def print_result(self, value):
-        print "%-30s%4s%15s%10s" % ("Speed Statistic:", "Port",
-                                    "Speed", "FIXME")
+        print("%-30s%4s%15s%10s" % ("Speed Statistic:", "Port",
+                                    "Speed", "FIXME"))
         for row in value:
             speed = row["speed"]
             if speed == PslTypSpeedStat.SPEED_NONE:
@@ -311,38 +319,47 @@ class PslTypSpeedStat(PslTyp):
                 speed = "100 Mbit/s L"
             if speed == PslTypSpeedStat.SPEED_1G:
                 speed = "1 Gbit/s"
-            print "%-30s%4d%15s%10s" % ("", row["port"], speed, row["rest"])
+            print("%-30s%4d%15s%10s" % ("", row["port"], speed, row["rest"]))
 
 
 ################################################################################
 
 
 class PslTypPortStat(PslTyp):
-    "how many bytes are recieved/send on each port"
+    "how many bytes are received/send on each port"
     def unpack_py(self, val):
-        rtn = {
-            "port": struct.unpack(">b", val[0])[0],
-            "rec": struct.unpack(">Q", val[1:9])[0],
-            "send": struct.unpack(">Q", val[10:18])[0],
-            "rest": binascii.hexlify(val[19:]),
-        }
+        # Python 3 uses an array of bytes, Python 2 uses a string
+        if type(val) is str:
+            rtn = {
+                "port": struct.unpack(">b", val[0])[0],
+                "rec": struct.unpack(">Q", val[1:9])[0],
+                "send": struct.unpack(">Q", val[10:18])[0],
+                "rest": binascii.hexlify(val[19:]),
+            }
+        else:
+            rtn = {
+                "port": val[0],
+                "rec": struct.unpack(">Q", val[1:9])[0],
+                "send": struct.unpack(">Q", val[10:18])[0],
+                "rest": binascii.hexlify(val[19:]).decode(),
+            }
         return rtn
 
     def is_setable(self):
         return False
 
     def print_result(self, value):
-        print "%-30s%4s%15s%15s %s" % ("Port Statistic:", "Port",
-                                      "Rec.", "Send", "FIXME")
+        print("%-30s%4s%15s%15s %s" % ("Port Statistic:", "Port",
+                                      "Rec.", "Send", "FIXME"))
         for row in value:
-            print "%-30s%4d%15d%15d %s" % ("", row["port"], row["rec"],
-                                          row["send"], row["rest"])
+            print("%-30s%4d%15d%15d %s" % ("", row["port"], row["rec"],
+                                          row["send"], row["rest"]))
 
 ################################################################################
 
 
-class PslTypBandwith(PslTyp):
-    "limit bandwith"
+class PslTypBandwidth(PslTyp):
+    "limit bandwidth"
     SPEED_LIMIT_NONE = 0x0000
     SPEED_LIMIT_512K = 0x0001
     SPEED_LIMIT_1M = 0x0002
@@ -387,11 +404,19 @@ class PslTypBandwith(PslTyp):
 
     }
     def unpack_py(self, value):
-        rtn = {
-            "port": struct.unpack(">b", value[0])[0],
-            "limit": struct.unpack(">h", value[3::])[0],
-            "rest": binascii.hexlify(value[1:3]),
-        }
+        # Python 3 uses an array of bytes, Python 2 uses a string
+        if type(value) is str:
+            rtn = {
+                "port": struct.unpack(">b", value[0])[0],
+                "limit": struct.unpack(">h", value[3::])[0],
+                "rest": binascii.hexlify(value[1:3]),
+            }
+        else:
+            rtn = {
+                "port": value[0],
+                "limit": struct.unpack(">h", value[3::])[0],
+                "rest": binascii.hexlify(value[1:3]).decode(),
+            }
         return rtn
 
     def pack_py(self, value):
@@ -400,13 +425,13 @@ class PslTypBandwith(PslTyp):
         return rtn
         
     def print_result(self, value):
-        print "%-30s%4s%15s %s" % (self.get_name().capitalize(), "Port",
-                                      "Limit", "FIXME")
+        print("%-30s%4s%15s %s" % (self.get_name().capitalize(), "Port",
+                                      "Limit", "FIXME"))
         for row in value:
-            print "%-30s%4d%15s %s " % ("",
+            print("%-30s%4d%15s %s " % ("",
                                         row["port"],
                                         self.speed_to_string[row["limit"]],
-                                        row["rest"])
+                                        row["rest"]))
 
     def is_setable(self):
         return True
@@ -439,7 +464,7 @@ class PslTypVlanId(PslTyp):
     def unpack_py(self, value):
         ports = struct.unpack(">B", value[2:])[0]
         out_ports = []
-        for port in self.BIN_PORTS.keys():
+        for port in list(self.BIN_PORTS.keys()):
             if (ports & self.BIN_PORTS[port] > 0):
                 out_ports.append(port)
         rtn = {
@@ -472,12 +497,12 @@ class PslTypVlanId(PslTyp):
         return ("VLAN_ID", "PORTS")
 
     def print_result(self, value):
-        print "%-30s%7s %s" % (self.get_name().capitalize(), "VLAN_ID",
-                                      "Ports")
+        print("%-30s%7s %s" % (self.get_name().capitalize(), "VLAN_ID",
+                                      "Ports"))
         for row in value:
-            print "%-30s%7d %s" % ("",
+            print("%-30s%7d %s" % ("",
                                    int(row["vlan_id"]),
-                                   ",".join([str(x) for x in row["ports"]]))
+                                   ",".join([str(x) for x in row["ports"]])))
 
 
 ################################################################################
@@ -487,51 +512,55 @@ class PslTypVlan802Id(PslTypVlanId):
     "802Vlan is binary coded"
 
     def unpack_py(self, value):
-        taged_ports = struct.unpack(">B", value[2])[0]
-        untaged_ports = struct.unpack(">B", value[3])[0]
-        out_taged_ports = []
-        out_untaged_ports = []
-        for port in self.BIN_PORTS.keys():
-            if (taged_ports & self.BIN_PORTS[port] > 0):
-                out_taged_ports.append(port)
-            if (untaged_ports & self.BIN_PORTS[port] > 0):
-                out_untaged_ports.append(port)
+        # Python 3 uses an array of bytes, Python 2 uses a string
+        if type(value) is str:
+            tagged_ports = struct.unpack(">B", value[2])[0]
+            untagged_ports = struct.unpack(">B", value[3])[0]
+        else:
+            tagged_ports = value[2]
+            untagged_ports = value[3]
+        out_tagged_ports = []
+        out_untagged_ports = []
+        for port in list(self.BIN_PORTS.keys()):
+            if (tagged_ports & self.BIN_PORTS[port] > 0):
+                out_tagged_ports.append(port)
+            if (untagged_ports & self.BIN_PORTS[port] > 0):
+                out_untagged_ports.append(port)
         rtn = {
             "vlan_id": struct.unpack(">h", value[0:2])[0],
-            "taged_ports": out_taged_ports,
-            "untaged_ports": out_untaged_ports
-
+            "tagged_ports": out_tagged_ports,
+            "untagged_ports": out_untagged_ports
         }
         return rtn
         
 
     def pack_py(self, value):
-        taged = self.pack_port(value[1])
-        untaged = self.pack_port(value[2])
-        rtn = struct.pack(">hBB", int(value[0]), taged, untaged)
+        tagged = self.pack_port(value[1])
+        untagged = self.pack_port(value[2])
+        rtn = struct.pack(">hBB", int(value[0]), tagged, untagged)
         return rtn
         
     def get_num_args(self):
         return 3
 
     def get_metavar(self):
-        return ("VLAN_ID", "TAGED_PORTS", "UNTAGED_PORTS")
+        return ("VLAN_ID", "TAGGED_PORTS", "UNTAGGED_PORTS")
 
     def print_result(self, value):
-        print "%-30s%7s %14s %s" % (self.get_name().capitalize(), "VLAN_ID",
-                                      "Taged-Ports","Untaged-Ports")
+        print("%-30s%7s %14s %s" % (self.get_name().capitalize(), "VLAN_ID",
+                                      "Tagged-Ports","Untagged-Ports"))
         if type(value) is list:
             for row in value:
-                print "%-30s%7d %14s %s" % ("",
+                print("%-30s%7d %14s %s" % ("",
                         int(row["vlan_id"]),
-                        ",".join([str(x) for x in row["taged_ports"]]),
-                        ",".join([str(x) for x in row["untaged_ports"]]))
+                        ",".join([str(x) for x in row["tagged_ports"]]),
+                        ",".join([str(x) for x in row["untagged_ports"]])))
         else:
-            print "%-30s%7d %14s %s" % ("",
+            print("%-30s%7d %14s %s" % ("",
                         int(value["vlan_id"]),
-                        ",".join([str(x) for x in value["taged_ports"]]),
-                        ",".join([str(x) for x in value["untaged_ports"]]))
-	  
+                        ",".join([str(x) for x in value["tagged_ports"]]),
+                        ",".join([str(x) for x in value["untagged_ports"]])))
+          
 
         
 ################################################################################
@@ -540,13 +569,21 @@ class PslTypVlan802Id(PslTypVlanId):
 class PslTypVlanPVID(PslTyp):
     "The PVID"
     def unpack_py(self, value):
-        rtn = {
-            "port": struct.unpack(">B", value[0])[0],
-            "vlan_id": struct.unpack(">h", value[1:])[0]
-        }
+        # Python 3 uses an array of bytes, Python 2 uses a string
+        if type(value) is str:
+            rtn = {
+                "port": struct.unpack(">B", value[0])[0],
+                "vlan_id": struct.unpack(">h", value[1:])[0]
+            }
+        else:
+            rtn = {
+                "port": value[0],
+                "vlan_id": struct.unpack(">h", value[1:])[0]
+            }
         return rtn
 
     def pack_py(self, value):
+#        value = value.encode()
         rtn = struct.pack(">Bh", int(value[0]), int(value[1]))
         return rtn
 
@@ -563,27 +600,31 @@ class PslTypVlanPVID(PslTyp):
         return int
 
     def print_result(self, value):
-        print "%-30s%4s %s" % (self.get_name().capitalize(), "Port",
-                                      "VLAN_ID")
+        print("%-30s%4s %s" % (self.get_name().capitalize(), "Port",
+                                      "VLAN_ID"))
         for row in value:
-            print "%-30s%4d %7d" % ("",
+            print("%-30s%4d %7d" % ("",
                                         row["port"],
-                                        row["vlan_id"])
+                                        row["vlan_id"]))
 
 
     def get_set_help(self):
-        return "a untaged package on PORT will get this VLAN_ID"
+        return "an untagged package on PORT will get this VLAN_ID"
 ################################################################################
 
 
 class UnknownValueException(Exception):
-    "Found something wich i dont know"
+    "Found something which I don't know"
 
 
 class PslTypQos(PslTyp):
-    "Quality of servcie is port_based or 802.1p"
+    "Quality of service is port_based or 802.1p"
     def unpack_py(self, value):
-        val = struct.unpack(">B", value[0])[0]
+        # Python 3 uses an array of bytes, Python 2 uses a string
+        if type(value) is str:
+            val = struct.unpack(">B", value[0])[0]
+        else:
+            val = value[0]
         if (val == 0x01):
             return "port_based"
         if (val == 0x02):
@@ -595,7 +636,7 @@ class PslTypQos(PslTyp):
             return struct.pack(">B", 0x02)
         if (value == "port_based"):
             return struct.pack(">B", 0x01)
-        raise UnknownValueException("Unkown value %s" % value)
+        raise UnknownValueException("Unknown value %s" % value)
        
     def is_setable(self):
         return True
@@ -607,7 +648,7 @@ class PslTypQos(PslTyp):
 
 
 class PslTypPortBasedQOS(PslTyp):
-    "Port based qualiyt of servcie"
+    "Port based quality of service"
     
     QOS_PRIORITY = {
       0x01:"HIGH",
@@ -616,20 +657,27 @@ class PslTypPortBasedQOS(PslTyp):
       0x04:"LOW"
      }
     def unpack_py(self, value):
-        rtn = {
-            "port": struct.unpack(">B", value[0])[0],
-            "qos": self.QOS_PRIORITY[struct.unpack(">B", value[1:])[0]]
-        }
+        # Python 3 uses an array of bytes, Python 2 uses a string
+        if type(value) is str:
+            rtn = {
+                "port": struct.unpack(">B", value[0])[0],
+                "qos": self.QOS_PRIORITY[struct.unpack(">B", value[1:])[0]]
+            }
+        else:
+            rtn = {
+                "port": value[0],
+                "qos": self.QOS_PRIORITY[struct.unpack(">B", value[1:])[0]]
+            }
         return rtn
 
     def pack_py(self, value):
         qos = None
-        for k in self.QOS_PRIORITY.keys():
+        for k in list(self.QOS_PRIORITY.keys()):
             val = self.QOS_PRIORITY[k]
             if val == value[1]:
                 qos = k
         if qos == None:
-            raise UnknownValueException("Unkown value %s" % value[1])
+            raise UnknownValueException("Unknown value %s" % value[1])
         return struct.pack(">BB", int(value[0]), qos)
        
     def is_setable(self):
@@ -642,15 +690,15 @@ class PslTypPortBasedQOS(PslTyp):
         return ("PORT","QOS")
         
     def get_set_help(self):
-        return "QOS can be HIGH,MIDDLE,NORMAL or LOW"
+        return "QOS can be HIGH, MIDDLE, NORMAL, or LOW"
 
     def print_result(self, value):
-        print "%-30s%4s %s" % (self.get_name().capitalize(), "Port",
-                                      "Priority")
+        print("%-30s%4s %s" % (self.get_name().capitalize(), "Port",
+                                      "Priority"))
         for row in value:
-            print "%-30s%4d %s" % ("",
+            print("%-30s%4d %s" % ("",
                                    row["port"],
-                                   row["qos"])
+                                   row["qos"]))
 
 ################################################################################
 
@@ -664,7 +712,7 @@ class PslTypIGMPSnooping(PslTyp):
         if (enabled == 0x0001):
             # VLAN Id
             return struct.unpack(">h", value[2:])[0]
-        raise UnknownValueException("Unkown value %d" % enabled)
+        raise UnknownValueException("Unknown value %d" % enabled)
       
     def pack_py(self, value):
         if (value == "none"):
@@ -694,10 +742,14 @@ class PslTypVlanSupport(PslTyp):
         }
 
     def unpack_py(self, value):
-        support = struct.unpack(">b", value[0])[0]
+        # Python 3 uses an array of bytes, Python 2 uses a string
+        if type(value) is str:
+            support = struct.unpack(">b", value[0])[0]
+        else:
+            support = value[0]
         if support in self.id2str:
             return self.id2str[support]
-        raise UnknownValueException("Unkown value %d" % support)
+        raise UnknownValueException("Unknown value %d" % support)
 
     def pack_py(self, value):
         found = None
@@ -705,14 +757,14 @@ class PslTypVlanSupport(PslTyp):
             if self.id2str[key] == value:
                 found = key
         if found is None:
-            raise UnknownValueException("Unkown value %s" % value)
+            raise UnknownValueException("Unknown value %s" % value)
         return struct.pack(">b", found)
 
     def is_setable(self):
         return True
 
     def get_choices(self):
-        return self.id2str.values()
+        return list(self.id2str.values())
 
 ################################################################################
 
@@ -732,7 +784,7 @@ class PslTypPortMirror(PslTyp):
     def unpack_py(self, value):
         dst_port, fixme, src_ports = struct.unpack(">bbb", value)
         out_src_ports = []
-        for port in self.BIN_PORTS.keys():
+        for port in list(self.BIN_PORTS.keys()):
             if (src_ports & self.BIN_PORTS[port] > 0):
                 out_src_ports.append(port)
 
