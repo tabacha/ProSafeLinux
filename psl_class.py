@@ -198,7 +198,7 @@ class ProSafeLinux:
             message_hex = binascii.hexlify(message).decode()
             print("recv=" + message_hex)
         if recvfunc is not None:
-            recvfunc(message, address)
+            return (recvfunc(message, address), address)
         return (message, address)
 
     def recv_all(self, recvfunc, maxlen=8192, timeout=0.005):
@@ -207,6 +207,7 @@ class ProSafeLinux:
             (message, address) = self.recv(recvfunc, maxlen, timeout)
             if message is None:
                 return
+            return message
 
     def parse_packet(self, pack, unknown_warn):
         "unpack packet send by the switch"
@@ -218,7 +219,7 @@ class ProSafeLinux:
 #        data["seq"] = struct.unpack(">H", pack[22:24])[0]
 #        data["ctype"] = struct.unpack(">H", pack[0:2])[0]
 #        data["mymac"] = binascii.hexlify(pack[8:14])
-        data["theirmac"] = binascii.hexlify(pack[14:20]).decode()
+#        data["theirmac"] = binascii.hexlify(pack[14:20]).decode()
         pos = 32
         cmd_id = 0
         while (pos<len(pack)):
@@ -235,7 +236,7 @@ class ProSafeLinux:
             cmdlen = struct.unpack(">H", pack[pos:(pos + 2)])[0]
             pos = pos + 2
             if cmdlen > 0:
-                value = cmd.unpack_py(pack[pos:(pos + cmdlen)])
+                value = cmd.unpack_cmd(pack[pos:(pos + cmdlen)])
             else:
                 value = None
             if cmd in data and value != None:
@@ -366,7 +367,7 @@ class ProSafeLinux:
     def query(self, cmd_arr, mac, func, use_ip_func=True):
         "get some values from the switch, but do not change them"
         self.send_query(cmd_arr, mac, use_ip_func)
-        self.recv_all(func)
+        return self.recv_all(func)
 
     def transmit(self, cmd_arr, mac, func):
         "change something in the switch, like name, mac ..."

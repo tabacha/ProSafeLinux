@@ -191,10 +191,10 @@ class PslTypMac(PslTyp):
                ":" + mac[8:10] + ":" + mac[10:12])
 
     def pack_cmd(self, value):
-        return self.pack_py(self, value)
+        return self.pack_py(value)
 
     def unpack_cmd(self, value):
-        return self.unpack_py(self, value)
+        return self.unpack_py(value)
 
 ################################################################################
 
@@ -202,7 +202,6 @@ class PslTypMac(PslTyp):
 class PslTypIpv4(PslTyp):
     "IPv4 adrresss, gateway or netmask"
     def pack_py(self, value):
-        print(value)
         adr = value.split(".")
         if len(adr)!= 4:
             raise ValueError("IP address wrong format %s" % value)
@@ -223,10 +222,10 @@ class PslTypIpv4(PslTyp):
         return "%d.%d.%d.%d" % (adr[0], adr[1], adr[2], adr[3])
 
     def pack_cmd(self, value):
-        return self.pack_py(self, value)
+        return self.pack_py(value)
 
     def unpack_cmd(self, value):
-        return self.unpack_py(self, value)
+        return self.unpack_py(value)
 
     def is_setable(self):
         return True
