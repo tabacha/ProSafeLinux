@@ -37,7 +37,7 @@ class PslTyp:
 
     def print_result(self, value):
         "print a result for a query action"
-        print("%-30s%s" % (self.get_name(). capitalize(), value))
+        print("%-30s%s" % (self.get_name().capitalize(), value))
 
     def is_setable(self):
         "can this command be set like name (not like firmware version)"
@@ -149,12 +149,13 @@ class PslTypBoolean(PslTyp):
 
 class PslTypDHCP(PslTypBoolean):
     "DHCP"
-    def pack_py(self, value):
-        if (value):
-            # DHCP on
-            return struct.pack(">b", 0x01)
-        else:
-            return struct.pack(">b", 0x00)
+# we already have that in base PslTypBoolean class, haven't we ?
+#    def pack_py(self, value):
+#        if (value):
+#            # DHCP on
+#            return struct.pack(">b", 0x01)
+#        else:
+#            return struct.pack(">b", 0x00)
 
 ###############################################################################
 
@@ -169,7 +170,6 @@ class PslTypAction(PslTypBoolean):
 
     def is_setable(self):
         return True
-
 
 ###############################################################################
 
@@ -191,10 +191,10 @@ class PslTypMac(PslTyp):
                ":" + mac[8:10] + ":" + mac[10:12])
 
     def pack_cmd(self, value):
-        return self.pack_py(self, value)
+        return self.pack_py(value)
 
     def unpack_cmd(self, value):
-        return self.unpack_py(self, value)
+        return self.unpack_py(value)
 
 ################################################################################
 
@@ -202,7 +202,6 @@ class PslTypMac(PslTyp):
 class PslTypIpv4(PslTyp):
     "IPv4 adrresss, gateway or netmask"
     def pack_py(self, value):
-        print(value)
         adr = value.split(".")
         if len(adr)!= 4:
             raise ValueError("IP address wrong format %s" % value)
@@ -223,17 +222,16 @@ class PslTypIpv4(PslTyp):
         return "%d.%d.%d.%d" % (adr[0], adr[1], adr[2], adr[3])
 
     def pack_cmd(self, value):
-        return self.pack_py(self, value)
+        return self.pack_py(value)
 
     def unpack_cmd(self, value):
-        return self.unpack_py(self, value)
+        return self.unpack_py(value)
 
     def is_setable(self):
         return True
 
 
 ################################################################################
-
 
 class PslTypHex(PslTyp):
     "just decode to hex"
@@ -247,7 +245,13 @@ class PslTypHex(PslTyp):
         return self.pack_py(self, value)
 
     def unpack_cmd(self, value):
-        return self.unpack_py(self, value).decode()
+        # I think we don't need the double-decode here, do we?
+        return self.unpack_py(self, value)
+
+################################################################################
+
+class PslTypUnknown(PslTypHex):
+    "Unknown Data"
 
 ################################################################################
 
