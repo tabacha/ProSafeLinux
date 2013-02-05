@@ -37,7 +37,7 @@ class PslTyp:
 
     def print_result(self, value):
         "print a result for a query action"
-        print("%-30s%s" % (self.get_name(). capitalize(), value))
+        print("%-30s%s" % (self.get_name().capitalize(), value))
 
     def is_setable(self):
         "can this command be set like name (not like firmware version)"
@@ -149,12 +149,13 @@ class PslTypBoolean(PslTyp):
 
 class PslTypDHCP(PslTypBoolean):
     "DHCP"
-    def pack_py(self, value):
-        if (value):
-            # DHCP on
-            return struct.pack(">b", 0x01)
-        else:
-            return struct.pack(">b", 0x00)
+# we already have that in base PslTypBoolean class, haven't we ?
+#    def pack_py(self, value):
+#        if (value):
+#            # DHCP on
+#            return struct.pack(">b", 0x01)
+#        else:
+#            return struct.pack(">b", 0x00)
 
 ###############################################################################
 
@@ -169,7 +170,6 @@ class PslTypAction(PslTypBoolean):
 
     def is_setable(self):
         return True
-
 
 ###############################################################################
 
@@ -233,7 +233,6 @@ class PslTypIpv4(PslTyp):
 
 ################################################################################
 
-
 class PslTypHex(PslTyp):
     "just decode to hex"
     def pack_py(self, value):
@@ -246,7 +245,13 @@ class PslTypHex(PslTyp):
         return self.pack_py(self, value)
 
     def unpack_cmd(self, value):
-        return self.unpack_py(self, value).decode()
+        # I think we don't need the double-decode here, do we?
+        return self.unpack_py(self, value)
+
+################################################################################
+
+class PslTypUnknown(PslTypHex):
+    "Unknown Data"
 
 ################################################################################
 

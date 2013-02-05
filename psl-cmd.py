@@ -58,15 +58,20 @@ class NetgearCMD(cmd.Cmd): # {{{
         """Query Values from Switch.
         If no query command is given it prints out the possibilities"""
         querycmds = self.switch.get_query_cmds()
-        query = self.__splitLine(0,line)
+        query = self.__splitLine(1,line)
         if len(query) == 0:
+            print "you have the following values to query:"
             for cmd in list(querycmds):
-                print str(cmd.get_name())
+                print "- " + str(cmd.get_name())
             return False
         else:
-            self.switch.query(query, self.selectedswitch['mac'], 'storefunc')
-            for key in self.switch.outdata.keys():
-                print("%s - %s" % (key.get_name(), self.switch.outdata[key]))
+            querycmd = self.switch.get_cmd_by_name(query)
+            if querycmd != None:
+                switchdata = self.switch.query(querycmd, self.selectedswitch['mac'])
+                for key in switchdata.keys():
+                    print("%s - %s" % (key.get_name(), switchdata[key]))
+            else:
+                print 'please give a valid query key'
 
     # }}}
 
