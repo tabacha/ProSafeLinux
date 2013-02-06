@@ -213,6 +213,8 @@ class ProSafeLinux:
 
     def parse_data(self, pack, human_readable):
         "unpack packet send by the switch"
+        if pack == None:
+            return False
         if self.debug:
             pprint.pprint(len(pack[2:4])) 
         data = {}
@@ -337,8 +339,9 @@ class ProSafeLinux:
         else:
             return self.parse_data(message, human_readable=True)
 
-    def transmit(self, cmd_arr, mac, func):
+    def transmit(self, cmd_arr, mac):
         "change something in the switch, like name, mac ..."
+        transmit_counter = 0
         ipadr = self.ip_from_mac(mac)
         data = self.baseudp(destmac=mac, ctype=self.CTYPE_TRANSMIT_REQUEST)
         if self.CMD_PASSWORD in cmd_arr:
@@ -348,11 +351,15 @@ class ProSafeLinux:
                 data += self.addudp(cmd, pdata)
         data += self.addudp(self.CMD_END)
         self.send(ipadr, self.SENDPORT, data)
-        time.sleep(0.7)
         message, address = self.recv_all()
-        self.parse_data(message, human_readable=True)
+        while message == None and transmit_counter < 4:
+            time.sleep(1)
+            message, address = self.recv_all()
+        if message == None:
+            return { 'error' : 'no result received within 3 seconds' }
+        return self.parse_data(message, human_readable=True)
 
-    def passwd(self, mac, old, new, func):
+    def passwd(self, mac, old, new):
         "change password from old to new"
         # The order of the CMD_PASSWORD and CMD_NEW_PASSWORD is important
         ipadr = self.ip_from_mac(mac)
@@ -363,7 +370,7 @@ class ProSafeLinux:
         self.send(ipadr, self.SENDPORT, data)
         time.sleep(0.7)
         message, address = self.recv_all()
-        self.parse_data(message, human_readable=True)
+        return self.parse_data(message, human_readable=True)
 
     def passwd_exploit(self, mac, new):
         "exploit in current (2012) firmware version, set a new password"
@@ -376,8 +383,8 @@ class ProSafeLinux:
         self.send(ipadr, self.SENDPORT, data)
         time.sleep(0.7)
         message, address = self.recv_all()
-        self.parse_data(message, human_readable=True)
-        
+        return self.parse_data(message, human_readable=True)
+ 
     def send_discover(self):
         "find any switch in the network"
         query_arr = [self.CMD_MODEL,

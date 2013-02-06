@@ -62,7 +62,9 @@ def set_switch(args, switch):
             return
 
     print("Changing Values..\n")
-    switch.transmit(cmds, args.mac[0])
+    result = switch.transmit(cmds, args.mac[0])
+    if 'error' in result:
+        print "FAILED: Error with " + result['error']
 
 
 def query(args, switch):
