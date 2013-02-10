@@ -13,12 +13,15 @@ import psl_typ
 def discover(args, switch):
     "Search for Switches"
     print("Searching for ProSafe Plus Switches ...\n")
-    switch.discover()
+    data = switch.discover()
+    for entry in data.keys():
+        print entry.get_name() + ': ' + data[entry]
+        print ''
 # pylint: enable=W0613
 
 def exploit(args, switch):
     "exploit in current (2012) fw, can set a new password"
-    switch.passwd_exploit(args.mac[0], args.new_password[0], switch.transfunc)
+    switch.passwd_exploit(args.mac[0], args.new_password[0])
     
 def set_switch(args, switch):
     "Set values on switch"
@@ -37,29 +40,15 @@ def set_switch(args, switch):
                     else:
                         cmds[scmd] = vars(args)[scmd.get_name()]
 
-
-    if ProSafeLinux.CMD_DHCP in cmds:
-        if cmds[ProSafeLinux.CMD_DHCP]:
-            if ((ProSafeLinux.CMD_IP in cmds) or
-                (ProSafeLinux.CMD_GATEWAY in cmds) or
-                (ProSafeLinux.CMD_NETMASK in cmds)):
-                print("When dhcp=on, no ip,gateway nor netmask is allowed")
-                return
-        else:
-            if (not((ProSafeLinux.CMD_IP in cmds) and
-              (ProSafeLinux.CMD_GATEWAY in cmds) and
-              (ProSafeLinux.CMD_NETMASK in cmds))):
-                print("When dhcp=off, specify ip,gateway and netmask")
-                return
+    valid, errors = switch.verify_data(cmds)
+    if not valid:
+        for error in errors:
+            print error
     else:
-        if ((ProSafeLinux.CMD_IP in cmds) or
-          (ProSafeLinux.CMD_GATEWAY in cmds) or
-          (ProSafeLinux.CMD_NETMASK in cmds)):
-            print("Use dhcp on,ip,gateway and netmask option together")
-            return
-
-    print("Changing Values..\n")
-    switch.transmit(cmds, args.mac[0], switch.transfunc)
+        print("Changing Values..\n")
+        result = switch.transmit(cmds, args.mac[0])
+        if 'error' in result:
+            print "FAILED: Error with " + str(result['error'])
 
 
 def query(args, switch):
@@ -67,7 +56,7 @@ def query(args, switch):
     print("Query Values..\n")
     if not(args.passwd == None):
         login = {switch.CMD_PASSWORD: args.passwd[0]}
-        switch.transmit(login, args.mac[0], switch.transfunc)
+        switch.transmit(login, args.mac[0])
     query_cmd = []
     for qarg in args.query:
         if qarg == "all":
@@ -77,13 +66,13 @@ def query(args, switch):
                     query_cmd.append(k)
         else:
             query_cmd.append(switch.get_cmd_by_name(qarg))
-    switch.query(query_cmd, args.mac[0], switch.storefunc)
-    for key in list(switch.outdata.keys()):
+    switchdata = switch.query(query_cmd, args.mac[0])
+    for key in list(switchdata.keys()):
         if isinstance(key, psl_typ.PslTyp):
-            key.print_result(switch.outdata[key])
+            key.print_result(switchdata[key])
         else:
             if args.debug:
-                print("-%-29s%s" % (key, switch. outdata[key]))
+                print("-%-29s%s" % (key, switchdata[key]))
 
 
 def query_raw(args, switch):
@@ -91,27 +80,27 @@ def query_raw(args, switch):
     print("QUERY DEBUG RAW")
     if not(args.passwd == None):
         login = {switch.CMD_PASSWORD: args.passwd[0]}
-        switch.transmit(login, args.mac[0], switch.transfunc)
+        switch.transmit(login, args.mac[0])
     i = 0x0001
     while (i < ProSafeLinux.CMD_END.get_id()):
         query_cmd = []
         query_cmd.append(psl_typ.PslTypHex(i, "Command %d" % i))
         try:
-            switch.query(query_cmd, args.mac[0], switch.rec_raw)
+            switchdata = switch.query(query_cmd, args.mac[0])
             found = None
-            for qcmd in list(switch.outdata.keys()):
+            for qcmd in list(switchdata.keys()):
                 if (isinstance(qcmd, psl_typ.PslTyp)):
                     if qcmd.get_id() == i:
                         found = qcmd
 
             if found is None:
-                print("NON:%04x:%-29s:%s" % (i, "", switch.outdata["raw"]))
+                print("NON:%04x:%-29s:%s" % (i, "", switchdata["raw"]))
             else:
-                print("RES:%04x:%-29s:%s " % (i, switch.outdata[found],
-                    switch.outdata["raw"]))
+                print("RES:%04x:%-29s:%s " % (i, switchdata[found],
+                    switchdata["raw"]))
             if args.debug:
-                for key in list(switch.outdata.keys()):
-                    print("%x-%-29s%s" % (i, key, switch.outdata[key]))
+                for key in list(switchdata.keys()):
+                    print("%x-%-29s%s" % (i, key, switchdata[key]))
         except (KeyboardInterrupt, SystemExit):
             raise
         except:
@@ -200,3 +189,5 @@ def main():
         print("ERROR: operation not found!")
 
 main()
+
+# vim:filetype=python:foldmethod=marker:autoindent:expandtab:tabstop=4
