@@ -40,31 +40,15 @@ def set_switch(args, switch):
                     else:
                         cmds[scmd] = vars(args)[scmd.get_name()]
 
-
-    if ProSafeLinux.CMD_DHCP in cmds:
-        if cmds[ProSafeLinux.CMD_DHCP]:
-            if ((ProSafeLinux.CMD_IP in cmds) or
-                (ProSafeLinux.CMD_GATEWAY in cmds) or
-                (ProSafeLinux.CMD_NETMASK in cmds)):
-                print("When dhcp=on, no ip,gateway nor netmask is allowed")
-                return
-        else:
-            if (not((ProSafeLinux.CMD_IP in cmds) and
-              (ProSafeLinux.CMD_GATEWAY in cmds) and
-              (ProSafeLinux.CMD_NETMASK in cmds))):
-                print("When dhcp=off, specify ip,gateway and netmask")
-                return
+    valid, errors = switch.verify_data(cmds)
+    if not valid:
+        for error in errors:
+            print error
     else:
-        if ((ProSafeLinux.CMD_IP in cmds) or
-          (ProSafeLinux.CMD_GATEWAY in cmds) or
-          (ProSafeLinux.CMD_NETMASK in cmds)):
-            print("Use dhcp on,ip,gateway and netmask option together")
-            return
-
-    print("Changing Values..\n")
-    result = switch.transmit(cmds, args.mac[0])
-    if 'error' in result:
-        print "FAILED: Error with " + result['error']
+        print("Changing Values..\n")
+        result = switch.transmit(cmds, args.mac[0])
+        if 'error' in result:
+            print "FAILED: Error with " + str(result['error'])
 
 
 def query(args, switch):
@@ -205,3 +189,5 @@ def main():
         print("ERROR: operation not found!")
 
 main()
+
+# vim:filetype=python:foldmethod=marker:autoindent:expandtab:tabstop=4

@@ -143,11 +143,6 @@ class ProSafeLinux:
         self.ssocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.ssocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.ssocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-
-        # The following requires root permission so we do not do this:
-        # self.socket.setsockopt(socket.SOL_SOCKET,
-        #                               IN.SO_BINDTODEVICE,"eth1"+'\0')
-
         self.ssocket.bind((self.myhost, self.RECPORT))
 
         # receive socket
@@ -181,6 +176,14 @@ class ProSafeLinux:
         else:
             return None
 
+    def get_cmd_by_hex(self, cmd_id):
+        "return a command by its hex_value"
+        if cmd_id in self.cmd_by_id:
+            return self.cmd_by_id[cmd_id]
+        else:
+            return False
+
+
     def set_debug_output(self):
         "set debugging"
         self.debug = True
@@ -211,7 +214,7 @@ class ProSafeLinux:
                 return (None, address)
             return (message, address)
 
-    def parse_data(self, pack, human_readable):
+    def parse_data(self, pack):
         "unpack packet send by the switch"
         if pack == None:
             return False
@@ -219,7 +222,11 @@ class ProSafeLinux:
             pprint.pprint(len(pack[2:4])) 
         data = {}
         if struct.unpack(">H", pack[2:4])[0] != 0x0000:
-         data["error"] = struct.unpack(">H", pack[4:6])[0]
+            errorcmd = self.get_cmd_by_hex(struct.unpack(">H", pack[4:6])[0])
+            if errorcmd:
+                data["error"] = errorcmd.get_name()
+            else:
+                data["error"] = struct.unpack(">H", pack[4:6])[0]
 #        data["seq"] = struct.unpack(">H", pack[22:24])[0]
 #        data["ctype"] = struct.unpack(">H", pack[0:2])[0]
 #        data["mymac"] = binascii.hexlify(pack[8:14])
@@ -230,8 +237,8 @@ class ProSafeLinux:
             if self.debug:
                 print("pos:%d len: %d" %(pos,len(pack)))
             cmd_id = struct.unpack(">H", pack[pos:(pos + 2)])[0]
-            if cmd_id in self.cmd_by_id:
-                cmd = self.cmd_by_id[cmd_id]
+            if self.get_cmd_by_hex(cmd_id):
+                cmd = self.get_cmd_by_hex(cmd_id)
             else:
                 # we don't need a switch for "unknown_warn" here...let the client handle unknown responses
 #                print("Unknown Response %d" % cmd_id)
@@ -240,10 +247,7 @@ class ProSafeLinux:
             cmdlen = struct.unpack(">H", pack[pos:(pos + 2)])[0]
             pos = pos + 2
             if cmdlen > 0:
-                if human_readable:
                     value = cmd.unpack_cmd(pack[pos:(pos + cmdlen)])
-                else:
-                    value = cmd.unpack_py(pack[pos:(pos + cmdlen)])
             else:
                 value = None
             if cmd in data and value != None:
@@ -299,7 +303,6 @@ class ProSafeLinux:
             return "255.255.255.255"
         if mac in self.mac_cache:
             return self.mac_cache[mac]
-        #print "mac="+mac
         # FIXME: Search in /proc/net/arp if mac there use this one
         #with open("/proc/net/arp") as f:
         # for line in f:
@@ -309,14 +312,11 @@ class ProSafeLinux:
         if self.CMD_MAC in message:
             if message[self.CMD_MAC].capitalize() == mac.capitalize():
                 return address[0]
-#        if mac in self.mac_cache:
-#            return self.mac_cache[mac]
         print("can't find mac: " + mac)
         return "255.255.255.255"
 
     def send_query(self, cmd_arr, mac, use_ip_func=True):
         "request some values from a switch, without changing them"
-        # we can always try to use ip_from_mac as we get 255.255.255.255 back anyway
         if use_ip_func:
             ipadr = self.ip_from_mac(mac)
         else:
@@ -330,70 +330,48 @@ class ProSafeLinux:
 
     def query(self, cmd_arr, mac, with_address=False, use_ip_func=True):
         "get some values from the switch, but do not change them"
+        # translate non-list to list
         if type(cmd_arr).__name__ != 'tupe' and type(cmd_arr).__name__ != 'list':
             cmd_arr = (cmd_arr, )
         self.send_query(cmd_arr, mac, use_ip_func)
         message, address = self.recv_all()
         if with_address:
-            return (self.parse_data(message, human_readable=True), address)
+            return (self.parse_data(message), address)
         else:
-            return self.parse_data(message, human_readable=True)
+            return self.parse_data(message)
 
-    def transmit(self, cmd_arr, mac):
+    def transmit(self, cmddict, mac):
         "change something in the switch, like name, mac ..."
         transmit_counter = 0
         ipadr = self.ip_from_mac(mac)
         data = self.baseudp(destmac=mac, ctype=self.CTYPE_TRANSMIT_REQUEST)
-        if self.CMD_PASSWORD in cmd_arr:
-            data += self.addudp(self.CMD_PASSWORD, cmd_arr[self.CMD_PASSWORD])
-        for cmd, pdata in list(cmd_arr.items()):
-            if cmd != self.CMD_PASSWORD:
-                data += self.addudp(cmd, pdata)
+        if type(cmddict).__name__ == 'dict':
+            if self.CMD_PASSWORD in cmddict:
+                data += self.addudp(self.CMD_PASSWORD, cmddict[self.CMD_PASSWORD])
+            for cmd, pdata in list(cmddict.items()):
+                if cmd != self.CMD_PASSWORD:
+                    data += self.addudp(cmd, pdata)
+        elif type(cmddict).__name__ == 'string':
+            print 'got string!'
+            data += cmddict
         data += self.addudp(self.CMD_END)
         self.send(ipadr, self.SENDPORT, data)
         message, address = self.recv_all()
-        while message == None and transmit_counter < 4:
+        while message == None and transmit_counter < 3:
             time.sleep(1)
             message, address = self.recv_all()
+            transmit_counter += 1
         if message == None:
             return { 'error' : 'no result received within 3 seconds' }
-        return self.parse_data(message, human_readable=True)
-
-    def passwd(self, mac, old, new):
-        "change password from old to new"
-        # The order of the CMD_PASSWORD and CMD_NEW_PASSWORD is important
-        ipadr = self.ip_from_mac(mac)
-        data = self.baseudp(destmac=mac, ctype=self.CTYPE_TRANSMIT_REQUEST)
-        data += self.addudp(self.CMD_PASSWORD, old)
-        data += self.addudp(self.CMD_NEW_PASSWORD, new)
-        data += self.addudp(self.CMD_END)
-        self.send(ipadr, self.SENDPORT, data)
-        time.sleep(0.7)
-        message, address = self.recv_all()
-        return self.parse_data(message, human_readable=True)
+        return self.parse_data(message)
 
     def passwd_exploit(self, mac, new):
         "exploit in current (2012) firmware version, set a new password"
         # The order of the CMD_PASSWORD and CMD_NEW_PASSWORD is important
-        ipadr = self.ip_from_mac(mac)
-        data = self.baseudp(destmac=mac, ctype=self.CTYPE_TRANSMIT_REQUEST)
-        data += self.addudp(self.CMD_NEW_PASSWORD, new)
+        data = self.addudp(self.CMD_NEW_PASSWORD, new)
         data += self.addudp(self.CMD_PASSWORD, new)
-        data += self.addudp(self.CMD_END)
-        self.send(ipadr, self.SENDPORT, data)
-        time.sleep(0.7)
-        message, address = self.recv_all()
-        return self.parse_data(message, human_readable=True)
+        return self.transmit(data, mac)
  
-    def send_discover(self):
-        "find any switch in the network"
-        query_arr = [self.CMD_MODEL,
-                     self.CMD_NAME,
-                     self.CMD_MAC,
-                     self.CMD_DHCP,
-                    self.CMD_IP]
-        self.send_query(query_arr, None)
-
     def discover(self):
         "find any switch in the network"
         query_arr = [self.CMD_MODEL,
@@ -404,3 +382,28 @@ class ProSafeLinux:
         message = self.query(query_arr, None)
         self.mac_cache[message[self.CMD_MAC]] = message[self.CMD_IP]
         return message
+
+    def verify_data(self, datadict):
+        "Verify the data we want to set on the switch"
+        errors = []
+        if ProSafeLinux.CMD_DHCP in datadict:
+            if datadict[ProSafeLinux.CMD_DHCP]:
+                if ((ProSafeLinux.CMD_IP in datadict) or
+                    (ProSafeLinux.CMD_GATEWAY in datadict) or
+                    (ProSafeLinux.CMD_NETMASK in datadict)):
+                    errors.append("When dhcp=on, no ip,gateway nor netmask is allowed")
+            else:
+                if (not((ProSafeLinux.CMD_IP in datadict) and
+                  (ProSafeLinux.CMD_GATEWAY in datadict) and
+                  (ProSafeLinux.CMD_NETMASK in datadict))):
+                    errors.append("When dhcp=off, specify ip,gateway and netmask")
+        else:
+            if ((ProSafeLinux.CMD_IP in datadict) or
+              (ProSafeLinux.CMD_GATEWAY in datadict) or
+              (ProSafeLinux.CMD_NETMASK in datadict)):
+                errors.append("Use dhcp on,ip,gateway and netmask option together")
+
+        if len(errors) > 0:
+            return (False, errors)
+        else:
+            return (True, None)
