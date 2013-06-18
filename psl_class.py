@@ -139,7 +139,7 @@ class ProSafeLinux:
             return False
         self.srcmac = pack_mac(get_hw_addr(interface))
 
-            # send socket
+        # send socket
         self.ssocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.ssocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.ssocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -149,7 +149,7 @@ class ProSafeLinux:
         self.rsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.rsocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.rsocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        self.rsocket.bind(("255.255.255.255", self.RECPORT))
+        self.rsocket.bind(("", self.RECPORT))
 
         return True
 
@@ -380,7 +380,8 @@ class ProSafeLinux:
                    self.CMD_DHCP,
                    self.CMD_IP]
         message = self.query(query_arr, None)
-        self.mac_cache[message[self.CMD_MAC]] = message[self.CMD_IP]
+        if message:
+            self.mac_cache[message[self.CMD_MAC]] = message[self.CMD_IP]
         return message
 
     def verify_data(self, datadict):

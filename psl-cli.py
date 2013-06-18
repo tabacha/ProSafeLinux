@@ -9,14 +9,21 @@ import psl_typ
 
 # pylint: disable=W0613
 
+def print_result(data): # {{{
+    if not data:
+        print "No data received."
+    else:
+        if type(data).__name__ == "dict":
+            for entry in data.keys():
+                print entry.get_name() + ': ' + data[entry]
+                print ''
+# }}}
 
 def discover(args, switch):
     "Search for Switches"
     print("Searching for ProSafe Plus Switches ...\n")
     data = switch.discover()
-    for entry in data.keys():
-        print entry.get_name() + ': ' + data[entry]
-        print ''
+    print_result(data)
 # pylint: enable=W0613
 
 def exploit(args, switch):
