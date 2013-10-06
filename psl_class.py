@@ -188,7 +188,7 @@ class ProSafeLinux:
         "set debugging"
         self.debug = True
 
-    def recv(self, maxlen=8192, timeout=0.005):
+    def recv(self, maxlen=8192, timeout=0.5):
         "receive a packet from the switch"
         self.rsocket.settimeout(timeout)
         try:
@@ -206,7 +206,7 @@ class ProSafeLinux:
             print("recv=" + message_hex)
         return (message, address)
 
-    def recv_all(self, maxlen=8192, timeout=0.005):
+    def recv_all(self, maxlen=8192, timeout=0.5):
         "receive all pending packets"
         while True:
             (message, address) = self.recv(maxlen, timeout)
