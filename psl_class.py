@@ -139,7 +139,7 @@ class ProSafeLinux:
             return False
         self.srcmac = pack_mac(get_hw_addr(interface))
 
-            # send socket
+        # send socket
         self.ssocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.ssocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.ssocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -149,7 +149,7 @@ class ProSafeLinux:
         self.rsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.rsocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.rsocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        self.rsocket.bind(("255.255.255.255", self.RECPORT))
+        self.rsocket.bind(("", self.RECPORT))
 
         return True
 
@@ -188,7 +188,7 @@ class ProSafeLinux:
         "set debugging"
         self.debug = True
 
-    def recv(self, maxlen=8192, timeout=0.005):
+    def recv(self, maxlen=8192, timeout=0.5):
         "receive a packet from the switch"
         self.rsocket.settimeout(timeout)
         try:
@@ -206,7 +206,7 @@ class ProSafeLinux:
             print("recv=" + message_hex)
         return (message, address)
 
-    def recv_all(self, maxlen=8192, timeout=0.005):
+    def recv_all(self, maxlen=8192, timeout=0.5):
         "receive all pending packets"
         while True:
             (message, address) = self.recv(maxlen, timeout)
@@ -380,7 +380,8 @@ class ProSafeLinux:
                    self.CMD_DHCP,
                    self.CMD_IP]
         message = self.query(query_arr, None)
-        self.mac_cache[message[self.CMD_MAC]] = message[self.CMD_IP]
+        if message:
+            self.mac_cache[message[self.CMD_MAC]] = message[self.CMD_IP]
         return message
 
     def verify_data(self, datadict):
