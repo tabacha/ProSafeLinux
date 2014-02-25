@@ -345,9 +345,21 @@ class ProSafeLinux:
         transmit_counter = 0
         ipadr = self.ip_from_mac(mac)
         data = self.baseudp(destmac=mac, ctype=self.CTYPE_TRANSMIT_REQUEST)
+        firmwarevers = self.query(self.get_cmd_by_name("firmwarever"), mac)
+        firmwarevers = firmwarevers.translate({ord(i):None for i in '.'})
         if type(cmddict).__name__ == 'dict':
             if self.CMD_PASSWORD in cmddict:
-                data += self.addudp(self.CMD_PASSWORD, cmddict[self.CMD_PASSWORD])
+                if int(firmwarevers) > 10004:
+                    print("using password hack on firmware: %s" % 
+                            (firmwarevers.values()[0]))
+                    _hashkey = "NtgrSmartSwitchRock"
+                    _plainpass = cmddict[self.CMD_PASSWORD]
+                    _password = ""
+                    for i in range(len(_password)):
+                        _password += chr(ord(_plainpass[i]) ^ ord(_hashkey[i]))
+                else:
+                    _password = cmddict[self.CMD_PASSWORD]
+                data += self.addudp(self.CMD_PASSWORD, _password)
             for cmd, pdata in list(cmddict.items()):
                 if cmd != self.CMD_PASSWORD:
                     data += self.addudp(cmd, pdata)

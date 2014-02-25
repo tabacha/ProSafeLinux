@@ -51,28 +51,35 @@ def set_switch(args, switch):
             print "FAILED: Error with " + str(result['error'])
 
 
-def query(args, switch):
+def query(args, switch, querycommand = None):
     "query values from the switch"
-    print("Query Values..\n")
     if not(args.passwd == None):
         login = {switch.CMD_PASSWORD: args.passwd[0]}
         switch.transmit(login, args.mac[0])
     query_cmd = []
-    for qarg in args.query:
-        if qarg == "all":
-            for k in switch.get_query_cmds():
-                if ((k != ProSafeLinux.CMD_VLAN_ID) and
-                    (k != ProSafeLinux.CMD_VLAN802_ID)):
-                    query_cmd.append(k)
-        else:
-            query_cmd.append(switch.get_cmd_by_name(qarg))
+    if querycommand != None:
+        query_cmd.append(querycommand)
+    else:
+        for qarg in args.query:
+            if qarg == "all":
+                for k in switch.get_query_cmds():
+                    print("####" + k.get_name() + "####")
+                    if ((k != ProSafeLinux.CMD_VLAN_ID) and
+                        (k != ProSafeLinux.CMD_VLAN802_ID)):
+                        query(args, switch, querycommand=k)
+            else:
+                query_cmd.append(switch.get_cmd_by_name(qarg))
+    print("Query Values..\n")
     switchdata = switch.query(query_cmd, args.mac[0])
-    for key in list(switchdata.keys()):
-        if isinstance(key, psl_typ.PslTyp):
-            key.print_result(switchdata[key])
-        else:
-            if args.debug:
-                print("-%-29s%s" % (key, switchdata[key]))
+    if not isinstance(switchdata, bool):
+        for key in list(switchdata.keys()):
+            if isinstance(key, psl_typ.PslTyp):
+                key.print_result(switchdata[key])
+            else:
+                if args.debug:
+                    print("-%-29s%s" % (key, switchdata[key]))
+    else:
+        print("No result received...")
 
 
 def query_raw(args, switch):
