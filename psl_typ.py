@@ -242,16 +242,19 @@ class PslTypHex(PslTyp):
         return binascii.hexlify(value).decode()
 
     def pack_cmd(self, value):
-        return self.pack_py(self, value)
+        return self.pack_py(value)
 
     def unpack_cmd(self, value):
         # I think we don't need the double-decode here, do we?
-        return self.unpack_py(self, value)
+        return self.unpack_py(value)
 
 ################################################################################
 
 class PslTypUnknown(PslTypHex):
     "Unknown Data"
+    def unpack_cmd(self, value):
+        return "Unknown: %s - %s" % (self.name, binascii.hexlify(value))
+
 
 ################################################################################
 
