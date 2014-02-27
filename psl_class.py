@@ -119,10 +119,10 @@ class ProSafeLinux:
         self.srcmac = None
         self.ssocket = None
         self.rsocket = None
+        self.timeout=0.1
 
         # i still see no win in randomizing the starting sequence...
         self.seq = random.randint(100, 2000)
-        self.outdata = {}
         self.debug = False
         self.mac_cache = {}
         self.cmd_by_id = {}
@@ -131,6 +131,9 @@ class ProSafeLinux:
             if key.startswith("CMD_"):
                 self.cmd_by_name[value.get_name()] = value
                 self.cmd_by_id[value.get_id()] = value
+
+    def set_timeout(self, timeout):
+        self.timeout=timeout
 
     def bind(self, interface):
         "bind to an interface"
@@ -188,9 +191,9 @@ class ProSafeLinux:
         "set debugging"
         self.debug = True
 
-    def recv(self, maxlen=8192, timeout=0.05):
+    def recv(self, maxlen=8192):
         "receive a packet from the switch"
-        self.rsocket.settimeout(timeout)
+        self.rsocket.settimeout(self.timeout)
         try:
             message, address = self.rsocket.recvfrom(maxlen)
         except socket.timeout:
@@ -206,10 +209,10 @@ class ProSafeLinux:
             print("recv=" + message_hex)
         return (message, address)
 
-    def recv_all(self, maxlen=8192, timeout=0.05):
+    def recv_all(self):
         "receive all pending packets"
         while True:
-            (message, address) = self.recv(maxlen, timeout)
+            (message, address) = self.recv()
             if message is None:
                 return (None, address)
             return (message, address)
@@ -309,10 +312,13 @@ class ProSafeLinux:
         #   print line
         query_arr = [self.CMD_MAC, self.CMD_IP]
         message, address = self.query(query_arr, mac, with_address=True, use_ip_func=False)
-        if self.CMD_MAC in message:
-            if message[self.CMD_MAC].capitalize() == mac.capitalize():
-                return address[0]
-        print("can't find mac: " + mac)
+        if message == None:
+            # try once more
+            message, address = self.query(query_arr, mac, with_address=True, use_ip_func=False)
+        if message != None and message != False:
+            if self.CMD_MAC in message:
+                if message[self.CMD_MAC].capitalize() == mac.capitalize():
+                    return address[0]
         return "255.255.255.255"
 
     def send_query(self, cmd_arr, mac, use_ip_func=True):
@@ -325,7 +331,6 @@ class ProSafeLinux:
         for cmd in cmd_arr:
             data += self.addudp(cmd)
         data += self.addudp(self.CMD_END)
-        self.outdata = {}
         self.send(ipadr, self.SENDPORT, data)
 
     def query(self, cmd_arr, mac, with_address=False, use_ip_func=True):
@@ -392,7 +397,8 @@ class ProSafeLinux:
                    self.CMD_DHCP,
                    self.CMD_IP]
         message = self.query(query_arr, None)
-        self.mac_cache[message[self.CMD_MAC]] = message[self.CMD_IP]
+        if message != False:
+            self.mac_cache[message[self.CMD_MAC]] = message[self.CMD_IP]
         return message
 
     def verify_data(self, datadict):
