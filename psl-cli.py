@@ -9,21 +9,19 @@ import psl_typ
 
 # pylint: disable=W0613
 
-def print_result(data): # {{{
-    if not data:
-        print "No data received."
-    else:
-        if type(data).__name__ == "dict":
-            for entry in data.keys():
-                print entry.get_name() + ': ' + data[entry]
-                print ''
-# }}}
 
 def discover(args, switch):
     "Search for Switches"
     print("Searching for ProSafe Plus Switches ...\n")
     data = switch.discover()
-    print_result(data)
+    if data != False:
+        for entry in data.keys():
+            print entry.get_name() + ': ' + data[entry]
+        print ""
+    else:
+        print("No result received...")
+        print("did you try to adjust your timeout?")
+
 # pylint: enable=W0613
 
 def exploit(args, switch):
@@ -58,28 +56,42 @@ def set_switch(args, switch):
             print "FAILED: Error with " + str(result['error'])
 
 
-def query(args, switch):
+def query(args, switch, querycommand = None):
     "query values from the switch"
-    print("Query Values..\n")
     if not(args.passwd == None):
         login = {switch.CMD_PASSWORD: args.passwd[0]}
         switch.transmit(login, args.mac[0])
     query_cmd = []
-    for qarg in args.query:
-        if qarg == "all":
-            for k in switch.get_query_cmds():
-                if ((k != ProSafeLinux.CMD_VLAN_ID) and
-                    (k != ProSafeLinux.CMD_VLAN802_ID)):
-                    query_cmd.append(k)
-        else:
-            query_cmd.append(switch.get_cmd_by_name(qarg))
+    if querycommand != None:
+        query_cmd.append(querycommand)
+    else:
+        print("Query Values..\n")
+        for qarg in args.query:
+            if qarg == "all":
+                for k in switch.get_query_cmds():
+                    if ((k != ProSafeLinux.CMD_VLAN_ID) and
+                        (k != ProSafeLinux.CMD_VLAN802_ID)):
+                        #print("--------- " + k.get_name() + " ---------")
+                        query(args, switch, querycommand=k)
+                return
+            else:
+                query_cmd.append(switch.get_cmd_by_name(qarg))
     switchdata = switch.query(query_cmd, args.mac[0])
-    for key in list(switchdata.keys()):
-        if isinstance(key, psl_typ.PslTyp):
-            key.print_result(switchdata[key])
+    if switchdata != False:
+        if switchdata == {}:
+            print("%-29s empty data received" % (query_cmd[0].get_name()))
         else:
-            if args.debug:
-                print("-%-29s%s" % (key, switchdata[key]))
+            for key in list(switchdata.keys()):
+                if isinstance(key, psl_typ.PslTyp):
+                    key.print_result(switchdata[key])
+                else:
+                    if args.debug:
+                        print("-%-29s%s" % (key, switchdata[key]))
+    else:
+        print("-- %s --" % (query_cmd[0].get_name()))
+        print("No result received...")
+        print("did you try to adjust your timeout?")
+    print("")
 
 
 def query_raw(args, switch):
@@ -131,6 +143,8 @@ def main():
     parser.add_argument("--interface", nargs=1, help="Interface",
         default=["eth0"])
     parser.add_argument("--debug", help="Debug output", action='store_true')
+    parser.add_argument("--timeout", help="set timeout for switch commands",
+                default="0.1", type=float)
     subparsers = parser.add_subparsers(help='operation', dest="operation")
 
     subparsers.add_parser('discover', help='Find all switches in all subnets')
@@ -182,6 +196,8 @@ def main():
 
     args = parser.parse_args()
     interface = args.interface[0]
+
+    switch.set_timeout(args.timeout)
 
     if not switch.bind(interface):
         print("Interface has no addresses, cannot talk to switch")

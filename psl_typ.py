@@ -242,16 +242,18 @@ class PslTypHex(PslTyp):
         return binascii.hexlify(value).decode()
 
     def pack_cmd(self, value):
-        return self.pack_py(self, value)
+        return self.pack_py(value)
 
     def unpack_cmd(self, value):
-        # I think we don't need the double-decode here, do we?
-        return self.unpack_py(self, value)
+        return self.unpack_py(value)
 
 ################################################################################
 
 class PslTypUnknown(PslTypHex):
     "Unknown Data"
+    def unpack_cmd(self, value):
+        return "Unknown: %s - %s" % (self.name, binascii.hexlify(value))
+
 
 ################################################################################
 
@@ -325,6 +327,9 @@ class PslTypSpeedStat(PslTyp):
                 speed = "1 Gbit/s"
             print("%-30s%4d%15s%10s" % ("", row["port"], speed, row["rest"]))
 
+    def unpack_cmd(self, value):
+        return self.unpack_py(value)
+
 
 ################################################################################
 
@@ -348,6 +353,10 @@ class PslTypPortStat(PslTyp):
                 "rest": binascii.hexlify(val[19:]).decode(),
             }
         return rtn
+
+    def unpack_cmd(self, value):
+        return self.unpack_py(value)
+
 
     def is_setable(self):
         return False
@@ -437,6 +446,9 @@ class PslTypBandwidth(PslTyp):
                                         self.speed_to_string[row["limit"]],
                                         row["rest"]))
 
+    def unpack_cmd(self, value):
+        return self.unpack_py(value)
+
     def is_setable(self):
         return True
 
@@ -490,6 +502,9 @@ class PslTypVlanId(PslTyp):
         ports = self.pack_port(value[1])
         rtn = struct.pack(">hB", int(value[0]), ports)
         return rtn
+
+    def unpack_cmd(self, value):
+        return self.unpack_py(value)
         
     def is_setable(self):
         return True
@@ -543,7 +558,10 @@ class PslTypVlan802Id(PslTypVlanId):
         untagged = self.pack_port(value[2])
         rtn = struct.pack(">hBB", int(value[0]), tagged, untagged)
         return rtn
-        
+
+    def unpack_cmd(self, value):
+        return self.unpack_py(value)
+
     def get_num_args(self):
         return 3
 
@@ -590,6 +608,9 @@ class PslTypVlanPVID(PslTyp):
 #        value = value.encode()
         rtn = struct.pack(">Bh", int(value[0]), int(value[1]))
         return rtn
+
+    def unpack_cmd(self, value):
+        return self.unpack_py(value)
 
     def is_setable(self):
         return True
@@ -641,6 +662,9 @@ class PslTypQos(PslTyp):
         if (value == "port_based"):
             return struct.pack(">B", 0x01)
         raise UnknownValueException("Unknown value %s" % value)
+
+    def unpack_cmd(self, value):
+        return self.unpack_py(value)
        
     def is_setable(self):
         return True
@@ -683,6 +707,9 @@ class PslTypPortBasedQOS(PslTyp):
         if qos == None:
             raise UnknownValueException("Unknown value %s" % value[1])
         return struct.pack(">BB", int(value[0]), qos)
+
+    def unpack_cmd(self, value):
+        return self.unpack_py(value)
        
     def is_setable(self):
         return True
@@ -722,6 +749,9 @@ class PslTypIGMPSnooping(PslTyp):
         if (value == "none"):
             return struct.pack(">hh", 0, 0)
         return struct.pack(">hh", 0x0001, int(value))
+
+    def unpack_cmd(self, value):
+        return self.unpack_py(value)
        
     def is_setable(self):
         return True
@@ -764,6 +794,9 @@ class PslTypVlanSupport(PslTyp):
             raise UnknownValueException("Unknown value %s" % value)
         return struct.pack(">b", found)
 
+    def unpack_cmd(self, value):
+        return self.unpack_py(value)
+
     def is_setable(self):
         return True
 
@@ -793,7 +826,7 @@ class PslTypPortMirror(PslTyp):
                 out_src_ports.append(port)
 
         if dst_port == 0:
-            return None
+            return "No Port Mirroring has been set up"
         rtn = {
             "dst_port": dst_port,
             "fixme": fixme,
@@ -809,6 +842,8 @@ class PslTypPortMirror(PslTyp):
             dst_ports += self.BIN_PORTS[int(dport)]
         return struct.pack(">bbb", int(value[0]), 0, dst_ports)
         
+    def unpack_cmd(self, value):
+        return self.unpack_py(value)
 
     def is_setable(self):
         return True
