@@ -420,7 +420,7 @@ class ProSafeLinux:
             if ((ProSafeLinux.CMD_IP in datadict) or
               (ProSafeLinux.CMD_GATEWAY in datadict) or
               (ProSafeLinux.CMD_NETMASK in datadict)):
-                errors.append("Use dhcp on,ip,gateway and netmask option together")
+                errors.append("Use dhcp off,ip,gateway and netmask option together")
 
         if len(errors) > 0:
             return (False, errors)
