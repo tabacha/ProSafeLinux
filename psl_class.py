@@ -142,7 +142,7 @@ class ProSafeLinux:
             return False
         self.srcmac = pack_mac(get_hw_addr(interface))
 
-            # send socket
+        # send socket
         self.ssocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.ssocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.ssocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -151,6 +151,7 @@ class ProSafeLinux:
         # receive socket
         self.rsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.rsocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        # self.rsocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         self.rsocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.rsocket.bind(("255.255.255.255", self.RECPORT))
 
