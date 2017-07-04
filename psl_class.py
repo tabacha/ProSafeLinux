@@ -360,7 +360,7 @@ class ProSafeLinux:
                     _hashkey = "NtgrSmartSwitchRock"
                     _plainpass = cmddict[self.CMD_PASSWORD]
                     _password = ""
-                    for i in range(len(_password)):
+                    for i in range(len(_plainpass)):
                         _password += chr(ord(_plainpass[i]) ^ ord(_hashkey[i]))
                 else:
                     _password = cmddict[self.CMD_PASSWORD]
