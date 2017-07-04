@@ -1,11 +1,24 @@
 
 If your interface is **not** eth0 please specify it, when you call *psl.py*.
 
-##Example:
+# Examples
+
+Gives an overview of all available options
+
+    ./psl.py --help
+
+Discover all ProSafe switches on the local network
 
     ./psl.py --interface eth1 discover
 
-    ./psl.py --help gives an overview over all available options
+Set 802.1Q VLAN VID for port 4 to 1
+
+    ./psl-cli.py  set --passwd "password" --mac B0:B9:8A:57:F6:56 --vlan_pvid 4 1
+
+Query all ports for their 802.1Q VLAN port VID
+
+    ./psl-cli.py query --mac B0:B9:8A:57:F6:56 vlan_pvid
+
 
 # Help wanted
 
