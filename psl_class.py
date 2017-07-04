@@ -142,7 +142,7 @@ class ProSafeLinux:
             return False
         self.srcmac = pack_mac(get_hw_addr(interface))
 
-            # send socket
+        # send socket
         self.ssocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.ssocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.ssocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -151,6 +151,7 @@ class ProSafeLinux:
         # receive socket
         self.rsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.rsocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        # self.rsocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         self.rsocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.rsocket.bind(("255.255.255.255", self.RECPORT))
 
@@ -352,6 +353,10 @@ class ProSafeLinux:
         data = self.baseudp(destmac=mac, ctype=self.CTYPE_TRANSMIT_REQUEST)
         firmwarevers = self.query(self.get_cmd_by_name("firmwarever"), mac)
         firmwarevers = firmwarevers.values()[0].translate({ord("."):None})
+        # New firmwares put capital leter V in front ...
+        if "V" == firmwarevers[0]:
+            firmwarevers = firmwarevers[1:]
+
         if type(cmddict).__name__ == 'dict':
             if self.CMD_PASSWORD in cmddict:
                 if int(firmwarevers) > 10004:
@@ -419,7 +424,7 @@ class ProSafeLinux:
             if ((ProSafeLinux.CMD_IP in datadict) or
               (ProSafeLinux.CMD_GATEWAY in datadict) or
               (ProSafeLinux.CMD_NETMASK in datadict)):
-                errors.append("Use dhcp on,ip,gateway and netmask option together")
+                errors.append("Use dhcp off,ip,gateway and netmask option together")
 
         if len(errors) > 0:
             return (False, errors)
