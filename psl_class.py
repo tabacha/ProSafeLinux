@@ -64,7 +64,7 @@ class ProSafeLinux:
     CMD_FIMXE2 = psl_typ.PslTypHex(0x0002, "fixme2")
     CMD_NAME = psl_typ.PslTypString(0x0003, "name")
     CMD_MAC = psl_typ.PslTypMac(0x0004, "MAC")
-    CMD_FIMXE5 = psl_typ.PslTypHex(0x0005, "fixme5")
+    CMD_LOCATION = psl_typ.PslTypString(0x0005, "location")
     CMD_IP = psl_typ.PslTypIpv4(0x0006, "ip")
     CMD_NETMASK = psl_typ.PslTypIpv4(0x0007, "netmask")
     CMD_GATEWAY = psl_typ.PslTypIpv4(0x0008, "gateway")

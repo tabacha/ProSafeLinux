@@ -25,7 +25,7 @@ local f_cmd = ProtoField.uint16("nsdp.cmd", "Command", base.HEX,{
 	[0x0002] = "FIXME 0x0002 (2 Bytes)",
 	[0x0003] = "Name",
 	[0x0004] = "MAC",
-	[0x0005] = "FIXME 0x0005 (0 Bytes)",
+	[0x0005] = "Location",
 	[0x0006] = "IP-Address",
 	[0x0007] = "Netmask",
 	[0x0008] = "Gateway",
@@ -68,6 +68,7 @@ local f_flags = ProtoField.uint16("nsdp.flags", "Flags", base.HEX, {
 local f_model =ProtoField.string("nsdp.model","Model", FT_STRING)
 local f_name =ProtoField.string("nsdp.name","Name", FT_STRING)
 local f_macinfo = ProtoField.ether("nsdp.macinfo", "MAC info", base.HEX)
+local f_location = ProtoField.string("nsdp.location", "Location", FT_STRING)
 local f_ipaddr = ProtoField.ipv4("nsdp.ipaddr","IP Address")
 local f_dhcp_enable =ProtoField.uint8("nsdp.dhcp_enable","DHCP Enable")
 local f_netmask = ProtoField.ipv4("nsdp.netmask","Netmask")
@@ -95,7 +96,7 @@ p_nsdp.fields = {f_type,f_source,f_destination,f_seq,f_cmd,f_password,f_newpassw
                  f_model,f_name,f_macinfo,f_dhcp_enable,f_port,f_rec,f_send,
                  f_pkt,f_bpkt,f_mpkt,f_crce,f_link,f_vlan_engine,f_ipaddr,
                  f_netmask,f_gateway,f_firmwarever_len,f_firmwarever,f_len,
-                 f_speed}
+                 f_speed,f_location}
 
 -- nsdp dissector function
 function p_nsdp.dissector (buf, pkt, root)
@@ -137,6 +138,8 @@ function p_nsdp.dissector (buf, pkt, root)
 	tree=subtree:add(f_macinfo,buf(offset,len))
     elseif cmd == 0x0004 then
         tree=subtree:add(buf(offset,len),"MAC")
+    elseif cmd == 0x0005 then
+        tree=subtree:add(f_location,buf(offset,len))
     elseif cmd == 0x0006 and len==4 then
 	tree=subtree:add(f_ipaddr,buf(offset,len))
     elseif cmd == 0x0006 then
