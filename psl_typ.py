@@ -339,20 +339,16 @@ class PslTypPortStat(PslTyp):
     "how many bytes are received/send on each port"
     def unpack_py(self, val):
         # Python 3 uses an array of bytes, Python 2 uses a string
-        if type(val) is str:
-            rtn = {
-                "port": struct.unpack(">b", val[0])[0],
-                "rec": struct.unpack(">Q", val[1:9])[0],
-                "send": struct.unpack(">Q", val[10:18])[0],
-                "rest": binascii.hexlify(val[19:]),
-            }
-        else:
-            rtn = {
-                "port": val[0],
-                "rec": struct.unpack(">Q", val[1:9])[0],
-                "send": struct.unpack(">Q", val[10:18])[0],
-                "rest": binascii.hexlify(val[19:]).decode(),
-            }
+        values = struct.unpack("!b6Q", val)
+        rtn = {
+            "port": values[0],
+            "rec": values[1],
+            "send": values[2],
+            "pkt": values[3],
+            "bcst": values[4],
+            "mcst": values[5],
+            "error": values[6]
+        }
         return rtn
 
     def unpack_cmd(self, value):
@@ -363,11 +359,16 @@ class PslTypPortStat(PslTyp):
         return False
 
     def print_result(self, value):
-        print("%-30s%4s%15s%15s %s" % ("Port Statistic:", "Port",
-                                      "Rec.", "Send", "FIXME"))
+        print("%-30s%4s%15s%15s%15s%15s%15s%15s" % ("Port Statistic:", "Port",
+                                      "Rec.", "Send", "Packets",
+                                      "Broadcast pkt", "Multicast pkt",
+                                      "CRC errors"))
         for row in value:
-            print("%-30s%4d%15d%15d %s" % ("", row["port"], row["rec"],
-                                          row["send"], row["rest"]))
+            print("%-30s%4d%15d%15d%15d%15d%15d%15d" % ("",
+                                      row["port"], row["rec"],
+                                      row["send"], row["pkt"],
+                                      row["bcst"], row["mcst"],
+                                      row["error"]))
 
 ################################################################################
 
