@@ -83,15 +83,19 @@ local speed_flags={
 local f_speed = ProtoField.uint8("nsdp.speed","Speed",base.HEX, speed_flags)
 local f_link = ProtoField.uint8("nsdp.link","Link",base.HEX)
 local f_port=ProtoField.uint8("nsdp.port","Port Number")
-local f_rec=ProtoField.uint64("nsdp.recived","Bytes recived")
+local f_rec=ProtoField.uint64("nsdp.recived","Bytes received")
 local f_send=ProtoField.uint64("nsdp.send","Bytes send")
+local f_pkt=ProtoField.uint64("nsdp.pkt","Total packets")
+local f_bpkt=ProtoField.uint64("nsdp.pkt_bcst","Broadcast packets")
+local f_mpkt=ProtoField.uint64("nsdp.pkt_mcst","Multicast packets")
+local f_crce=ProtoField.uint64("nsdp.crc_error","CRC errors")
 
 --local f_debug = ProtoField.uint8("nsdp.debug", "Debug")
 p_nsdp.fields = {f_type,f_source,f_destination,f_seq,f_cmd,f_password,f_newpassword,f_flags,
-		 f_model,f_name,f_macinfo,f_dhcp_enable,f_port,f_rec,f_send,f_link,
-	         f_vlan_engine,
-                 f_ipaddr,f_netmask,f_gateway,f_firmwarever_len,f_firmwarever,f_len,
-		 f_speed}
+                 f_model,f_name,f_macinfo,f_dhcp_enable,f_port,f_rec,f_send,
+                 f_pkt,f_bpkt,f_mpkt,f_crce,f_link,f_vlan_engine,f_ipaddr,
+                 f_netmask,f_gateway,f_firmwarever_len,f_firmwarever,f_len,
+                 f_speed}
 
 -- nsdp dissector function
 function p_nsdp.dissector (buf, pkt, root)
@@ -167,8 +171,11 @@ function p_nsdp.dissector (buf, pkt, root)
 	   tree=subtree:add(buf(offset,1),"Port Statistic")
 	   tree:add(f_port,buf(offset,1))
 	   tree:add(f_rec,buf(offset+1,8))
-	   tree:add(f_send,buf(offset+9,8))
-	   -- FIXME: CRC Errors
+	   tree:add(f_send,buf(offset+1+8,8))
+	   tree:add(f_pkt,buf(offset+1+2*8,8))
+	   tree:add(f_bpkt,buf(offset+1+3*8,8))
+	   tree:add(f_mpkt,buf(offset+1+4*8,8))
+	   tree:add(f_crce,buf(offset+1+5*8,8))
     elseif cmd==0x1400 and len==0x01 then
 	   tree=subtree:add(buf(offset,1),"Reset Port Statistic")
 	   -- 1 Byte: 0x01
