@@ -34,8 +34,8 @@ local f_cmd = ProtoField.uint16("nsdp.cmd", "Command", base.HEX,{
 	[0x000b] = "DHCP Status",
 	[0x000c] = "FIXME 0x000c (1 Byte)",
 	[0x000d] = "Firmware Version",
-	[0x000e] = "FIXME 0x000e (0 Byte)",
-	[0x000f] = "FIXME 0x000f (1 Byte)",
+	[0x000e] = "Firmware 2 Version",
+	[0x000f] = "Active Firmware",
 	[0x0013] = "Reboot",
 	[0x0400] = "Factory Reset",
 	[0x1000] = "Port Traffic Statistic",
@@ -75,6 +75,8 @@ local f_netmask = ProtoField.ipv4("nsdp.netmask","Netmask")
 local f_gateway = ProtoField.ipv4("nsdp.gateway","Gateway")
 local f_firmwarever_len = ProtoField.uint16("nsdp.firmwarever_len", "Firmware version LEN",base.HEX)
 local f_firmwarever = ProtoField.string("nsdp.firmwarever", "Firmware version",FT_STRING)
+local f_firmware2ver = ProtoField.string("nsdp.firmware2ver", "Firmware 2 version",FT_STRING)
+local f_firmwareactive = ProtoField.uint8("nsdp.firmwareactive","Active firmware")
 local speed_flags={
   [0x00]="None",
   [0x01]="10M",
@@ -96,6 +98,7 @@ p_nsdp.fields = {f_type,f_source,f_destination,f_seq,f_cmd,f_password,f_newpassw
                  f_model,f_name,f_macinfo,f_dhcp_enable,f_port,f_rec,f_send,
                  f_pkt,f_bpkt,f_mpkt,f_crce,f_link,f_vlan_engine,f_ipaddr,
                  f_netmask,f_gateway,f_firmwarever_len,f_firmwarever,f_len,
+                 f_firmware2ver, f_firmwareactive,
                  f_speed,f_location}
 
 -- nsdp dissector function
@@ -165,6 +168,14 @@ function p_nsdp.dissector (buf, pkt, root)
         tree=subtree:add(buf(offset,len),"Query DHCP")
     elseif cmd == 0x000d then
 	tree=subtree:add(f_firmwarever,buf(offset,len))
+    elseif cmd == 0x000e then
+        tree=subtree:add(f_firmware2ver,buf(offset,len))
+    elseif cmd == 0x000f then
+        if len == 1 then
+            tree=subtree:add(f_firmwareactive,buf(offset,len))
+        else
+            tree=subtree:add(buf(offset,len),"Active Firmware?")
+        end
     elseif cmd==0x0c00 and len==3 then
 	   tree=subtree:add(buf(offset,1),"Speed Statistic")
 	   tree:add(f_port,buf(offset,1))
