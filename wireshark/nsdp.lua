@@ -25,7 +25,7 @@ local f_cmd = ProtoField.uint16("nsdp.cmd", "Command", base.HEX,{
 	[0x0002] = "FIXME 0x0002 (2 Bytes)",
 	[0x0003] = "Name",
 	[0x0004] = "MAC",
-	[0x0005] = "FIXME 0x0005 (0 Bytes)",
+	[0x0005] = "Location",
 	[0x0006] = "IP-Address",
 	[0x0007] = "Netmask",
 	[0x0008] = "Gateway",
@@ -34,8 +34,8 @@ local f_cmd = ProtoField.uint16("nsdp.cmd", "Command", base.HEX,{
 	[0x000b] = "DHCP Status",
 	[0x000c] = "FIXME 0x000c (1 Byte)",
 	[0x000d] = "Firmware Version",
-	[0x000e] = "FIXME 0x000e (0 Byte)",
-	[0x000f] = "FIXME 0x000f (1 Byte)",
+	[0x000e] = "Firmware 2 Version",
+	[0x000f] = "Active Firmware",
 	[0x0013] = "Reboot",
 	[0x0400] = "Factory Reset",
 	[0x1000] = "Port Traffic Statistic",
@@ -68,12 +68,15 @@ local f_flags = ProtoField.uint16("nsdp.flags", "Flags", base.HEX, {
 local f_model =ProtoField.string("nsdp.model","Model", FT_STRING)
 local f_name =ProtoField.string("nsdp.name","Name", FT_STRING)
 local f_macinfo = ProtoField.ether("nsdp.macinfo", "MAC info", base.HEX)
+local f_location = ProtoField.string("nsdp.location", "Location", FT_STRING)
 local f_ipaddr = ProtoField.ipv4("nsdp.ipaddr","IP Address")
 local f_dhcp_enable =ProtoField.uint8("nsdp.dhcp_enable","DHCP Enable")
 local f_netmask = ProtoField.ipv4("nsdp.netmask","Netmask")
 local f_gateway = ProtoField.ipv4("nsdp.gateway","Gateway")
 local f_firmwarever_len = ProtoField.uint16("nsdp.firmwarever_len", "Firmware version LEN",base.HEX)
 local f_firmwarever = ProtoField.string("nsdp.firmwarever", "Firmware version",FT_STRING)
+local f_firmware2ver = ProtoField.string("nsdp.firmware2ver", "Firmware 2 version",FT_STRING)
+local f_firmwareactive = ProtoField.uint8("nsdp.firmwareactive","Active firmware")
 local speed_flags={
   [0x00]="None",
   [0x01]="10M",
@@ -83,15 +86,20 @@ local speed_flags={
 local f_speed = ProtoField.uint8("nsdp.speed","Speed",base.HEX, speed_flags)
 local f_link = ProtoField.uint8("nsdp.link","Link",base.HEX)
 local f_port=ProtoField.uint8("nsdp.port","Port Number")
-local f_rec=ProtoField.uint64("nsdp.recived","Bytes recived")
+local f_rec=ProtoField.uint64("nsdp.recived","Bytes received")
 local f_send=ProtoField.uint64("nsdp.send","Bytes send")
+local f_pkt=ProtoField.uint64("nsdp.pkt","Total packets")
+local f_bpkt=ProtoField.uint64("nsdp.pkt_bcst","Broadcast packets")
+local f_mpkt=ProtoField.uint64("nsdp.pkt_mcst","Multicast packets")
+local f_crce=ProtoField.uint64("nsdp.crc_error","CRC errors")
 
 --local f_debug = ProtoField.uint8("nsdp.debug", "Debug")
 p_nsdp.fields = {f_type,f_source,f_destination,f_seq,f_cmd,f_password,f_newpassword,f_flags,
-		 f_model,f_name,f_macinfo,f_dhcp_enable,f_port,f_rec,f_send,f_link,
-	         f_vlan_engine,
-                 f_ipaddr,f_netmask,f_gateway,f_firmwarever_len,f_firmwarever,f_len,
-		 f_speed}
+                 f_model,f_name,f_macinfo,f_dhcp_enable,f_port,f_rec,f_send,
+                 f_pkt,f_bpkt,f_mpkt,f_crce,f_link,f_vlan_engine,f_ipaddr,
+                 f_netmask,f_gateway,f_firmwarever_len,f_firmwarever,f_len,
+                 f_firmware2ver, f_firmwareactive,
+                 f_speed,f_location}
 
 -- nsdp dissector function
 function p_nsdp.dissector (buf, pkt, root)
@@ -133,6 +141,8 @@ function p_nsdp.dissector (buf, pkt, root)
 	tree=subtree:add(f_macinfo,buf(offset,len))
     elseif cmd == 0x0004 then
         tree=subtree:add(buf(offset,len),"MAC")
+    elseif cmd == 0x0005 then
+        tree=subtree:add(f_location,buf(offset,len))
     elseif cmd == 0x0006 and len==4 then
 	tree=subtree:add(f_ipaddr,buf(offset,len))
     elseif cmd == 0x0006 then
@@ -158,6 +168,14 @@ function p_nsdp.dissector (buf, pkt, root)
         tree=subtree:add(buf(offset,len),"Query DHCP")
     elseif cmd == 0x000d then
 	tree=subtree:add(f_firmwarever,buf(offset,len))
+    elseif cmd == 0x000e then
+        tree=subtree:add(f_firmware2ver,buf(offset,len))
+    elseif cmd == 0x000f then
+        if len == 1 then
+            tree=subtree:add(f_firmwareactive,buf(offset,len))
+        else
+            tree=subtree:add(buf(offset,len),"Active Firmware?")
+        end
     elseif cmd==0x0c00 and len==3 then
 	   tree=subtree:add(buf(offset,1),"Speed Statistic")
 	   tree:add(f_port,buf(offset,1))
@@ -167,8 +185,11 @@ function p_nsdp.dissector (buf, pkt, root)
 	   tree=subtree:add(buf(offset,1),"Port Statistic")
 	   tree:add(f_port,buf(offset,1))
 	   tree:add(f_rec,buf(offset+1,8))
-	   tree:add(f_send,buf(offset+9,8))
-	   -- FIXME: CRC Errors
+	   tree:add(f_send,buf(offset+1+8,8))
+	   tree:add(f_pkt,buf(offset+1+2*8,8))
+	   tree:add(f_bpkt,buf(offset+1+3*8,8))
+	   tree:add(f_mpkt,buf(offset+1+4*8,8))
+	   tree:add(f_crce,buf(offset+1+5*8,8))
     elseif cmd==0x1400 and len==0x01 then
 	   tree=subtree:add(buf(offset,1),"Reset Port Statistic")
 	   -- 1 Byte: 0x01
