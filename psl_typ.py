@@ -82,7 +82,6 @@ class PslTypString(PslTyp):
         return value.encode()
 
     def unpack_cmd(self, value):
-        value = value.split("\0", 1)[0]
         return value.decode()
 
     def is_setable(self):

@@ -352,7 +352,7 @@ class ProSafeLinux:
         ipadr = self.ip_from_mac(mac)
         data = self.baseudp(destmac=mac, ctype=self.CTYPE_TRANSMIT_REQUEST)
         firmwarevers = self.query(self.get_cmd_by_name("firmwarever"), mac)
-        firmwarevers = firmwarevers.values()[0].translate({ord("."):None})
+        firmwarevers = list(firmwarevers.values())[0].translate({ord("."):None})
         # New firmwares put capital leter V in front ...
         if "V" == firmwarevers[0]:
             firmwarevers = firmwarevers[1:]
@@ -374,7 +374,7 @@ class ProSafeLinux:
                 if cmd != self.CMD_PASSWORD:
                     data += self.addudp(cmd, pdata)
         elif type(cmddict).__name__ == 'string':
-            print 'got string!'
+            print('got string!')
             data += cmddict
         data += self.addudp(self.CMD_END)
         self.send(ipadr, self.SENDPORT, data)
