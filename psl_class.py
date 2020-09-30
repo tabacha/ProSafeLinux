@@ -8,6 +8,7 @@ import pprint
 import random
 import struct
 import socket
+import select
 import fcntl
 import psl_typ
 import inspect
@@ -118,8 +119,9 @@ class ProSafeLinux:
         self.myhost = None
         self.srcmac = None
         self.ssocket = None
-        self.rsocket = None
-        self.timeout=0.1
+        self.brsocket = None
+        self.ursocket = None
+        self.timeout=2
 
         # i still see no win in randomizing the starting sequence...
         self.seq = random.randint(100, 2000)
@@ -148,12 +150,18 @@ class ProSafeLinux:
         self.ssocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.ssocket.bind((self.myhost, self.RECPORT))
 
-        # receive socket
-        self.rsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.rsocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        # self.rsocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-        self.rsocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        self.rsocket.bind(("255.255.255.255", self.RECPORT))
+        # broadcast receive socket
+        self.brsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.brsocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        # self.brsocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        self.brsocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        self.brsocket.bind(("255.255.255.255", self.RECPORT))
+
+        # unicast receive socket
+        self.ursocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.ursocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        # self.ursocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        self.ursocket.bind((self.myhost, self.RECPORT))
 
         return True
 
@@ -192,11 +200,19 @@ class ProSafeLinux:
         "set debugging"
         self.debug = True
 
-    def recv(self, maxlen=8192):
+    def recv(self, maxlen=8192, sock=None):
         "receive a packet from the switch"
-        self.rsocket.settimeout(self.timeout)
+        socks = [sock];
+        if sock is None:
+            socks = [self.brsocket, self.ursocket]
+
         try:
-            message, address = self.rsocket.recvfrom(maxlen)
+            rsocks,_,_ = select.select(socks, [], [], self.timeout)
+            if rsocks == []:
+                return (None, None)
+
+            message, address = rsocks[0].recvfrom(maxlen)
+
         except socket.timeout:
             return (None, None)
         except socket.error as error:
