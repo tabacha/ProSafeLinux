@@ -103,7 +103,7 @@ class ProSafeLinux:
                                               0x6c00, "block_unknown_multicast")
     CMD_IGMP_HEADER_VALIDATION = psl_typ.PslTypBoolean(0x7000,
         "igmp_header_validation")
-    CMD_FIXME7400 = psl_typ.PslTypHex(0x7400, "fixme7400")
+    CMD_SUPPORTED_TLVS = psl_typ.PslTypHex(0x7400, "supported_tlvs")
     CMD_END = psl_typ.PslTypEnd(0xffff, "END")
 
     CTYPE_QUERY_REQUEST = 0x0101

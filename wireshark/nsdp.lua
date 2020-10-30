@@ -56,7 +56,7 @@ local f_cmd = ProtoField.uint16("nsdp.cmd", "Command", base.HEX,{
 	[0x6800] = "IGMP Snooping Status",
 	[0x6c00] = "Block Unknown Multicasts",
 	[0x7000] = "IGMP Header Validation",
-	[0x7400] = "FIMXE 0x7400 (8 Bytes)",
+	[0x7400] = "Supported TLVs",
 	[0x0c00] = "Speed/Link Status",
 	[0xffff] = "End Request"
 })
@@ -92,6 +92,7 @@ local f_pkt=ProtoField.uint64("nsdp.pkt","Total packets")
 local f_bpkt=ProtoField.uint64("nsdp.pkt_bcst","Broadcast packets")
 local f_mpkt=ProtoField.uint64("nsdp.pkt_mcst","Multicast packets")
 local f_crce=ProtoField.uint64("nsdp.crc_error","CRC errors")
+local f_supportedTLVs=ProtoField.uint64("nsdp.supportedtlvs","Supported TLVs",base.HEX)
 
 --local f_debug = ProtoField.uint8("nsdp.debug", "Debug")
 p_nsdp.fields = {f_type,f_source,f_destination,f_seq,f_cmd,f_password,f_newpassword,f_flags,
@@ -99,7 +100,7 @@ p_nsdp.fields = {f_type,f_source,f_destination,f_seq,f_cmd,f_password,f_newpassw
                  f_pkt,f_bpkt,f_mpkt,f_crce,f_link,f_vlan_engine,f_ipaddr,
                  f_netmask,f_gateway,f_firmwarever_len,f_firmwarever,f_len,
                  f_firmware2ver, f_firmwareactive,
-                 f_speed,f_location}
+                 f_speed,f_location,f_supportedTLVs}
 
 -- nsdp dissector function
 function p_nsdp.dissector (buf, pkt, root)
@@ -300,6 +301,12 @@ function p_nsdp.dissector (buf, pkt, root)
       tree=subtree:add(buf(offset,len),"Valid IGMP Spoofing")
       -- 01 enabled
       -- 00 disabled
+    elseif cmd == 0x7400 then
+      if len==0x08 then
+        tree=subtree:add(f_supportedTLVs, buf(offset,len))
+      else
+        tree=subtree:add(buf(offset,len), "Supported TLVs?")
+      end
     else
       tree=subtree:add(buf(offset,len),"FIXME")
     end
