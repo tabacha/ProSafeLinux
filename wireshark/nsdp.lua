@@ -19,8 +19,7 @@ local f_vlan_engine = ProtoField.uint8("nsdp.vlan_engine","VLAN Engine",base.HEX
     [0x04]="802.1Q_Extended",
 })
 
-
-local f_cmd = ProtoField.uint16("nsdp.cmd", "Command", base.HEX,{
+local t_cmd = {
     [0x0001] = "Model",
     [0x0002] = "FIXME 0x0002 (2 Bytes)",
     [0x0003] = "Name",
@@ -59,7 +58,8 @@ local f_cmd = ProtoField.uint16("nsdp.cmd", "Command", base.HEX,{
     [0x7400] = "Supported TLVs",
     [0x0c00] = "Speed/Link Status",
     [0xffff] = "End Request"
-})
+}
+local f_cmd = ProtoField.uint16("nsdp.cmd", "Command", base.HEX, t_cmd)
 local f_password = ProtoField.string("nsdp.password", "Password", FT_STRING)
 local f_newpassword = ProtoField.string("nsdp.newpassword", "New password", FT_STRING)
 local f_flags = ProtoField.uint16("nsdp.flags", "Flags", base.HEX, {
@@ -307,7 +307,11 @@ function p_nsdp.dissector (buf, pkt, root)
                 tree=subtree:add(buf(offset,len), "Supported TLVs?")
             end
         else
-            tree=subtree:add(buf(offset,len),"FIXME")
+            local name=t_cmd[cmd]
+            if name==nil then
+                name=string.format("CMD:0x%04x", cmd)
+            end
+            tree=subtree:add(buf(offset,len),name)
         end
 
         tree:add(f_cmd,buf(offset-4,2))
