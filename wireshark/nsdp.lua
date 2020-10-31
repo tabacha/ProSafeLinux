@@ -69,7 +69,7 @@ local t_cmd = {
     [0x2800] = "802VLAN-ID",
     [0x3000] = "vlan_pvid",
     [0x3400] = "QoS",
-    [0x3800] = "Portbased QOS",
+    [0x3800] = "QoS port priority",
     [0x4c00] = "Bandwidth Limit IN",
     [0x5000] = "Bandwidth Limit OUT",
     [0x5400] = "Broadcast filtering",
@@ -120,6 +120,13 @@ local f_qos_mode = ProtoField.uint8("nsdp.qos_mode", "QoS mode", base.HEX, {
     [0x01]="Port based",
     [0x02]="802.1p/DSCP based"
 })
+local t_port_prio = {
+    [0x01]="High",
+    [0x02]="Medium",
+    [0x03]="Normal",
+    [0x04]="Low"
+}
+local f_qos_port_prio = ProtoField.uint8("nsdp.qos_port_prio", "Priority", base.HEX, t_port_prio)
 local f_port=ProtoField.uint8("nsdp.port","Port Number")
 local f_rec=ProtoField.uint64("nsdp.recived","Bytes received")
 local f_send=ProtoField.uint64("nsdp.sent","Bytes sent")
@@ -155,7 +162,7 @@ p_nsdp.experts = {e_error}
 
 p_nsdp.fields = {f_type,f_status,f_source,f_destination,f_seq,f_cmd,f_password,f_newpassword,f_errcmd,
                  f_fixme0002, f_fixme000C,
-                 f_qos_mode,
+                 f_qos_mode, f_qos_port_prio,
                  f_bcast_filtering,f_rate_limit,
                  f_model,f_name,f_macinfo,f_dhcp_enable,f_port,f_rec,f_send,
                  f_pkt,f_bpkt,f_mpkt,f_crce,f_vlan_engine,f_ipaddr,
@@ -319,14 +326,17 @@ function p_nsdp.dissector (buf, pkt, root)
                 else
                     tree=subtree:add(f_qos_mode, buf(offset,len))
                 end
-            elseif cmd==0x3800 and len==0x01 then
-                tree=subtree:add(buf(offset,len),"Port Based Quality of Service")
-                -- 1 Byte port
-                -- 1 Byte:
-                -- 0x01 == High Priority
-                -- 0x02 == Middle Priority
-                -- 0x03 == Normal Priority
-                -- 0x04 == Low Priority
+            elseif cmd==0x3800 then
+                if len==0x00 then
+                    tree=subtree:add(buf(offset,len),"QoS port priority?")
+                else
+                    local port=buf(offset, 1)
+                    local prio=buf(offset + 1, 1)
+
+                    tree=subtree:add(buf(offset,len), string.format("QoS port priority - Port:%u, prio: %s", port:uint(), t_port_prio[prio:uint()]))
+                    tree:add(f_port, port)
+                    tree:add(f_qos_port_prio, prio)
+                end
             elseif cmd==0x4c00 then
                 if len==0x00 then
                     tree=subtree:add(buf(offset,len),"Ingress rate limit?")
