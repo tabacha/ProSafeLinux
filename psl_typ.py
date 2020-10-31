@@ -147,6 +147,35 @@ class PslTypBoolean(PslTyp):
 ###############################################################################
 
 
+class PslTypFiltering(PslTyp):
+    " Broadcast filtering, like a boolean but 0x00 and 0x03"
+    def pack_py(self, value):
+        if (value):
+            return struct.pack(">b", 0x03)
+        else:
+            return struct.pack(">b", 0x00)
+
+    def unpack_py(self, value):
+        numval = struct.unpack(">b", value)[0]
+        return (numval == 0x03)
+
+    def pack_cmd(self, value):
+        return self.pack_py(value.lowercase == "on")
+
+    def unpack_cmd(self, value):
+        if (self.unpack_py(value)):
+            return "on"
+        else:
+            return "off"
+
+    def is_setable(self):
+        return True
+
+    def get_choices(self):
+        return ["on", "off"]
+
+
+###############################################################################
 class PslTypDHCP(PslTypBoolean):
     "DHCP"
 # we already have that in base PslTypBoolean class, haven't we ?

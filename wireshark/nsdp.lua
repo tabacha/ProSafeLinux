@@ -71,7 +71,7 @@ local t_cmd = {
     [0x3800] = "Portbased QOS",
     [0x4c00] = "Bandwidth Limit IN",
     [0x5000] = "Bandwidth Limit OUT",
-    [0x5400] = "FIXME 0x5400 (1 Byte)",
+    [0x5400] = "Broadcast filtering",
     [0x5800] = "Broadcast Bandwidth",
     [0x5c00] = "Port Mirror",
     [0x6000] = "Number of available ports",
@@ -115,12 +115,17 @@ local f_mpkt=ProtoField.uint64("nsdp.pkt_mcst","Multicast packets")
 local f_crce=ProtoField.uint64("nsdp.crc_error","CRC errors")
 local f_numports=ProtoField.uint8("ndsp.numports","Number of ports")
 local f_supportedTLVs=ProtoField.uint64("nsdp.supportedtlvs","Supported TLVs",base.HEX)
+local f_bcast_filtering=ProtoField.uint8("nsdp.bcast_filter", "Broadcast filtering", base.HEX, {
+    [0x00]="Disabled",
+    [0x03]="Enabled"
+})
 
 --local f_debug = ProtoField.uint8("nsdp.debug", "Debug")
 p_nsdp.experts = {e_error}
 
 
 p_nsdp.fields = {f_type,f_status,f_source,f_destination,f_seq,f_cmd,f_password,f_newpassword,f_errcmd,
+                 f_bcast_filtering,
                  f_model,f_name,f_macinfo,f_dhcp_enable,f_port,f_rec,f_send,
                  f_pkt,f_bpkt,f_mpkt,f_crce,f_link,f_vlan_engine,f_ipaddr,
                  f_netmask,f_gateway,f_firmwarever_len,f_firmwarever,f_len,
@@ -304,6 +309,12 @@ function p_nsdp.dissector (buf, pkt, root)
                 --   0x0009 128 Mbits/s
                 --   0x000a 256 Mbits/s
                 --   0x000b 512 Mbits/s
+            elseif cmd==0x5400 then
+                if len==0x00 then
+                    tree=subtree:add(buf(offset,len),"Broadcast filtering?")
+                else
+                    tree=subtree:add(f_bcast_filtering, buf(offset,len))
+                end
             elseif cmd==0x5c00 and len==0x03 then
                 tree=subtree:add(buf(offset,len),"Port Mirroring")
                     -- 00 00 00 = Disabled

@@ -93,7 +93,7 @@ class ProSafeLinux:
                                               0x4c00, "bandwidth_in")
     CMD_BANDWIDTH_OUTGOING_LIMIT = psl_typ.PslTypBandwidth(
                                               0x5000, "bandwidth_out")
-    CMD_FIXME5400 = psl_typ.PslTypHex(0x5400, "fixme5400")
+    CMD_BROADCAST_FILTERING = psl_typ.PslTypFiltering(0x5400, "broadcast_filtering")
     CMD_BROADCAST_BANDWIDTH = psl_typ.PslTypBandwidth(0x5800,
                  "broadcast_bandwidth")
     CMD_PORT_MIRROR = psl_typ.PslTypPortMirror(0x5c00, "port_mirror")
