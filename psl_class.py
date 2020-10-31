@@ -366,7 +366,7 @@ class ProSafeLinux:
         "change something in the switch, like name, mac ..."
         transmit_counter = 0
         ipadr = self.ip_from_mac(mac)
-        data = self.baseudp(destmac=mac, ctype=self.CTYPE_TRANSMIT_REQUEST)
+        data = b''
         firmwarevers = self.query(self.get_cmd_by_name("firmwarever"), mac)
         firmwarevers = list(firmwarevers.values())[0].translate({ord("."):None})
         # New firmwares put capital leter V in front ...
@@ -393,6 +393,10 @@ class ProSafeLinux:
             print('got string!')
             data += cmddict
         data += self.addudp(self.CMD_END)
+
+        header = self.baseudp(destmac=mac, ctype=self.CTYPE_TRANSMIT_REQUEST)
+        data = header + data
+
         self.send(ipadr, self.SENDPORT, data)
         message, address = self.recv_all()
         while message == None and transmit_counter < 3:
