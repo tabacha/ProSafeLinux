@@ -129,6 +129,26 @@ class ProSafeLinux:
         self.mac_cache = {}
         self.cmd_by_id = {}
         self.cmd_by_name = {}
+        self.errmsgs = {
+            0x00:"Success",
+            0x01:"Protocol version not supported",
+            0x02:"Command not supported",
+            0x03:"TLV type not supported",
+            0x04:"Invalid TLV length",
+            0x05:"Invalid TLV value",
+            0x06:"Manager IP is blocked by ACL",
+            0x07:"Invalid password",
+            0x08:"Firmware download requested",
+            0x09:"Invalid username",
+            0x0a:"Switch only supports management by browser",
+            0x0d:"Invalid password",
+            0x0e:"3 failed attempts.  Switch is locked for 30 minutes",
+            0x0f:"Switch management disabled.  Use browser to enable",
+            0x81:"TFTP call error",
+            0x82:"TFTP Out of memory",
+            0x83:"Firmware update failed",
+            0x84:"TFTP timed out"
+        }
         for key, value in  inspect.getmembers(ProSafeLinux):
             if key.startswith("CMD_"):
                 self.cmd_by_name[value.get_name()] = value
@@ -238,49 +258,55 @@ class ProSafeLinux:
         "unpack packet send by the switch"
         if pack == None:
             return False
-        if self.debug:
-            pprint.pprint(len(pack[2:4])) 
         data = {}
-        if struct.unpack(">H", pack[2:4])[0] != 0x0000:
+        status = struct.unpack(">B", pack[2:3])[0]
+        if status != 0x00:
             errorcmd = self.get_cmd_by_hex(struct.unpack(">H", pack[4:6])[0])
+            errmsg = self.errmsgs[status]
+            if errmsg is None:
+                errmsg = "0x{:02x}".format(status)
+
             if errorcmd:
                 data["error"] = errorcmd.get_name()
             else:
                 data["error"] = struct.unpack(">H", pack[4:6])[0]
-#        data["seq"] = struct.unpack(">H", pack[22:24])[0]
-#        data["ctype"] = struct.unpack(">H", pack[0:2])[0]
-#        data["mymac"] = binascii.hexlify(pack[8:14])
-#        data["theirmac"] = binascii.hexlify(pack[14:20]).decode()
-        pos = 32
-        cmd_id = 0
-        while (pos<len(pack)):
-            if self.debug:
-                print("pos:%d len: %d" %(pos,len(pack)))
-            cmd_id = struct.unpack(">H", pack[pos:(pos + 2)])[0]
-            if self.get_cmd_by_hex(cmd_id):
-                cmd = self.get_cmd_by_hex(cmd_id)
-            else:
-                # we don't need a switch for "unknown_warn" here...let the client handle unknown responses
-#                print("Unknown Response %d" % cmd_id)
-                cmd = psl_typ.PslTypUnknown(cmd_id, "UNKNOWN %d" % cmd_id)
-            pos = pos + 2
-            cmdlen = struct.unpack(">H", pack[pos:(pos + 2)])[0]
-            pos = pos + 2
-            if cmdlen > 0:
-                    value = cmd.unpack_cmd(pack[pos:(pos + cmdlen)])
-            else:
-                value = None
-            if cmd in data and value != None:
-                if type(data[cmd]) != type(list()):
-                    data[cmd] = [data[cmd]]
-                data[cmd].append(value)
-            elif value != None:
-                data[cmd] = value
-            if self.debug:
-                print("cmd_id %d of length %d :" % (cmd_id, cmdlen)) 
-                data_hex = binascii.hexlify(pack[pos:(pos + cmdlen)]).decode()
-                print("data=" + data_hex)
-            pos = pos + cmdlen
+
+            data["error"] = "{} - {}".format(data["error"], errmsg)
+        else:
+#            data["seq"] = struct.unpack(">H", pack[22:24])[0]
+#            data["ctype"] = struct.unpack(">H", pack[0:2])[0]
+#            data["mymac"] = binascii.hexlify(pack[8:14])
+#            data["theirmac"] = binascii.hexlify(pack[14:20]).decode()
+            pos = 32
+            cmd_id = 0
+            while (pos<len(pack)):
+                if self.debug:
+                    print("pos:%d len: %d" %(pos,len(pack)))
+                cmd_id = struct.unpack(">H", pack[pos:(pos + 2)])[0]
+                if self.get_cmd_by_hex(cmd_id):
+                    cmd = self.get_cmd_by_hex(cmd_id)
+                else:
+                    # we don't need a switch for "unknown_warn" here...let the client handle unknown responses
+#                    print("Unknown Response %d" % cmd_id)
+                    cmd = psl_typ.PslTypUnknown(cmd_id, "UNKNOWN %d" % cmd_id)
+                pos = pos + 2
+                cmdlen = struct.unpack(">H", pack[pos:(pos + 2)])[0]
+                pos = pos + 2
+                if cmdlen > 0:
+                        value = cmd.unpack_cmd(pack[pos:(pos + cmdlen)])
+                else:
+                    value = None
+                if cmd in data and value != None:
+                    if type(data[cmd]) != type(list()):
+                        data[cmd] = [data[cmd]]
+                    data[cmd].append(value)
+                elif value != None:
+                    data[cmd] = value
+                if self.debug:
+                    print("cmd_id %d of length %d :" % (cmd_id, cmdlen)) 
+                    data_hex = binascii.hexlify(pack[pos:(pos + cmdlen)]).decode()
+                    print("data=" + data_hex)
+                pos = pos + cmdlen
         return data
 
     def send(self, host, port, data):
