@@ -335,6 +335,8 @@ class ProSafeLinux:
         if message != None and message != False:
             if self.CMD_MAC in message:
                 if message[self.CMD_MAC].capitalize() == mac.capitalize():
+                    if self.CMD_IP in message:
+                        self.mac_cache[message[self.CMD_MAC]] = message[self.CMD_IP]
                     return address[0]
         return "255.255.255.255"
 
