@@ -129,6 +129,21 @@ local f_bcast_filtering=ProtoField.uint8("nsdp.bcast_filter", "Broadcast filteri
     [0x00]="Disabled",
     [0x03]="Enabled"
 })
+local t_rate_limit={
+    [0x00]="No limit",
+    [0x01]="512 Kbit/s",
+    [0x02]="1 Mbits/s",
+    [0x03]="2 Mbits/s",
+    [0x04]="4 Mbits/s",
+    [0x05]="8 Mbits/s",
+    [0x06]="16 Mbits/s",
+    [0x07]="32 Mbits/s",
+    [0x08]="64 Mbits/s",
+    [0x09]="128 Mbits/s",
+    [0x0a]="256 Mbits/s",
+    [0x0b]="512 Mbits/s",
+}
+local f_rate_limit=ProtoField.uint8("nsdp.rate_limit", "Rate", base.HEX, t_rate_limit)
 
 --local f_debug = ProtoField.uint8("nsdp.debug", "Debug")
 p_nsdp.experts = {e_error}
@@ -136,7 +151,7 @@ p_nsdp.experts = {e_error}
 
 p_nsdp.fields = {f_type,f_status,f_source,f_destination,f_seq,f_cmd,f_password,f_newpassword,f_errcmd,
                  f_fixme0002, f_fixme000C,
-                 f_bcast_filtering,
+                 f_bcast_filtering,f_rate_limit,
                  f_model,f_name,f_macinfo,f_dhcp_enable,f_port,f_rec,f_send,
                  f_pkt,f_bpkt,f_mpkt,f_crce,f_vlan_engine,f_ipaddr,
                  f_netmask,f_gateway,f_firmwarever_len,f_firmwarever,f_len,
@@ -305,45 +320,41 @@ function p_nsdp.dissector (buf, pkt, root)
                 -- 0x02 == Middle Priority
                 -- 0x03 == Normal Priority
                 -- 0x04 == Low Priority
-            elseif cmd==0x4c00 and len==0x05 then
-                tree=subtree:add(buf(offset,len),"FIXME")
-                -- 1 Byte Port (not binary Port8=8; Port1=1)
-                -- 2 Bytes Unknown
-                -- 2 Bytes Incomming Rate
-                --   0x0000 No Limit
-                --   0x0001 512 Kbits/s
-                --   0x0002 1 Mbits/s
-                --   0x0003 2 Mbits/s
-                --   0x0004 4 Mbits/s
-                --   0x0005 8 Mbits/s
-                --   0x0006 16 Mbits/s
-                --   0x0007 32 Mbits/s
-                --   0x0008 64 Mbits/s
-                --   0x0009 128 Mbits/s
-                --   0x000a 256 Mbits/s
-                --   0x000b 512 Mbits/s
-            elseif cmd==0x5000 and len==0x05 then
-                tree=subtree:add(buf(offset,len),"FIXME")
-                -- 1 Byte Port (not binary Port8=8; Port1=1)
-                -- 2 Bytes Unknown
-                -- 2 Bytes Outgoing Rate
-                --   0x0000 No Limit
-                --   0x0001 512 Kbits/s
-                --   0x0002 1 Mbits/s
-                --   0x0003 2 Mbits/s
-                --   0x0004 4 Mbits/s
-                --   0x0005 8 Mbits/s
-                --   0x0006 16 Mbits/s
-                --   0x0007 32 Mbits/s
-                --   0x0008 64 Mbits/s
-                --   0x0009 128 Mbits/s
-                --   0x000a 256 Mbits/s
-                --   0x000b 512 Mbits/s
+            elseif cmd==0x4c00 then
+                if len==0x00 then
+                    tree=subtree:add(buf(offset,len),"Ingress rate limit?")
+                else
+                    local port=buf(offset, 1)
+                    local rate=buf(offset + 3, 2)
+                    tree=subtree:add(buf(offset,len),string.format("Ingress limit: Port:%u, rate:%s", port:uint(), t_rate_limit[rate:uint()]))
+                    tree:add(f_port, port)
+                    tree:add(f_rate_limit, rate)
+                end
+            elseif cmd==0x5000 then
+                if len==0x00 then
+                    tree=subtree:add(buf(offset,len),"Egress rate limit?")
+                else
+                    local port=buf(offset, 1)
+                    local rate=buf(offset + 3, 2)
+                    tree=subtree:add(buf(offset,len),string.format("Egress limit: Port:%u, rate:%s", port:uint(), t_rate_limit[rate:uint()]))
+                    tree:add(f_port, port)
+                    tree:add(f_rate_limit, rate)
+                end
             elseif cmd==0x5400 then
                 if len==0x00 then
                     tree=subtree:add(buf(offset,len),"Broadcast filtering?")
                 else
                     tree=subtree:add(f_bcast_filtering, buf(offset,len))
+                end
+            elseif cmd==0x5800 then
+                if len==0x00 then
+                    tree=subtree:add(buf(offset,len),"Broadcast storm rate?")
+                else
+                    local port=buf(offset, 1)
+                    local rate=buf(offset + 3, 2)
+                    tree=subtree:add(buf(offset,len),string.format("Storm control rate: Port:%u, rate:%s", port:uint(), t_rate_limit[rate:uint()]))
+                    tree:add(f_port, port)
+                    tree:add(f_rate_limit, rate)
                 end
             elseif cmd==0x5c00 and len==0x03 then
                 tree=subtree:add(buf(offset,len),"Port Mirroring")
@@ -351,23 +362,6 @@ function p_nsdp.dissector (buf, pkt, root)
                     -- 1 Byte destination port
                     -- 1 Byte 00
                     -- 1 Byte source ports (binary port shema)
-            elseif cmd==0x5800 and len==0x05 then
-                tree=subtree:add(buf(offset,len),"Broadcast Filter")
-                -- 1 Byte Port (not binary Port8=8; Port1=1)
-                -- 2 Bytes Unknown
-                -- 2 Bytes Broadcast Rate
-                --   0x0000 No Limit
-                --   0x0001 512 Kbits/s
-                --   0x0002 1 Mbits/s
-                --   0x0003 2 Mbits/s
-                --   0x0004 4 Mbits/s
-                --   0x0005 8 Mbits/s
-                --   0x0006 16 Mbits/s
-                --   0x0007 32 Mbits/s
-                --   0x0008 64 Mbits/s
-                --   0x0009 128 Mbits/s
-                --   0x000a 256 Mbits/s
-                --   0x000b 512 Mbits/s
             elseif cmd==0x6000 then
                 if len==0x01 then
                     tree=subtree:add(f_numports, buf(offset,len))
