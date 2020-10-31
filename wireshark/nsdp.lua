@@ -68,7 +68,7 @@ local t_cmd = {
     [0x2400] = "VLAN-ID",
     [0x2800] = "802VLAN-ID",
     [0x3000] = "vlan_pvid",
-    [0x3400] = "QOS",
+    [0x3400] = "QoS",
     [0x3800] = "Portbased QOS",
     [0x4c00] = "Bandwidth Limit IN",
     [0x5000] = "Bandwidth Limit OUT",
@@ -116,6 +116,10 @@ local t_flow_control={
 
 local f_speed = ProtoField.uint8("nsdp.speed","Speed",base.HEX, t_speed_flags)
 local f_flow = ProtoField.uint8("nsdp.flow_control", "Flow control", base.HEX, t_flow_control)
+local f_qos_mode = ProtoField.uint8("nsdp.qos_mode", "QoS mode", base.HEX, {
+    [0x01]="Port based",
+    [0x02]="802.1p/DSCP based"
+})
 local f_port=ProtoField.uint8("nsdp.port","Port Number")
 local f_rec=ProtoField.uint64("nsdp.recived","Bytes received")
 local f_send=ProtoField.uint64("nsdp.sent","Bytes sent")
@@ -151,6 +155,7 @@ p_nsdp.experts = {e_error}
 
 p_nsdp.fields = {f_type,f_status,f_source,f_destination,f_seq,f_cmd,f_password,f_newpassword,f_errcmd,
                  f_fixme0002, f_fixme000C,
+                 f_qos_mode,
                  f_bcast_filtering,f_rate_limit,
                  f_model,f_name,f_macinfo,f_dhcp_enable,f_port,f_rec,f_send,
                  f_pkt,f_bpkt,f_mpkt,f_crce,f_vlan_engine,f_ipaddr,
@@ -308,10 +313,12 @@ function p_nsdp.dissector (buf, pkt, root)
                 tree=subtree:add(buf(offset,len),"FIXME")
                 -- 1 Byte Port (not binary Port8=8; Port1=1)
                 -- 2 Bytes VLAN ID Port PVID
-            elseif cmd==0x3400 and len==0x01 then
-                tree=subtree:add(buf(offset,len),"Port Based Quality of Service")
-                -- 1 Byte 0x01== port based
-                -- 1 Byte 0x02== 802.1p based
+            elseif cmd==0x3400 then
+                if len==0x00 then
+                    tree=subtree:add(buf(offset,len),"QoS mode?")
+                else
+                    tree=subtree:add(f_qos_mode, buf(offset,len))
+                end
             elseif cmd==0x3800 and len==0x01 then
                 tree=subtree:add(buf(offset,len),"Port Based Quality of Service")
                 -- 1 Byte port

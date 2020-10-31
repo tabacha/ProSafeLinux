@@ -674,7 +674,7 @@ class UnknownValueException(Exception):
     "Found something which I don't know"
 
 
-class PslTypQos(PslTyp):
+class PslTypQosMode(PslTyp):
     "Quality of service is port_based or 802.1p"
     def unpack_py(self, value):
         # Python 3 uses an array of bytes, Python 2 uses a string
