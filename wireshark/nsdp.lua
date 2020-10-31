@@ -74,7 +74,7 @@ local t_cmd = {
     [0x5400] = "FIXME 0x5400 (1 Byte)",
     [0x5800] = "Broadcast Bandwidth",
     [0x5c00] = "Port Mirror",
-    [0x6000] = "Number of available Ports",
+    [0x6000] = "Number of available ports",
     [0x6800] = "IGMP Snooping Status",
     [0x6c00] = "Block Unknown Multicasts",
     [0x7000] = "IGMP Header Validation",
@@ -113,6 +113,7 @@ local f_pkt=ProtoField.uint64("nsdp.pkt","Total packets")
 local f_bpkt=ProtoField.uint64("nsdp.pkt_bcst","Broadcast packets")
 local f_mpkt=ProtoField.uint64("nsdp.pkt_mcst","Multicast packets")
 local f_crce=ProtoField.uint64("nsdp.crc_error","CRC errors")
+local f_numports=ProtoField.uint8("ndsp.numports","Number of ports")
 local f_supportedTLVs=ProtoField.uint64("nsdp.supportedtlvs","Supported TLVs",base.HEX)
 
 --local f_debug = ProtoField.uint8("nsdp.debug", "Debug")
@@ -124,7 +125,7 @@ p_nsdp.fields = {f_type,f_status,f_source,f_destination,f_seq,f_cmd,f_password,f
                  f_pkt,f_bpkt,f_mpkt,f_crce,f_link,f_vlan_engine,f_ipaddr,
                  f_netmask,f_gateway,f_firmwarever_len,f_firmwarever,f_len,
                  f_firmware2ver, f_firmwareactive,
-                 f_speed,f_location,f_supportedTLVs}
+                 f_speed,f_location,f_numports,f_supportedTLVs}
 
 -- nsdp dissector function
 function p_nsdp.dissector (buf, pkt, root)
@@ -326,9 +327,12 @@ function p_nsdp.dissector (buf, pkt, root)
                 --   0x0009 128 Mbits/s
                 --   0x000a 256 Mbits/s
                 --   0x000b 512 Mbits/s
-            elseif cmd==0x6000 and len==0x01 then
-                tree=subtree:add(buf(offset,len),"Number of Ports???")
-                -- 1 Byte Port (not binary Port8=8; Port1=1)
+            elseif cmd==0x6000 then
+                if len==0x01 then
+                    tree=subtree:add(f_numports, buf(offset,len))
+                else
+                    tree=subtree:add(buf(offset,len),"Number of ports?")
+                end
             elseif cmd==0x6c00 and len==0x01 then
                 tree=subtree:add(buf(offset,len),"Block unknown MultiCast Address")
                 -- 1 Byte Port (not binary Port8=8; Port1=1)
