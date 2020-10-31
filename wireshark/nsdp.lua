@@ -60,6 +60,7 @@ local t_cmd = {
     [0x000f] = "Active Firmware",
     [0x0013] = "Reboot",
     [0x0400] = "Factory Reset",
+    [0x0c00] = "Port status",
     [0x1000] = "Port Traffic Statistic",
     [0x1400] = "Reset Port Traffic Statistic",
     [0x1800] = "Test Cable",
@@ -79,7 +80,6 @@ local t_cmd = {
     [0x6c00] = "Block Unknown Multicasts",
     [0x7000] = "IGMP Header Validation",
     [0x7400] = "Supported TLVs",
-    [0x0c00] = "Speed/Link Status",
     [0xffff] = "End Request"
 }
 local f_cmd = ProtoField.uint16("nsdp.cmd", "Command", base.HEX, t_cmd)
@@ -98,14 +98,22 @@ local f_firmwarever_len = ProtoField.uint16("nsdp.firmwarever_len", "Firmware ve
 local f_firmwarever = ProtoField.string("nsdp.firmwarever", "Firmware version",FT_STRING)
 local f_firmware2ver = ProtoField.string("nsdp.firmware2ver", "Firmware 2 version",FT_STRING)
 local f_firmwareactive = ProtoField.uint8("nsdp.firmwareactive","Active firmware")
-local speed_flags={
+local t_speed_flags={
     [0x00]="None",
-    [0x01]="10M",
-    [0x03]="100M",
+    [0x01]="10M (half-duplex)",
+    [0x02]="10M",
+    [0x03]="100M (half-duplex)",
+    [0x04]="100M",
     [0x05]="1000M"
 }
-local f_speed = ProtoField.uint8("nsdp.speed","Speed",base.HEX, speed_flags)
-local f_link = ProtoField.uint8("nsdp.link","Link",base.HEX)
+
+local t_flow_control={
+    [0x00]="Disabled",
+    [0x01]="Enabled"
+}
+
+local f_speed = ProtoField.uint8("nsdp.speed","Speed",base.HEX, t_speed_flags)
+local f_flow = ProtoField.uint8("nsdp.flow_control", "Flow control", base.HEX, t_flow_control)
 local f_port=ProtoField.uint8("nsdp.port","Port Number")
 local f_rec=ProtoField.uint64("nsdp.recived","Bytes received")
 local f_send=ProtoField.uint64("nsdp.sent","Bytes sent")
@@ -127,10 +135,10 @@ p_nsdp.experts = {e_error}
 p_nsdp.fields = {f_type,f_status,f_source,f_destination,f_seq,f_cmd,f_password,f_newpassword,f_errcmd,
                  f_bcast_filtering,
                  f_model,f_name,f_macinfo,f_dhcp_enable,f_port,f_rec,f_send,
-                 f_pkt,f_bpkt,f_mpkt,f_crce,f_link,f_vlan_engine,f_ipaddr,
+                 f_pkt,f_bpkt,f_mpkt,f_crce,f_vlan_engine,f_ipaddr,
                  f_netmask,f_gateway,f_firmwarever_len,f_firmwarever,f_len,
                  f_firmware2ver, f_firmwareactive,
-                 f_speed,f_location,f_numports,f_supportedTLVs}
+                 f_speed,f_flow,f_location,f_numports,f_supportedTLVs}
 
 -- nsdp dissector function
 function p_nsdp.dissector (buf, pkt, root)
@@ -224,11 +232,18 @@ function p_nsdp.dissector (buf, pkt, root)
                 else
                     tree=subtree:add(buf(offset,len),"Active Firmware?")
                 end
-            elseif cmd==0x0c00 and len==3 then
-                tree=subtree:add(buf(offset,1),"Speed Statistic")
-                tree:add(f_port,buf(offset,1))
-                tree:add(f_speed,buf(offset+1,1))
-                tree:add(f_link,buf(offset+2,1))
+            elseif cmd==0x0c00 then
+                if len==3 then
+                    local port = buf(offset,1)
+                    local speed = buf(offset+1,1)
+                    local flow = buf(offset+2,1)
+                    tree=subtree:add(buf(offset,1),string.format("Port status: Port:%u, Speed:%s, Flow control:%s", port:uint(), t_speed_flags[speed:uint()], t_flow_control[flow:uint()]))
+                    tree:add(f_port,port)
+                    tree:add(f_speed,speed)
+                    tree:add(f_flow,flow)
+                else
+                    tree=subtree:add(buf(offset,1),"Port status?")
+                end
             elseif cmd==0x1000 and len==0x31 then
                 tree=subtree:add(buf(offset,1),"Port Statistic")
                 tree:add(f_port,buf(offset,1))

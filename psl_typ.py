@@ -309,14 +309,23 @@ class PslTypEnd(PslTypHex):
 ################################################################################
 
 
-class PslTypSpeedStat(PslTyp):
-    "Speed statistic 10/100/1000 per port"
+class PslTypPortStatus(PslTyp):
+    "Speed/flow control status per port"
     SPEED_NONE = 0x00
     SPEED_10MH = 0x01
-    SPEED_10ML = 0x02
+    SPEED_10MF = 0x02
     SPEED_100MH = 0x03
-    SPEED_100ML = 0x04
+    SPEED_100MF = 0x04
     SPEED_1G = 0x05
+
+    speed_to_string = {
+        SPEED_NONE: "Not conn.",
+        SPEED_10MH: "10Mbit/s half",
+        SPEED_10MF: "10Mbit/s",
+        SPEED_100MH: "100Mbit/s half",
+        SPEED_100MF: "100Mbit/s",
+        SPEED_1G: "1Gbit/s"
+        }
 
     def unpack_py(self, value):
         # Python 3 uses an array of bytes, Python 2 uses a string
@@ -324,13 +333,13 @@ class PslTypSpeedStat(PslTyp):
             rtn = {
                 "port": struct.unpack(">b", value[0])[0],
                 "speed": struct.unpack(">b", value[1])[0],
-                "rest": binascii.hexlify(value[2:]),
+                "flow": struct.unpack(">b", value[2])[0]
             }
         else:
             rtn = {
                 "port": value[0],
                 "speed": value[1],
-                "rest": binascii.hexlify(value[2:]).decode(),
+                "flow": value[2]
             }
         return rtn
 
@@ -338,23 +347,16 @@ class PslTypSpeedStat(PslTyp):
         return False
 
     def print_result(self, value):
-        print("%-30s%4s%15s%10s" % ("Speed Statistic:", "Port",
-                                    "Speed", "FIXME"))
+        print("%-30s%4s%20s%15s" % ("Status:", "Port",
+                                    "Speed", "Flow control"))
         for row in value:
-            speed = row["speed"]
-            if speed == PslTypSpeedStat.SPEED_NONE:
-                speed = "Not conn."
-            if speed == PslTypSpeedStat.SPEED_10MH:
-                speed = "10 Mbit/s H"
-            if speed == PslTypSpeedStat.SPEED_10ML:
-                speed = "10 Mbit/s L"
-            if speed == PslTypSpeedStat.SPEED_100MH:
-                speed = "100 Mbit/s H"
-            if speed == PslTypSpeedStat.SPEED_100ML:
-                speed = "100 Mbit/s L"
-            if speed == PslTypSpeedStat.SPEED_1G:
-                speed = "1 Gbit/s"
-            print("%-30s%4d%15s%10s" % ("", row["port"], speed, row["rest"]))
+            speed = self.speed_to_string[row["speed"]]
+
+            flow = "Enabled"
+            if row["flow"] == 0:
+                flow = "Disabled"
+
+            print("%-30s%4d%20s%15s" % ("", row["port"], speed, flow))
 
     def unpack_cmd(self, value):
         return self.unpack_py(value)

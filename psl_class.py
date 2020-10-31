@@ -78,7 +78,7 @@ class ProSafeLinux:
     CMD_FIRMWAREACTIVE = psl_typ.PslTypHex(0x000f, "firmware_active")
     CMD_REBOOT = psl_typ.PslTypAction(0x0013, "reboot")
     CMD_FACTORY_RESET = psl_typ.PslTypAction(0x0400, "factory_reset")
-    CMD_SPEED_STAT = psl_typ.PslTypSpeedStat(0x0c00, "speed_stat")
+    CMD_PORT_STATUS = psl_typ.PslTypPortStatus(0x0c00, "port_status")
     CMD_PORT_STAT = psl_typ.PslTypPortStat(0x1000, "port_stat")
     CMD_RESET_PORT_STAT = psl_typ.PslTypAction(0x1400, "reset_port_stat")
     CMD_TEST_CABLE = psl_typ.PslTypHexNoQuery(0x1800, "test_cable")
