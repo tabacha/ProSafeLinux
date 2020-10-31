@@ -83,6 +83,8 @@ local t_cmd = {
     [0xffff] = "End Request"
 }
 local f_cmd = ProtoField.uint16("nsdp.cmd", "Command", base.HEX, t_cmd)
+local f_fixme0002 = ProtoField.uint16("nsdp.fixme0002", "Fix me 0x0002", base.HEX)
+local f_fixme000C = ProtoField.uint8("nsdp.fixme000C", "Fix me 0x000C", base.HEX)
 local f_password = ProtoField.string("nsdp.password", "Password", FT_STRING)
 local f_newpassword = ProtoField.string("nsdp.newpassword", "New password", FT_STRING)
 local f_errcmd = ProtoField.uint16("nsdp.errcmd", "Failed command", base.HEX, t_cmd)
@@ -133,6 +135,7 @@ p_nsdp.experts = {e_error}
 
 
 p_nsdp.fields = {f_type,f_status,f_source,f_destination,f_seq,f_cmd,f_password,f_newpassword,f_errcmd,
+                 f_fixme0002, f_fixme000C,
                  f_bcast_filtering,
                  f_model,f_name,f_macinfo,f_dhcp_enable,f_port,f_rec,f_send,
                  f_pkt,f_bpkt,f_mpkt,f_crce,f_vlan_engine,f_ipaddr,
@@ -191,6 +194,12 @@ function p_nsdp.dissector (buf, pkt, root)
             offset = offset + 4
             if cmd == 0x0001 then
                 tree=subtree:add(f_model,buf(offset,len))
+            elseif cmd == 0x0002 then
+                if len==0x02 then
+                    tree=subtree:add(f_fixme0002, buf(offset,len))
+                else
+                    tree=subtree:add(buf(offset,len), "Fix me 0002")
+                end
             elseif cmd == 0x0003 then
                 tree=subtree:add(f_name,buf(offset,len))
             elseif cmd == 0x0004 and len==6 then
@@ -222,6 +231,12 @@ function p_nsdp.dissector (buf, pkt, root)
                 -- CMD: 02 DHCP do a new query
             elseif cmd == 0x000b  then
                 tree=subtree:add(buf(offset,len),"Query DHCP")
+            elseif cmd == 0x000c then
+                if len==0x01 then
+                    tree=subtree:add(f_fixme000C, buf(offset,len))
+                else
+                    tree=subtree:add(buf(offset,len), "Fix me 000c")
+                end
             elseif cmd == 0x000d then
                 tree=subtree:add(f_firmwarever,buf(offset,len))
             elseif cmd == 0x000e then
