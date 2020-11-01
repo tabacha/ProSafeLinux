@@ -80,6 +80,7 @@ local t_cmd = {
     [0x6c00] = "Block Unknown Multicasts",
     [0x7000] = "IGMP Header Validation",
     [0x7400] = "Supported TLVs",
+    [0x9000] = "Loop detection",
     [0x9400] = "Port Admin Status",
     [0xffff] = "End Request"
 }
@@ -165,6 +166,10 @@ local port_admin_speed={
     [0x05]="100M (full-duplex)"
 }
 local f_port_admin_speed = ProtoField.uint8("nsdp.port_admin_speed", "Speed", base.HEX, port_admin_speed)
+local f_loop_detection = ProtoField.uint8("nsdp.loop_detection", "Loop detection", base.HEX, {
+    [0x00]="Disabled",
+    [0x01]="Enabled"
+})
 
 --local f_debug = ProtoField.uint8("nsdp.debug", "Debug")
 p_nsdp.experts = {e_error}
@@ -178,7 +183,7 @@ p_nsdp.fields = {f_type,f_status,f_source,f_destination,f_seq,f_cmd,f_password,f
                  f_pkt,f_bpkt,f_mpkt,f_crce,f_vlan_engine,f_ipaddr,
                  f_netmask,f_gateway,f_firmwarever_len,f_firmwarever,f_len,
                  f_firmware2ver, f_firmwareactive,
-                 f_speed,f_flow,f_location,f_numports,f_supportedTLVs}
+                 f_speed,f_flow,f_location,f_numports,f_supportedTLVs,f_loop_detection}
 
 -- nsdp dissector function
 function p_nsdp.dissector (buf, pkt, root)
@@ -412,6 +417,12 @@ function p_nsdp.dissector (buf, pkt, root)
                     tree=subtree:add(f_supportedTLVs, buf(offset,len))
                 else
                     tree=subtree:add(buf(offset,len), "Supported TLVs?")
+                end
+            elseif cmd == 0x9000 then
+                if len==0x00 then
+                  tree=subtree:add(buf(offset,len), "Loop detection?")
+                else
+                  tree=subtree:add(f_loop_detection, buf(offset,len))
                 end
             elseif cmd==0x9400 then
                 if len==0x03 then
