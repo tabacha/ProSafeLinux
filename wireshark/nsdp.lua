@@ -67,6 +67,7 @@ local t_cmd = {
     [0x2000] = "VLAN Engine",
     [0x2400] = "VLAN-ID",
     [0x2800] = "802VLAN-ID",
+    [0x2c00] = "Delete VLAN",
     [0x3000] = "vlan_pvid",
     [0x3400] = "QoS",
     [0x3800] = "QoS port priority",
@@ -372,6 +373,8 @@ function p_nsdp.dissector (buf, pkt, root)
                 tree:add(f_vlan, vlan)
                 tree:add(f_802_1q_ports, ports)
                 tree:add(f_802_1q_tagged, tagged)
+            elseif cmd==0x2c00 then
+                tree=subtree:add(f_vlan, buf(offset,2))
             elseif cmd==0x3000 and len==0x03 then
                 local port=buf(offset,1)
                 local vlan=buf(offset+1,2)

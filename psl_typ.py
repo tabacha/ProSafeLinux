@@ -752,6 +752,34 @@ class PslTypVlanPVID(PslTyp):
 
     def get_set_help(self):
         return "an untagged package on PORT will get this VLAN_ID"
+
+
+################################################################################
+
+class PslTypVlan(PslTyp):
+    "Vlan"
+    def unpack_py(self, value):
+        return struct.unpack(">h", value)[0]
+
+    def pack_py(self, value):
+        rtn = struct.pack(">h", int(value))
+        return rtn
+
+    def pack_cmd(self, value):
+        return self.pack_py(value)
+
+    def unpack_cmd(self, value):
+        return self.unpack_py(value)
+
+    def is_queryable(self):
+        return False
+
+    def is_setable(self):
+        return True
+
+    def get_num_args(self):
+        return 1
+
 ################################################################################
 
 
