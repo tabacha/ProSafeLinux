@@ -159,6 +159,9 @@ local t_rate_limit={
 local f_rate_limit=ProtoField.uint8("nsdp.rate_limit", "Rate", base.HEX, t_rate_limit)
 local f_port_mirror_src=ProtoField.uint8("nsdp.port_mirror_src", "Source port(s)", base.HEX)
 local f_port_mirror_dest=ProtoField.uint8("nsdp.port_mirror_dest", "Destination port", base.HEX)
+local f_vlan = ProtoField.uint16("nsdp.vlan", "VLAN")
+local f_802_1q_ports = ProtoField.uint8("nsdp.802_1q_ports", "802.1q ports", base.HEX)
+local f_802_1q_tagged = ProtoField.uint8("nsdp.802_1q_tagged", "802.1q tagged", base.HEX)
 local port_admin_speed={
     [0x00]="Disabled",
     [0x01]="Auto",
@@ -180,6 +183,7 @@ p_nsdp.experts = {e_error}
 p_nsdp.fields = {f_type,f_status,f_source,f_destination,f_seq,f_cmd,f_password,f_newpassword,f_errcmd,
                  f_fixme0002, f_fixme000C,
                  f_qos_mode, f_qos_port_prio,
+                 f_vlan, f_802_1q_ports, f_802_1q_tagged,
                  f_bcast_filtering,f_rate_limit,f_port_admin_speed,
                  f_port_mirror_src, f_port_mirror_dest,
                  f_model,f_name,f_macinfo,f_dhcp_enable,f_port,f_rec,f_send,
@@ -361,14 +365,19 @@ function p_nsdp.dissector (buf, pkt, root)
             elseif cmd==0x2000 and len==0x01 then
                 tree=subtree:add(f_vlan_engine,buf(offset,len))
             elseif cmd==0x2800 and len==0x04 then
-                tree=subtree:add(buf(offset,len),"FIXME")
-                -- 2 Bytes: VLAN ID (0x0ffe is all Ports
-                -- 1 Byte Port Hex 01=Port 8 02=Port 7 04=Port 6 08=Port 5 10=Port Port 4 20=Port 3 40=Port 2 80=Port 1
-                -- 1 Byte  Tagged Ports
+                local vlan=buf(offset,2)
+                local ports=buf(offset+2,1)
+                local tagged=buf(offset+3,1)
+                tree=subtree:add(buf(offset,len), string.format("802.1q status: VLAN:%u, Ports:%s, Tagged:%s", vlan:uint(), port_list(ports:uint()), port_list(tagged:uint())))
+                tree:add(f_vlan, vlan)
+                tree:add(f_802_1q_ports, ports)
+                tree:add(f_802_1q_tagged, tagged)
             elseif cmd==0x3000 and len==0x03 then
-                tree=subtree:add(buf(offset,len),"FIXME")
-                -- 1 Byte Port (not binary Port8=8; Port1=1)
-                -- 2 Bytes VLAN ID Port PVID
+                local port=buf(offset,1)
+                local vlan=buf(offset+1,2)
+                tree=subtree:add(buf(offset,len), string.format("PVID: Port:%d, VLAN:%u", port:uint(), vlan:uint()))
+                tree:add(f_port, port)
+                tree:add(f_vlan, vlan)
             elseif cmd==0x3400 then
                 if len==0x00 then
                     tree=subtree:add(buf(offset,len),"QoS mode?")
