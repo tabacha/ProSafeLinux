@@ -365,6 +365,91 @@ class PslTypPortStatus(PslTyp):
 ################################################################################
 
 
+class PslTypAdminPortStatus(PslTyp):
+    "Max speed/flow control per port"
+    SPEED_DISABLE = 0x00
+    SPEED_AUTO = 0x01
+    SPEED_10MH = 0x02
+    SPEED_10MF = 0x03
+    SPEED_100MH = 0x04
+    SPEED_100MF = 0x05
+
+    speed_to_string = {
+        SPEED_DISABLE: "Disable",
+        SPEED_AUTO: "Auto",
+        SPEED_10MH: "10M half",
+        SPEED_10MF: "10M",
+        SPEED_100MH: "100M half",
+        SPEED_100MF: "100M",
+        }
+
+    string_to_speed = {
+        "DISABLE":SPEED_DISABLE,
+        "AUTO":SPEED_AUTO,
+        "10MH":SPEED_10MH,
+        "10M":SPEED_10MF,
+        "100MH":SPEED_100MH,
+        "100M":SPEED_100MF,
+    }
+
+    def unpack_py(self, value):
+        # Python 3 uses an array of bytes, Python 2 uses a string
+        if type(value) is str:
+            rtn = {
+                "port": struct.unpack(">b", value[0])[0],
+                "speed": struct.unpack(">b", value[1])[0],
+                "flow": struct.unpack(">b", value[2])[0]
+            }
+        else:
+            rtn = {
+                "port": value[0],
+                "speed": value[1],
+                "flow": value[2]
+            }
+
+        return rtn
+
+    def pack_py(self, value):
+        port = int(value[0])
+        speed = self.string_to_speed[value[1].upper()]
+        flow = (value[2].lower() == "on")
+        rtn = struct.pack(">bbb", port, speed, flow)
+        return rtn
+
+    def unpack_cmd(self, value):
+        return self.unpack_py(value)
+
+    def print_result(self, value):
+        print("%-30s%4s%20s%15s" % ("Status:", "Port",
+                                    "Speed", "Flow control"))
+        for row in value:
+            speed = self.speed_to_string[row["speed"]]
+            flow = "On"
+            if row["flow"] == 0:
+                flow = "Off"
+
+            print("%-30s%4d%20s%15s" % ("", row["port"], speed, flow))
+
+    def is_queryable(self):
+        return True
+
+    def is_setable(self):
+        return True
+
+    def get_num_args(self):
+        return 3
+
+    def get_metavar(self):
+        return ("PORT", "SPEED", "FLOW")
+
+    def get_set_help(self):
+        out = "SPEED can be: NONE,AUTO,10MH,10M,100MH,100M, FLOW can be: ON, OFF"
+        return out
+
+
+################################################################################
+
+
 class PslTypPortStat(PslTyp):
     "how many bytes are received/send on each port"
     def unpack_py(self, val):

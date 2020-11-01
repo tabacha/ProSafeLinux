@@ -80,6 +80,7 @@ local t_cmd = {
     [0x6c00] = "Block Unknown Multicasts",
     [0x7000] = "IGMP Header Validation",
     [0x7400] = "Supported TLVs",
+    [0x9400] = "Port Admin Status",
     [0xffff] = "End Request"
 }
 local f_cmd = ProtoField.uint16("nsdp.cmd", "Command", base.HEX, t_cmd)
@@ -155,6 +156,15 @@ local t_rate_limit={
     [0x0b]="512 Mbits/s",
 }
 local f_rate_limit=ProtoField.uint8("nsdp.rate_limit", "Rate", base.HEX, t_rate_limit)
+local port_admin_speed={
+    [0x00]="Disabled",
+    [0x01]="Auto",
+    [0x02]="10M (half-duplex)",
+    [0x03]="10M (full-duplex)",
+    [0x04]="100M (half-duplex)",
+    [0x05]="100M (full-duplex)"
+}
+local f_port_admin_speed = ProtoField.uint8("nsdp.port_admin_speed", "Speed", base.HEX, port_admin_speed)
 
 --local f_debug = ProtoField.uint8("nsdp.debug", "Debug")
 p_nsdp.experts = {e_error}
@@ -163,7 +173,7 @@ p_nsdp.experts = {e_error}
 p_nsdp.fields = {f_type,f_status,f_source,f_destination,f_seq,f_cmd,f_password,f_newpassword,f_errcmd,
                  f_fixme0002, f_fixme000C,
                  f_qos_mode, f_qos_port_prio,
-                 f_bcast_filtering,f_rate_limit,
+                 f_bcast_filtering,f_rate_limit,f_port_admin_speed,
                  f_model,f_name,f_macinfo,f_dhcp_enable,f_port,f_rec,f_send,
                  f_pkt,f_bpkt,f_mpkt,f_crce,f_vlan_engine,f_ipaddr,
                  f_netmask,f_gateway,f_firmwarever_len,f_firmwarever,f_len,
@@ -402,6 +412,18 @@ function p_nsdp.dissector (buf, pkt, root)
                     tree=subtree:add(f_supportedTLVs, buf(offset,len))
                 else
                     tree=subtree:add(buf(offset,len), "Supported TLVs?")
+                end
+            elseif cmd==0x9400 then
+                if len==0x03 then
+                    local port=buf(offset,1)
+                    local speed=buf(offset+1,1)
+                    local flow=buf(offset+2,1)
+                    tree=subtree:add(buf(offset,len), string.format("Port admin status: Port:%d, Speed:%s, Flow control:%s", port:uint(), port_admin_speed[speed:uint()], t_flow_control[flow:uint()]))
+                    tree:add(f_port, port)
+                    tree:add(f_port_admin_speed, speed)
+                    tree:add(f_flow, flow)
+                else
+                    tree=subtree:add(buf(offset,len), "Port admin status?")
                 end
             else
                 local name=t_cmd[cmd]

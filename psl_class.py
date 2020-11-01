@@ -104,6 +104,7 @@ class ProSafeLinux:
     CMD_IGMP_HEADER_VALIDATION = psl_typ.PslTypBoolean(0x7000,
         "igmp_header_validation")
     CMD_SUPPORTED_TLVS = psl_typ.PslTypHex(0x7400, "supported_tlvs")
+    CMD_PORT_ADMIN = psl_typ.PslTypAdminPortStatus(0x9400, "port_admin")
     CMD_END = psl_typ.PslTypEnd(0xffff, "END")
 
     CTYPE_QUERY_REQUEST = 0x0101
