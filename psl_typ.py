@@ -954,10 +954,10 @@ class PslTypPortMirror(PslTyp):
     def pack_py(self, value):
         if int(value[0]) == 0:
             return struct.pack(">bbb", 0, 0, 0)
-        dst_ports = 0
-        for dport in value[1].split(","):
-            dst_ports += self.BIN_PORTS[int(dport)]
-        return struct.pack(">bbb", int(value[0]), 0, dst_ports)
+        src_ports = 0
+        for sport in value[1].split(","):
+            src_ports += self.BIN_PORTS[int(sport)]
+        return struct.pack(">bbb", int(value[0]), 0, src_ports)
         
     def unpack_cmd(self, value):
         return self.unpack_py(value)

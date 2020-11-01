@@ -157,6 +157,8 @@ local t_rate_limit={
     [0x0b]="512 Mbits/s",
 }
 local f_rate_limit=ProtoField.uint8("nsdp.rate_limit", "Rate", base.HEX, t_rate_limit)
+local f_port_mirror_src=ProtoField.uint8("nsdp.port_mirror_src", "Source port(s)", base.HEX)
+local f_port_mirror_dest=ProtoField.uint8("nsdp.port_mirror_dest", "Destination port", base.HEX)
 local port_admin_speed={
     [0x00]="Disabled",
     [0x01]="Auto",
@@ -179,11 +181,43 @@ p_nsdp.fields = {f_type,f_status,f_source,f_destination,f_seq,f_cmd,f_password,f
                  f_fixme0002, f_fixme000C,
                  f_qos_mode, f_qos_port_prio,
                  f_bcast_filtering,f_rate_limit,f_port_admin_speed,
+                 f_port_mirror_src, f_port_mirror_dest,
                  f_model,f_name,f_macinfo,f_dhcp_enable,f_port,f_rec,f_send,
                  f_pkt,f_bpkt,f_mpkt,f_crce,f_vlan_engine,f_ipaddr,
                  f_netmask,f_gateway,f_firmwarever_len,f_firmwarever,f_len,
                  f_firmware2ver, f_firmwareactive,
                  f_speed,f_flow,f_location,f_numports,f_supportedTLVs,f_loop_detection}
+
+-- Build a condensed string of port ranges from a bitmap
+function port_list(ports)
+    local list = {}
+    local lastPort = -1
+    local firstPort = -1
+    for i=1,9 do
+        if bit32.band(ports,0x80) ~= 0 then
+            if lastPort ~= (i - 1) then
+                list[#list+1] = ","
+                list[#list+1] = i
+                firstPort = i
+            end
+            lastPort = i
+        elseif lastPort ~= -1 then
+            if firstPort ~= lastPort then
+                list[#list+1] = "-"
+                list[#list+1] = tostring(lastPort)
+            end
+            firstPort = -1
+            lastPort = -1
+        end
+        ports = bit32.lshift(ports,1)
+    end
+
+    if #list == 0 then
+        return "None"
+    else
+        return table.concat(list,"",2)
+    end
+end
 
 -- nsdp dissector function
 function p_nsdp.dissector (buf, pkt, root)
@@ -389,11 +423,11 @@ function p_nsdp.dissector (buf, pkt, root)
                     tree:add(f_rate_limit, rate)
                 end
             elseif cmd==0x5c00 and len==0x03 then
-                tree=subtree:add(buf(offset,len),"Port Mirroring")
-                    -- 00 00 00 = Disabled
-                    -- 1 Byte destination port
-                    -- 1 Byte 00
-                    -- 1 Byte source ports (binary port shema)
+                local dest=buf(offset,1)
+                local src=buf(offset+2,1)
+                tree=subtree:add(buf(offset,len), string.format("Port mirroring: Source port(s):%s, Dest port:%u", port_list(src:uint()), dest:uint()))
+                tree:add(f_port_mirror_src, src)
+                tree:add(f_port_mirror_dest, dest)
             elseif cmd==0x6000 then
                 if len==0x01 then
                     tree=subtree:add(f_numports, buf(offset,len))
