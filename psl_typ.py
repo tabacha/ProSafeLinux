@@ -584,7 +584,8 @@ class PslTypBandwidth(PslTyp):
 
 class PslTypVlanId(PslTyp):
     "Vlan ports are binary coded"
-    BIN_PORTS = {1: 0x80,
+    BIN_PORTS = {0: 0x00,
+                 1: 0x80,
                  2: 0x40,
                  3: 0x20,
                  4: 0x10,
@@ -686,16 +687,16 @@ class PslTypVlan802Id(PslTypVlanId):
         return ("VLAN_ID", "TAGGED_PORTS", "UNTAGGED_PORTS")
 
     def print_result(self, value):
-        print("%-30s%7s %14s %s" % (self.get_name().capitalize(), "VLAN_ID",
+        print("%-30s%7s %18s %18s" % (self.get_name().capitalize(), "VLAN_ID",
                                       "Tagged-Ports","Untagged-Ports"))
         if type(value) is list:
             for row in value:
-                print("%-30s%7d %14s %s" % ("",
+                print("%-30s%7d %18s %18s" % ("",
                         int(row["vlan_id"]),
                         ",".join([str(x) for x in row["tagged_ports"]]),
                         ",".join([str(x) for x in row["untagged_ports"]])))
         else:
-            print("%-30s%7d %14s %s" % ("",
+            print("%-30s%7d %18s %18s" % ("",
                         int(value["vlan_id"]),
                         ",".join([str(x) for x in value["tagged_ports"]]),
                         ",".join([str(x) for x in value["untagged_ports"]])))
