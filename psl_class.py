@@ -69,7 +69,7 @@ class ProSafeLinux:
     CMD_IP = psl_typ.PslTypIpv4(0x0006, "ip")
     CMD_NETMASK = psl_typ.PslTypIpv4(0x0007, "netmask")
     CMD_GATEWAY = psl_typ.PslTypIpv4(0x0008, "gateway")
-    CMD_NEW_PASSWORD = psl_typ.PslTypPassword(0x0009, "new_password", True)
+    CMD_NEW_PASSWORD = psl_typ.PslTypHexNoQuery(0x0009, "new_password")
     CMD_PASSWORD = psl_typ.PslTypPassword(0x000a, "password", False)
     CMD_DHCP = psl_typ.PslTypDHCP(0x000b, "dhcp")
     CMD_FIXMEC = psl_typ.PslTypHex(0x000c, "fixmeC")
@@ -77,6 +77,9 @@ class ProSafeLinux:
     CMD_FIRMWARE2V = psl_typ.PslTypStringQueryOnly(0x000e, "firmware2ver")
     CMD_FIRMWAREACTIVE = psl_typ.PslTypHex(0x000f, "firmware_active")
     CMD_REBOOT = psl_typ.PslTypAction(0x0013, "reboot")
+    CMD_ENHANCEDENCRYPTION = psl_typ.PslTypHex(0x0014, "enhanced_encryption")
+    CMD_PASSWORD_NONCE = psl_typ.PslTypHexNoQuery(0x0017, "password_nonce")
+    CMD_PASSWORD_HASH = psl_typ.PslTypHexNoQuery(0x001a, "password_hash")
     CMD_FACTORY_RESET = psl_typ.PslTypAction(0x0400, "factory_reset")
     CMD_PORT_STATUS = psl_typ.PslTypPortStatus(0x0c00, "port_status")
     CMD_PORT_STAT = psl_typ.PslTypPortStat(0x1000, "port_stat")
@@ -113,6 +116,11 @@ class ProSafeLinux:
 #    CTYPE_QUERY_RESPONSE = 0x0102
     CTYPE_TRANSMIT_REQUEST = 0x103
 #    CTYPE_TRANSMIT_RESPONSE = 0x104
+
+    ENCTYPE_NONE   = 0x00
+    ENCTYPE_SIMPLE = 0x01
+    ENCTYPE_HASH32 = 0x08
+    ENCTYPE_HASH64 = 0x10
 
     RECPORT = 63321
     SENDPORT = 63322
@@ -398,27 +406,24 @@ class ProSafeLinux:
         transmit_counter = 0
         ipadr = self.ip_from_mac(mac)
         data = b''
-        firmwarevers = self.query(self.get_cmd_by_name("firmwarever"), mac)
-        firmwarevers = list(firmwarevers.values())[0].translate({ord("."):None})
-        # New firmwares put capital leter V in front ...
-        if "V" == firmwarevers[0]:
-            firmwarevers = firmwarevers[1:]
 
         if type(cmddict).__name__ == 'dict':
-            if self.CMD_PASSWORD in cmddict:
-                if int(firmwarevers) > 10004:
-                    print("using password hack on firmware: %s" % 
-                            (firmwarevers))
-                    _hashkey = "NtgrSmartSwitchRock"
-                    _plainpass = cmddict[self.CMD_PASSWORD]
-                    _password = ""
-                    for i in range(len(_plainpass)):
-                        _password += chr(ord(_plainpass[i]) ^ ord(_hashkey[i]))
-                else:
-                    _password = cmddict[self.CMD_PASSWORD]
-                data += self.addudp(self.CMD_PASSWORD, _password)
             for cmd, pdata in list(cmddict.items()):
-                if cmd != self.CMD_PASSWORD:
+                if cmd == self.CMD_PASSWORD:
+                    result = self.add_password(mac, cmddict[cmd])
+
+                    if type(result).__name__ == 'dict':
+                        return result
+
+                    data += result;
+                elif cmd == self.CMD_NEW_PASSWORD:
+                    result = self.add_new_password(mac, cmddict[cmd])
+
+                    if type(result).__name__ == 'dict':
+                        return result
+
+                    data += result;
+                else:
                     data += self.addudp(cmd, pdata)
         elif type(cmddict).__name__ == 'string':
             print('got string!')
@@ -437,6 +442,163 @@ class ProSafeLinux:
         if message == None:
             return { 'error' : 'no result received within 3 seconds' }
         return self.parse_data(message)
+
+    def add_password(self, mac, password):
+        "Add password to UDP data sent to the switch"
+
+        data = None;
+
+        # Find out what the switch supports
+        enc = self.query(self.CMD_ENHANCEDENCRYPTION, mac)
+
+        if enc == False:
+            enc = self.ENCTYPE_NONE
+        else:
+            enc = int(enc[self.CMD_ENHANCEDENCRYPTION], 16)
+
+        if enc == self.ENCTYPE_NONE:
+            # No encryption - just plaintext
+            data = self.addudp(self.CMD_PASSWORD, password)
+        elif enc == self.ENCTYPE_SIMPLE:
+            # Simple fixed XOR
+            _hashkey = "NtgrSmartSwitchRock"
+            _hashpass = ""
+            for i in range(len(password)):
+                _hashpass += chr(ord(password[i]) ^ ord(_hashkey[i]))
+            data = self.addudp(self.CMD_PASSWORD, _hashpass)
+        elif enc == self.ENCTYPE_HASH32 or enc == self.ENCTYPE_HASH64:
+            nonce = self.query(self.CMD_PASSWORD_NONCE, mac)
+            if nonce == False:
+                return { 'error' : 'Could not get nonce from switch' }
+
+            # Jump through hoops to convert a hex string to an indexable
+            # group of bytes that works on Python2 and Python3
+            nonce = bytearray(binascii.unhexlify(nonce[self.CMD_PASSWORD_NONCE]));
+
+            _mac = mac
+            if len(_mac) > 6:
+                _mac = bytearray(pack_mac(_mac))
+
+            _hashpass = [_mac[1] ^ _mac[5],
+                         _mac[0] ^ _mac[4],
+                         _mac[2] ^ _mac[3],
+                         _mac[4] ^ _mac[5]]
+
+            _hashpass[0] ^= nonce[3] ^ nonce[2]
+            _hashpass[1] ^= nonce[3] ^ nonce[1]
+            _hashpass[2] ^= nonce[0] ^ nonce[2]
+            _hashpass[3] ^= nonce[0] ^ nonce[1]
+
+            if enc == self.ENCTYPE_HASH32:
+                for i in range(min(len(password),16)):
+                    if (i < 4) or (i > 7):
+                        idx = ((i + 3) % 4)
+                        idx = ((i + 3) % 4)
+                        idx ^= (idx // 2)
+                    else:
+                        idx = 3 - (i % 4)
+
+                    _hashpass[idx] ^= ord(password[i])
+
+                _hashpass = struct.pack(">BBBB", *_hashpass)
+                data = self.addudp(self.CMD_HASH, binascii.hexlify(_hashpass))
+            else:
+                _hashpass += _hashpass;
+
+                _hashpass[6] ^= ord(password[0])
+
+                for i in range(len(password)):
+                    _hashpass[i // 3] ^= ord(password[i])
+
+                    if (i < 6) and (i % 2):
+                        _hashpass[7] ^= ord(password[i])
+
+                _hashpass = struct.pack(">BBBBBBBB", *_hashpass)
+                data = self.addudp(self.CMD_PASSWORD_HASH, binascii.hexlify(_hashpass))
+        else:
+            return { 'error' : 'Unknown encryption type 0x%02x' % enc }
+
+        return data
+
+    def add_new_password(self, mac, password):
+        "Add new password to UDP data sent to the switch"
+
+        data = None;
+
+        # Find out what the switch supports
+        enc = self.query(self.CMD_ENHANCEDENCRYPTION, mac)
+
+        if enc == False:
+            enc = self.ENCTYPE_NONE
+        else:
+            enc = int(enc[self.CMD_ENHANCEDENCRYPTION], 16)
+
+        if enc == self.ENCTYPE_NONE or enc == self.ENCTYPE_SIMPLE:
+            # No encryption - just plaintext
+            data = self.addudp(self.CMD_PASSWORD, password)
+        elif enc == self.ENCTYPE_SIMPLE:
+            # Simple fixed XOR
+            _hashkey = "NtgrSmartSwitchRock"
+            _hashpass = ""
+            for i in range(len(password)):
+                _hashpass += chr(ord(password[i]) ^ ord(_hashkey[i]))
+            data = self.addudp(self.CMD_PASSWORD, _hashpass)
+        elif enc == self.ENCTYPE_HASH32:
+            return { 'error' : 'Unsupported encryption type 0x%02x' % enc }
+        elif enc == self.ENCTYPE_HASH64:
+            nonce = self.query(self.CMD_PASSWORD_NONCE, mac)
+            if nonce == False:
+                return { 'error' : 'Could not get nonce from switch' }
+
+            # Jump through hoops to convert a hex string to an indexable
+            # group of bytes that works on Python2 and Python3
+            nonce = bytearray(binascii.unhexlify(nonce[self.CMD_PASSWORD_NONCE]));
+
+            _mac = mac
+            if len(_mac) > 6:
+                _mac = bytearray(pack_mac(_mac))
+
+            _hashpass = [_mac[1] ^ _mac[5],
+                         _mac[0] ^ _mac[4],
+                         _mac[2] ^ _mac[3],
+                         _mac[4] ^ _mac[5]]
+
+            _hashpass[0] ^= nonce[3] ^ nonce[2]
+            _hashpass[1] ^= nonce[3] ^ nonce[1]
+            _hashpass[2] ^= nonce[0] ^ nonce[2]
+            _hashpass[3] ^= nonce[0] ^ nonce[1]
+
+            if enc == self.ENCTYPE_HASH32:
+                for i in range(min(len(password),16)):
+                    if (i < 4) or (i > 7):
+                        idx = ((i + 3) % 4)
+                        idx = ((i + 3) % 4)
+                        idx ^= (idx // 2)
+                    else:
+                        idx = 3 - (i % 4)
+
+                    _hashpass[idx] ^= ord(password[i])
+
+                _hashpass = struct.pack(">BBBB", *_hashpass)
+                data = self.addudp(self.CMD_HASH, binascii.hexlify(_hashpass))
+            else:
+
+                _hashpass += _hashpass;
+
+                _hashpass[6] ^= ord(password[0])
+
+                for i in range(len(password)):
+                    _hashpass[i // 3] ^= ord(password[i])
+
+                    if (i < 6) and (i % 2):
+                        _hashpass[7] ^= ord(password[i])
+
+                _hashpass = struct.pack(">BBBBBBBB", *_hashpass)
+                data = self.addudp(self.CMD_PASSWORD_HASH, binascii.hexlify(_hashpass))
+        else:
+            return { 'error' : 'Unknown encryption type 0x%02x' % enc }
+
+        return data
 
     def passwd_exploit(self, mac, new):
         "exploit in current (2012) firmware version, set a new password"

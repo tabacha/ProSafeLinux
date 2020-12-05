@@ -59,6 +59,10 @@ local t_cmd = {
     [0x000e] = "Firmware 2 Version",
     [0x000f] = "Active Firmware",
     [0x0013] = "Reboot",
+    [0x0014] = "Enhanced encryption",
+    [0x0017] = "Password nonce",
+    [0x0018] = "32-bit password hash",
+    [0x001a] = "64-bit password hash",
     [0x0400] = "Factory Reset",
     [0x0c00] = "Port status",
     [0x1000] = "Port Traffic Statistic",
@@ -89,6 +93,10 @@ local f_cmd = ProtoField.uint16("nsdp.cmd", "Command", base.HEX, t_cmd)
 local f_fixme0002 = ProtoField.uint16("nsdp.fixme0002", "Fix me 0x0002", base.HEX)
 local f_fixme000C = ProtoField.uint8("nsdp.fixme000C", "Fix me 0x000C", base.HEX)
 local f_password = ProtoField.string("nsdp.password", "Password", FT_STRING)
+local f_enhancedEncryption = ProtoField.uint32("nsdp.enhancedencryption", "Enhanced encryption", base.HEX)
+local f_passwordNonce = ProtoField.uint32("nsdp.passwordnonce", "Password nonce", base.HEX)
+local f_passhash32 = ProtoField.uint32("nsdp.passwordhash32", "32-bit password hash", base.HEX)
+local f_passhash64 = ProtoField.uint64("nsdp.passwordhash64", "64-bit password hash", base.HEX)
 local f_newpassword = ProtoField.string("nsdp.newpassword", "New password", FT_STRING)
 local f_errcmd = ProtoField.uint16("nsdp.errcmd", "Failed command", base.HEX, t_cmd)
 local f_model =ProtoField.string("nsdp.model","Model", FT_STRING)
@@ -182,6 +190,7 @@ p_nsdp.experts = {e_error}
 
 
 p_nsdp.fields = {f_type,f_status,f_source,f_destination,f_seq,f_cmd,f_password,f_newpassword,f_errcmd,
+                 f_enhancedEncryption,f_passwordNonce,f_passhash32, f_passhash64,
                  f_fixme0002, f_fixme000C,
                  f_qos_mode, f_qos_port_prio,
                  f_vlan, f_802_1q_ports, f_802_1q_tagged,
@@ -328,6 +337,22 @@ function p_nsdp.dissector (buf, pkt, root)
                 else
                     tree=subtree:add(buf(offset,len),"Active Firmware?")
                 end
+            elseif cmd == 0x0014 then
+                if len == 4 then
+                    tree=subtree:add(f_enhancedEncryption, buf(offset,len))
+                else
+                    tree=subtree:add(buf(offset,len),"Enhanced encryption?")
+                end
+            elseif cmd == 0x0017 then
+                if len == 4 then
+                    tree=subtree:add(f_passwordNonce, buf(offset,4))
+                else
+                    tree=subtree:add(buf(offset,len),"Password nonce?")
+                end
+            elseif cmd == 0x0018 and len==4 then
+                    tree=subtree:add(f_passhash32, buf(offset,4))
+            elseif cmd == 0x001a and len==8 then
+                tree=subtree:add(f_passhash64, buf(offset,8))
             elseif cmd==0x0c00 then
                 if len==3 then
                     local port = buf(offset,1)
