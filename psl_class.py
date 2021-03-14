@@ -249,7 +249,7 @@ class ProSafeLinux:
         except socket.error as error:
             # according to the Python documentation this error
             # is system-specifc; this works on Linux
-            if error.errno == errno.EAGAIN: 
+            if error.errno == errno.EAGAIN:
                 return (None, None)
             raise
         if self.debug:
@@ -314,7 +314,7 @@ class ProSafeLinux:
                 elif value != None:
                     data[cmd] = value
                 if self.debug:
-                    print("cmd_id %d of length %d :" % (cmd_id, cmdlen)) 
+                    print("cmd_id %d of length %d :" % (cmd_id, cmdlen))
                     data_hex = binascii.hexlify(pack[pos:(pos + cmdlen)]).decode()
                     print("data=" + data_hex)
                 pos = pos + cmdlen
@@ -606,7 +606,7 @@ class ProSafeLinux:
         data = self.addudp(self.CMD_NEW_PASSWORD, new)
         data += self.addudp(self.CMD_PASSWORD, new)
         return self.transmit(data, mac)
- 
+
     def discover(self):
         "find any switch in the network"
         query_arr = [self.CMD_MODEL,

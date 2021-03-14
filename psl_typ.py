@@ -58,11 +58,11 @@ class PslTyp:
     def get_metavar(self):
         "argparse metavar to set"
         return None
-    
+
     def get_set_type(self):
         "argparse type to set"
         return None
-    
+
     def get_set_help(self):
         "argparse help argument for set operation"
         return None
@@ -553,7 +553,7 @@ class PslTypBandwidth(PslTyp):
         limit = self.string_to_speed[value[1]]
         rtn = struct.pack(">bbbh", int(value[0]), 0, 0, limit)
         return rtn
-        
+
     def print_result(self, value):
         print("%-30s%4s%15s %s" % (self.get_name().capitalize(), "Port",
                                       "Limit", "FIXME"))
@@ -606,7 +606,7 @@ class PslTypVlanId(PslTyp):
             "ports": out_ports
         }
         return rtn
-        
+
     def pack_port(self, ports):
         "helper method to pack ports to binary"
         rtn = 0
@@ -623,7 +623,7 @@ class PslTypVlanId(PslTyp):
 
     def unpack_cmd(self, value):
         return self.unpack_py(value)
-        
+
     def is_setable(self):
         return True
 
@@ -669,7 +669,7 @@ class PslTypVlan802Id(PslTypVlanId):
             "tagged_ports": out_tagged_ports
         }
         return rtn
-        
+
 
     def pack_py(self, value):
         members = self.pack_port(value[1])
@@ -700,9 +700,9 @@ class PslTypVlan802Id(PslTypVlanId):
                         int(value["vlan_id"]),
                         ",".join([str(x) for x in value["member_ports"]]),
                         ",".join([str(x) for x in value["tagged_ports"]])))
-          
 
-        
+
+
 ################################################################################
 
 
@@ -801,7 +801,7 @@ class PslTypQosMode(PslTyp):
         if (val == 0x02):
             return "802.1p"
         return val
-        
+
     def pack_py(self, value):
         if (value == "802.1p"):
             return struct.pack(">B", 0x02)
@@ -811,19 +811,19 @@ class PslTypQosMode(PslTyp):
 
     def unpack_cmd(self, value):
         return self.unpack_py(value)
-       
+
     def is_setable(self):
         return True
-       
+
     def get_choices(self):
         return ["port_based","802.1p"]
-    
+
 ################################################################################
 
 
 class PslTypPortBasedQOS(PslTyp):
     "Port based quality of service"
-    
+
     QOS_PRIORITY = {
       0x01:"HIGH",
       0x02:"MIDDLE",
@@ -856,7 +856,7 @@ class PslTypPortBasedQOS(PslTyp):
 
     def unpack_cmd(self, value):
         return self.unpack_py(value)
-       
+
     def is_setable(self):
         return True
 
@@ -865,7 +865,7 @@ class PslTypPortBasedQOS(PslTyp):
 
     def get_metavar(self):
         return ("PORT","QOS")
-        
+
     def get_set_help(self):
         return "QOS can be HIGH, MIDDLE, NORMAL, or LOW"
 
@@ -890,7 +890,7 @@ class PslTypIGMPSnooping(PslTyp):
             # VLAN Id
             return struct.unpack(">h", value[2:])[0]
         raise UnknownValueException("Unknown value %d" % enabled)
-      
+
     def pack_py(self, value):
         if (value == "none"):
             return struct.pack(">hh", 0, 0)
@@ -898,10 +898,10 @@ class PslTypIGMPSnooping(PslTyp):
 
     def unpack_cmd(self, value):
         return self.unpack_py(value)
-       
+
     def is_setable(self):
         return True
-       
+
 
 ################################################################################
 
@@ -987,7 +987,7 @@ class PslTypPortMirror(PslTyp):
         for sport in value[1].split(","):
             src_ports += self.BIN_PORTS[int(sport)]
         return struct.pack(">bbb", int(value[0]), 0, src_ports)
-        
+
     def unpack_cmd(self, value):
         return self.unpack_py(value)
 
