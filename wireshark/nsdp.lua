@@ -68,6 +68,7 @@ local t_cmd = {
     [0x1000] = "Port Traffic Statistic",
     [0x1400] = "Reset Port Traffic Statistic",
     [0x1800] = "Test Cable",
+    [0x1c00] = "Cable test result",
     [0x2000] = "VLAN Engine",
     [0x2400] = "VLAN-ID",
     [0x2800] = "802VLAN-ID",
@@ -171,6 +172,21 @@ local f_port_mirror_dest=ProtoField.uint8("nsdp.port_mirror_dest", "Destination 
 local f_vlan = ProtoField.uint16("nsdp.vlan", "VLAN")
 local f_802_1q_ports = ProtoField.uint8("nsdp.802_1q_ports", "802.1q ports", base.HEX)
 local f_802_1q_tagged = ProtoField.uint8("nsdp.802_1q_tagged", "802.1q tagged", base.HEX)
+
+local f_cable_test=ProtoField.string("nsdp.cable_test", "Cable test result")
+local t_cable_test_status={
+    [0x00]="OK",
+    [0x01]="No cable",
+    [0x02]="Open cable",
+    [0x03]="Short circuit",
+    [0x04]="Fibre cable",
+    [0x05]="Shorted cable",
+    [0x06]="Unknown",
+    [0x07]="Crosstalk"
+}
+local f_cable_test_status=ProtoField.uint32("nsdp.cable_test_status", "Status", base.HEX, t_cable_test_status)
+local f_cable_test_distance=ProtoField.uint32("nsdp.cable_test_distance", "Distance")
+
 local port_admin_speed={
     [0x00]="Disabled",
     [0x01]="Auto",
@@ -194,6 +210,7 @@ p_nsdp.fields = {f_type,f_status,f_source,f_destination,f_seq,f_cmd,f_password,f
                  f_fixme0002, f_fixme000C,
                  f_qos_mode, f_qos_port_prio,
                  f_vlan, f_802_1q_ports, f_802_1q_tagged,
+                 f_cable_test_status, f_cable_test_distance,
                  f_bcast_filtering,f_rate_limit,f_port_admin_speed,
                  f_port_mirror_src, f_port_mirror_dest,
                  f_model,f_name,f_macinfo,f_dhcp_enable,f_port,f_rec,f_send,
@@ -378,16 +395,27 @@ function p_nsdp.dissector (buf, pkt, root)
                 tree=subtree:add(buf(offset,1),"Reset Port Statistic")
                 -- 1 Byte: 0x01
             elseif cmd==0x1800 and len==0x02 then
-                tree=subtree:add(buf(offset,len),"Test Cable")
+                local port=buf(offset,1)
+                tree=subtree:add(buf(offset,len), string.format("Test Cable - Port %u", port:uint()))
+                tree:add(f_port, port)
                 -- 1 Byte  Port 01=Port 1...08=Port 8
                 -- 1 Byte alway 0x01
             elseif cmd==0x1c00 and len==0x01 then
+                local port=buf(offset,1)
+                tree=subtree:add(port, string.format("Cable test result? - Port %u", port:uint()))
+                tree:add(f_port, port)
                 -- 1 Byte Port
             elseif cmd==0x1c00 and len==0x09 then
-                -- 1 Byte Port
-                    -- 00 00 01 00 00 00 00 == No Cable
-                    -- 00 00 00 00 00 00 01 == OK
-                    -- 00 00 00 00 00 00 04 == OK
+                local port=buf(offset,1)
+                local status=buf(offset+1,4)
+                local distance=buf(offset+5,4)
+                tree=subtree:add(buf(offset,len), string.format("Cable test result - Port:%d, Status:%s, Fault distance:%dm",
+                                                port:uint(),
+                                                t_cable_test_status[status:uint()],
+                                                distance:uint()))
+                tree:add(f_port, port)
+                tree:add(f_cable_test_status, status)
+                tree:add(f_cable_test_distance, distance)
             elseif cmd==0x2000 and len==0x01 then
                 tree=subtree:add(f_vlan_engine,buf(offset,len))
             elseif cmd==0x2800 and len==0x04 then

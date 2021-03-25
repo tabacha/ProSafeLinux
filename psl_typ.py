@@ -1002,3 +1002,87 @@ class PslTypPortMirror(PslTyp):
 
     def get_set_help(self):
         return "SET DST_PORTS and SRC_PORTS to 0 to disable"
+
+################################################################################
+
+class PslTypCableTest(PslTyp):
+
+    def unpack_py(self, value):
+        port, fixme = struct.unpack(">bb", value)
+
+        rtn = {
+            "port": port,
+            "fixme": fixme,
+        }
+        return rtn
+
+    def pack_py(self, value):
+        return struct.pack(">BB", int(value), 1)
+
+    def is_queryable(self):
+        return False
+
+    def is_setable(self):
+        return True
+
+    def get_num_args(self):
+        return 1
+
+    def get_metavar(self):
+        return ("PORT")
+
+    def get_set_type(self):
+        return int
+
+################################################################################
+
+class PslTypCableTestResult(PslTyp):
+    "Cable test"
+    STATUS_OK            = 0x00
+    STATUS_NO_CABLE      = 0x01
+    STATUS_OPEN_CABLE    = 0x02
+    STATUS_SHORT_CIRCUIT = 0x03
+    STATUS_FIBRE_CABLE   = 0x04
+    STATUS_SHORTED_CABLE = 0x05
+    STATUS_UNKNOWN       = 0x06
+    STATUS_CROSSTALK     = 0x07
+
+    status_to_string = {
+        STATUS_OK: "OK",
+        STATUS_NO_CABLE: "No cable",
+        STATUS_OPEN_CABLE: "Open cable",
+        STATUS_SHORT_CIRCUIT: "Short circuit",
+        STATUS_FIBRE_CABLE: "Fibre cable",
+        STATUS_SHORTED_CABLE: "Shorted cable",
+        STATUS_UNKNOWN: "Unknown",
+        STATUS_CROSSTALK: "Crosstalk"
+        }
+
+    def unpack_py(self, value):
+        port, status, dist = struct.unpack(">BII", value)
+        rtn = {
+            "port": port,
+            "status": status,
+            "dist": dist
+        }
+        return rtn
+
+    def pack_py(self, value):
+        return binascii.unhexlify("{:02x}".format(value[0]))
+
+    def is_setable(self):
+        return False
+
+    def print_result(self, value):
+        print(("%-30s%4s%20s%19s" % ("Cable status:", "Port",
+                                   "Status", "Fault distance (m)")))
+        if type(value) == type(list()):
+            for row in value:
+                print(("%-30s%4d%20s%19u" % ("", row["port"], self.status_to_string[row["status"]], row["dist"])))
+        else:
+            print(("%-30s%4d%20s%19u" % ("", value["port"], self.status_to_string[value["status"]], value["dist"])))
+
+
+    def unpack_cmd(self, value):
+        return self.unpack_py(value)
+
