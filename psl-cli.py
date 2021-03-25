@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 "Main Program executed by the user"
 
@@ -16,8 +16,8 @@ def discover(args, switch):
     data = switch.discover()
     if data != False:
         for entry in data.keys():
-            print entry.get_name() + ': ' + data[entry]
-        print ""
+            print(entry.get_name() + ': ' + data[entry])
+        print("")
     else:
         print("No result received...")
         print("did you try to adjust your timeout?")
@@ -27,7 +27,7 @@ def discover(args, switch):
 def exploit(args, switch):
     "exploit in current (2012) fw, can set a new password"
     switch.passwd_exploit(args.mac[0], args.new_password[0])
-    
+
 def set_switch(args, switch):
     "Set values on switch"
     cmds = {ProSafeLinux.CMD_PASSWORD: args.passwd[0]}
@@ -48,12 +48,12 @@ def set_switch(args, switch):
     valid, errors = switch.verify_data(cmds)
     if not valid:
         for error in errors:
-            print error
+            print(error)
     else:
         print("Changing Values..\n")
         result = switch.transmit(cmds, args.mac[0])
         if 'error' in result:
-            print "FAILED: Error with " + str(result['error'])
+            print("FAILED: Error with " + str(result['error']))
 
 
 def query(args, switch, querycommand = None):
@@ -148,7 +148,7 @@ def main():
     subparsers = parser.add_subparsers(help='operation', dest="operation")
 
     subparsers.add_parser('discover', help='Find all switches in all subnets')
-    
+
     exploit_parser = subparsers.add_parser("exploit",
        help="set a password without knowing the old one")
     exploit_parser.add_argument("--mac", nargs=1,
@@ -165,7 +165,7 @@ def main():
     for cmd in switch.get_query_cmds():
         choices.append(cmd.get_name())
     choices.append("all")
-    
+
     query_parser.add_argument("query", nargs="+", help="What to query for",
         choices=choices)
 
@@ -187,12 +187,16 @@ def main():
                 dest=cmd.get_name(), action='store_true')
 
         else:
-            set_parser.add_argument("--" + cmd.get_name(), 
+            action = 'store'
+            if cmd.allow_multiple():
+                action = 'append'
+            set_parser.add_argument("--" + cmd.get_name(),
                 nargs=cmd.get_num_args(),
                 type=cmd.get_set_type(),
                 help=cmd.get_set_help(),
                 metavar=cmd.get_metavar(),
-                choices=cmd.get_choices())
+                choices=cmd.get_choices(),
+                action=action)
 
     args = parser.parse_args()
     interface = args.interface[0]
