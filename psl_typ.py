@@ -628,8 +628,12 @@ class PslTypVlanId(PslTyp):
         rtn = 0
         if ports == "":
             return rtn
-        for port in ports.split(","):
-            rtn = rtn + self.BIN_PORTS[int(port)]
+        if type(ports) is list:
+            for port in ports:
+                rtn |= self.BIN_PORTS[int(port)]
+        else:
+            for port in ports.split(","):
+                rtn |= self.BIN_PORTS[int(port)]
         return rtn
 
     def pack_py(self, value):
@@ -1000,8 +1004,12 @@ class PslTypPortMirror(PslTyp):
         if int(value[0]) == 0:
             return struct.pack(">bbb", 0, 0, 0)
         src_ports = 0
-        for sport in value[1].split(","):
-            src_ports += self.BIN_PORTS[int(sport)]
+        if type(value[1]) is list:
+            for sport in value[1]:
+                src_ports |= self.BIN_PORTS[int(sport)]
+        else:
+            for sport in value[1].split(","):
+                src_ports |= self.BIN_PORTS[int(sport)]
         return struct.pack(">bbb", int(value[0]), 0, src_ports)
 
     def unpack_cmd(self, value):
