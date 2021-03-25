@@ -108,6 +108,7 @@ class ProSafeLinux:
     CMD_IGMP_HEADER_VALIDATION = psl_typ.PslTypBoolean(0x7000,
         "igmp_header_validation")
     CMD_SUPPORTED_TLVS = psl_typ.PslTypHex(0x7400, "supported_tlvs")
+    CMD_SERIAL_NUMBER = psl_typ.PslTypSerialNum(0x7800, "serial_number")
     CMD_LOOP_DETECTION = psl_typ.PslTypBoolean(0x9000, "loop_detection")
     CMD_PORT_ADMIN = psl_typ.PslTypAdminPortStatus(0x9400, "port_admin")
     CMD_END = psl_typ.PslTypEnd(0xffff, "END")

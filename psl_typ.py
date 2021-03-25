@@ -1110,3 +1110,21 @@ class PslTypCableTestResult(PslTyp):
     def unpack_cmd(self, value):
         return self.unpack_py(value)
 
+################################################################################
+
+class PslTypSerialNum(PslTyp):
+    "switch's serial number"
+    def unpack_py(self, val):
+        values = struct.unpack("!B13sB6B", val)
+        one = values[0]     # Should be 1
+        zero = values[2]    # Should be zero (null-terminator?)
+        fixup = values[3]   # Six bytes (??)
+
+        return values[1].decode()
+
+    def unpack_cmd(self, value):
+        return self.unpack_py(value)
+
+    def is_setable(self):
+        return False
+

@@ -86,6 +86,7 @@ local t_cmd = {
     [0x6c00] = "Block Unknown Multicasts",
     [0x7000] = "IGMP Header Validation",
     [0x7400] = "Supported TLVs",
+    [0x7800] = "Serial number",
     [0x9000] = "Loop detection",
     [0x9400] = "Port Admin Status",
     [0xffff] = "End Request"
@@ -204,6 +205,8 @@ local f_loop_detection = ProtoField.uint8("nsdp.loop_detection", "Loop detection
     [0x01]="Enabled"
 })
 
+local f_serial_num = ProtoField.string("nsdp.serialnum", "Serial number", FT_STRING)
+
 --local f_debug = ProtoField.uint8("nsdp.debug", "Debug")
 p_nsdp.experts = {e_error}
 
@@ -221,7 +224,8 @@ p_nsdp.fields = {f_type,f_status,f_source,f_destination,f_seq,f_cmd,f_password,f
                  f_pkt,f_bpkt,f_mpkt,f_crce,f_vlan_engine,f_ipaddr,
                  f_netmask,f_gateway,f_firmwarever_len,f_firmwarever,f_len,
                  f_firmware2ver, f_firmwareactive,
-                 f_speed,f_flow,f_location,f_numports,f_supportedTLVs,f_loop_detection}
+                 f_speed,f_flow,f_location,f_numports,f_supportedTLVs,f_loop_detection,
+                 f_serial_num}
 
 -- Build a condensed string of port ranges from a bitmap
 function port_list(ports)
@@ -520,6 +524,14 @@ function p_nsdp.dissector (buf, pkt, root)
                     tree=subtree:add(f_supportedTLVs, buf(offset,len))
                 else
                     tree=subtree:add(buf(offset,len), "Supported TLVs?")
+                end
+            elseif cmd == 0x7800 then
+                if len==0x00 then
+                    tree=subtree:add(buf(offset,len),"Serial number?")
+                else
+                    local serial=buf(offset+1, 13)
+                    tree=subtree:add(buf(offset,len),string.format("Serial number: %s", serial:string()))
+                    tree:add(f_serial_num, serial)
                 end
             elseif cmd == 0x9000 then
                 if len==0x00 then
