@@ -169,7 +169,10 @@ local t_rate_limit={
 local f_rate_limit=ProtoField.uint8("nsdp.rate_limit", "Rate", base.HEX, t_rate_limit)
 local f_port_mirror_src=ProtoField.uint8("nsdp.port_mirror_src", "Source port(s)", base.HEX)
 local f_port_mirror_dest=ProtoField.uint8("nsdp.port_mirror_dest", "Destination port", base.HEX)
-local f_vlan = ProtoField.uint16("nsdp.vlan", "VLAN")
+
+local f_pvid_vlan=ProtoField.uint16("nsdp.pvid_vlan", "VLAN")
+local f_del_vlan=ProtoField.uint16("nsdp.del_vlan", "Delete VLAN")
+local f_802_1q_vlan = ProtoField.uint16("nsdp.802_1q_vlan", "802.1q VLAN")
 local f_802_1q_ports = ProtoField.uint8("nsdp.802_1q_ports", "802.1q ports", base.HEX)
 local f_802_1q_tagged = ProtoField.uint8("nsdp.802_1q_tagged", "802.1q tagged", base.HEX)
 
@@ -209,7 +212,8 @@ p_nsdp.fields = {f_type,f_status,f_source,f_destination,f_seq,f_cmd,f_password,f
                  f_enhancedEncryption,f_passwordNonce,f_passhash32, f_passhash64,
                  f_fixme0002, f_fixme000C,
                  f_qos_mode, f_qos_port_prio,
-                 f_vlan, f_802_1q_ports, f_802_1q_tagged,
+                 f_pvid_vlan, f_del_vlan,
+                 f_802_1q_vlan, f_802_1q_ports, f_802_1q_tagged,
                  f_cable_test_status, f_cable_test_distance,
                  f_bcast_filtering,f_rate_limit,f_port_admin_speed,
                  f_port_mirror_src, f_port_mirror_dest,
@@ -423,17 +427,17 @@ function p_nsdp.dissector (buf, pkt, root)
                 local ports=buf(offset+2,1)
                 local tagged=buf(offset+3,1)
                 tree=subtree:add(buf(offset,len), string.format("802.1q status: VLAN:%u, Ports:%s, Tagged:%s", vlan:uint(), port_list(ports:uint()), port_list(tagged:uint())))
-                tree:add(f_vlan, vlan)
+                tree:add(f_802_1q_vlan, vlan)
                 tree:add(f_802_1q_ports, ports)
                 tree:add(f_802_1q_tagged, tagged)
             elseif cmd==0x2c00 then
-                tree=subtree:add(f_vlan, buf(offset,2))
+                tree=subtree:add(f_del_vlan, buf(offset,2))
             elseif cmd==0x3000 and len==0x03 then
                 local port=buf(offset,1)
                 local vlan=buf(offset+1,2)
                 tree=subtree:add(buf(offset,len), string.format("PVID: Port:%d, VLAN:%u", port:uint(), vlan:uint()))
                 tree:add(f_port, port)
-                tree:add(f_vlan, vlan)
+                tree:add(f_pvid_vlan, vlan)
             elseif cmd==0x3400 then
                 if len==0x00 then
                     tree=subtree:add(buf(offset,len),"QoS mode?")
