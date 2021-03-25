@@ -83,6 +83,10 @@ class PslTyp:
         "argparse help argument for set operation"
         return None
 
+    def allow_multiple(self):
+        "can this command be set multiple times in one transaction"
+        return self.get_num_args() > 1
+
 ###############################################################################
 
 
@@ -777,8 +781,8 @@ class PslTypVlanPVID(PslTyp):
 
 ################################################################################
 
-class PslTypVlan(PslTyp):
-    "Vlan"
+class PslTypDeleteVlan(PslTyp):
+    "Delete vlan"
     def unpack_py(self, value):
         return struct.unpack(">h", value)[0]
 
@@ -800,6 +804,9 @@ class PslTypVlan(PslTyp):
 
     def get_num_args(self):
         return 1
+
+    def allow_multiple(self):
+        return True
 
 ################################################################################
 

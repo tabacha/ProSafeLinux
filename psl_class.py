@@ -89,7 +89,7 @@ class ProSafeLinux:
     CMD_VLAN_SUPPORT = psl_typ.PslTypVlanSupport(0x2000, "vlan_support")
     CMD_VLAN_ID = psl_typ.PslTypVlanId(0x2400, "vlan_id")
     CMD_VLAN802_ID = psl_typ.PslTypVlan802Id(0x2800, "vlan802_id")
-    CMD_DEL_VLAN = psl_typ.PslTypVlan(0x2c00, "delete_vlan")
+    CMD_DEL_VLAN = psl_typ.PslTypDeleteVlan(0x2c00, "delete_vlan")
     CMD_VLANPVID = psl_typ.PslTypVlanPVID(0x3000, "vlan_pvid")
     CMD_QUALITY_OF_SERVICE = psl_typ.PslTypQosMode(0x3400, "qos_mode")
     CMD_PORT_BASED_QOS = psl_typ.PslTypPortBasedQOS(0x3800, "port_based_qos")
@@ -431,7 +431,15 @@ class ProSafeLinux:
 
                     data += result;
                 else:
-                    data += self.addudp(cmd, pdata)
+                    if type(pdata).__name__ == 'list' and cmd.allow_multiple():
+                        for entry in pdata:
+                            if cmd.get_num_args() == 1:
+                                # Get single arguments out of a list (of one)
+                                data += self.addudp(cmd, entry[0])
+                            else:
+                                data += self.addudp(cmd, entry)
+                    else:
+                        data += self.addudp(cmd, pdata)
         elif type(cmddict).__name__ == 'string':
             print('got string!')
             data += cmddict
@@ -508,7 +516,7 @@ class ProSafeLinux:
                     _hashpass[idx] ^= ord(password[i])
 
                 _hashpass = struct.pack(">BBBB", *_hashpass)
-                data = self.addudp(self.CMD_HASH, binascii.hexlify(_hashpass))
+                data = self.addudp(self.CMD_PASSWORD_HASH, binascii.hexlify(_hashpass))
             else:
                 _hashpass += _hashpass;
 

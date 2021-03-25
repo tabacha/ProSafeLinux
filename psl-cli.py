@@ -187,12 +187,16 @@ def main():
                 dest=cmd.get_name(), action='store_true')
 
         else:
+            action = 'store'
+            if cmd.allow_multiple():
+                action = 'append'
             set_parser.add_argument("--" + cmd.get_name(),
                 nargs=cmd.get_num_args(),
                 type=cmd.get_set_type(),
                 help=cmd.get_set_help(),
                 metavar=cmd.get_metavar(),
-                choices=cmd.get_choices())
+                choices=cmd.get_choices(),
+                action=action)
 
     args = parser.parse_args()
     interface = args.interface[0]
