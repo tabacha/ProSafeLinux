@@ -112,6 +112,25 @@ class ProSafeLinux:
     CMD_PORT_ADMIN = psl_typ.PslTypAdminPortStatus(0x9400, "port_admin")
     CMD_END = psl_typ.PslTypEnd(0xffff, "END")
 
+    ERR_SUCCESS = psl_typ.PslError(0x00, "Success")
+    ERR_PROTO_NOT_SUPPORTED = psl_typ.PslError(0x01, "Protocol version not supported")
+    ERR_CMD_NOT_SUPPORTED = psl_typ.PslError(0x02, "Command not supported")
+    ERR_TLV_NOT_SUPPORTED = psl_typ.PslError(0x03, "TLV type not supported")
+    ERR_BAD_TLV_LENGTH = psl_typ.PslError(0x04, "Invalid TLV length")
+    ERR_BAD_TLV_VALUE = psl_typ.PslError(0x05, "Invalid TLV value")
+    ERR_BLOCKED_BY_ACL = psl_typ.PslError(0x06, "Manager IP is blocked by ACL")
+    ERR_BAD_PASSWORD = psl_typ.PslError(0x07, "Invalid password")
+    ERR_FIRMWARE_DOWNLOAD_REQUESTED = psl_typ.PslError(0x08, "Firmware download requested")
+    ERR_BAD_USERNAME = psl_typ.PslError(0x09, "Invalid username")
+    ERR_MANAGE_BY_BROWSER = psl_typ.PslError(0x0a, "Switch only supports management by browser")
+    ERR_INVALID_PASSWORD = psl_typ.PslError(0x0d, "Invalid password")
+    ERR_LOCKED_30_MINS = psl_typ.PslError(0x0e, "3 failed attempts.  Switch is locked for 30 minutes")
+    ERR_MANAGE_DISABLED = psl_typ.PslError(0x0f, "Switch management disabled.  Use browser to enable")
+    ERR_TFTP_CALL = psl_typ.PslError(0x81, "TFTP call error")
+    ERR_TFTP_OOM = psl_typ.PslError(0x82, "TFTP Out of memory")
+    ERR_FIRMWARE_UPDATE_FAILED = psl_typ.PslError(0x83, "Firmware update failed")
+    ERR_TFTP_TIMED_OUT = psl_typ.PslError(0x84, "TFTP timed out")
+
     CTYPE_QUERY_REQUEST = 0x0101
 #    CTYPE_QUERY_RESPONSE = 0x0102
     CTYPE_TRANSMIT_REQUEST = 0x103
@@ -140,30 +159,14 @@ class ProSafeLinux:
         self.mac_cache = {}
         self.cmd_by_id = {}
         self.cmd_by_name = {}
-        self.errmsgs = {
-            0x00:"Success",
-            0x01:"Protocol version not supported",
-            0x02:"Command not supported",
-            0x03:"TLV type not supported",
-            0x04:"Invalid TLV length",
-            0x05:"Invalid TLV value",
-            0x06:"Manager IP is blocked by ACL",
-            0x07:"Invalid password",
-            0x08:"Firmware download requested",
-            0x09:"Invalid username",
-            0x0a:"Switch only supports management by browser",
-            0x0d:"Invalid password",
-            0x0e:"3 failed attempts.  Switch is locked for 30 minutes",
-            0x0f:"Switch management disabled.  Use browser to enable",
-            0x81:"TFTP call error",
-            0x82:"TFTP Out of memory",
-            0x83:"Firmware update failed",
-            0x84:"TFTP timed out"
-        }
+        self.errmsgs = {}
         for key, value in  inspect.getmembers(ProSafeLinux):
             if key.startswith("CMD_"):
                 self.cmd_by_name[value.get_name()] = value
                 self.cmd_by_id[value.get_id()] = value
+
+            if key.startswith("ERR_"):
+                self.errmsgs[value.get_code()] = value
 
     def set_timeout(self, timeout):
         self.timeout=timeout
@@ -273,16 +276,19 @@ class ProSafeLinux:
         status = struct.unpack(">B", pack[2:3])[0]
         if status != 0x00:
             errorcmd = self.get_cmd_by_hex(struct.unpack(">H", pack[4:6])[0])
-            errmsg = self.errmsgs[status]
-            if errmsg is None:
-                errmsg = "0x{:02x}".format(status)
+
+            if status in self.errmsgs:
+                errorobj = self.errmsgs[status]
+            else:
+                errorobj = psl_typ.PslError(status, "Unknown error - 0x{:02x}".format(status))
 
             if errorcmd:
                 data["error"] = errorcmd.get_name()
             else:
                 data["error"] = struct.unpack(">H", pack[4:6])[0]
 
-            data["error"] = "{} - {}".format(data["error"], errmsg)
+            data["error"] = "{} - {}".format(data["error"], errorobj.get_desc())
+            data["error_obj"] = errorobj
         else:
 #            data["seq"] = struct.unpack(">H", pack[22:24])[0]
 #            data["ctype"] = struct.unpack(">H", pack[0:2])[0]

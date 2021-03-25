@@ -4,6 +4,22 @@
 import binascii
 import struct
 
+class PslError:
+    "Error class to map error codes to descriptions"
+    def __init__(self, code, desc):
+        "constructor"
+        self.code = code
+        self.desc = desc
+
+    def get_code(self):
+        "error code"
+        return self.code
+
+    def get_desc(self):
+        "human-readable error description"
+        return self.desc
+
+
 class PslTyp:
     "Base type every other type is inherited by this"
     def __init__(self, cmd_id, name):
