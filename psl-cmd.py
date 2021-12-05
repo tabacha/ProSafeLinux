@@ -13,7 +13,7 @@ class NetgearCMD(cmd.Cmd): # {{{
     def __splitLine(self,argumentcount,line): # {{{
         splitline = line.split()
         if len(splitline) > argumentcount and argumentcount != 0:
-            print 'Too many arguments!'
+            print('Too many arguments!')
             return False
         else:
             if len(splitline) < argumentcount:
@@ -60,9 +60,9 @@ class NetgearCMD(cmd.Cmd): # {{{
         querycmds = self.switch.get_query_cmds()
         query = self.__splitLine(1,line)
         if len(query) == 0:
-            print "you have the following values to query:"
+            print("you have the following values to query:")
             for cmd in list(querycmds):
-                print "- " + str(cmd.get_name())
+                print("- " + str(cmd.get_name()))
             return False
         else:
             querycmd = self.switch.get_cmd_by_name(query)
@@ -71,7 +71,7 @@ class NetgearCMD(cmd.Cmd): # {{{
                 for key in switchdata.keys():
                     print("%s - %s" % (key.get_name(), switchdata[key]))
             else:
-                print 'please give a valid query key'
+                print('please give a valid query key')
 
     # }}}
 
