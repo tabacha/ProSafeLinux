@@ -13,12 +13,13 @@ import psl_typ
 def discover(args, switch):
     "Search for Switches"
     print("Searching for ProSafe Plus Switches ...\n")
-    data = switch.discover()
-    if data != False:
+    for data in switch.discover():
+        found = True
         for entry in data.keys():
-            print entry.get_name() + ': ' + data[entry]
-        print ""
-    else:
+            print(entry.get_name() + ': ' + data[entry])
+        print("")
+
+    if not found:
         print("No result received...")
         print("did you try to adjust your timeout?")
 
@@ -48,12 +49,12 @@ def set_switch(args, switch):
     valid, errors = switch.verify_data(cmds)
     if not valid:
         for error in errors:
-            print error
+            print(error)
     else:
         print("Changing Values..\n")
         result = switch.transmit(cmds, args.mac[0])
         if 'error' in result:
-            print "FAILED: Error with " + str(result['error'])
+            print("FAILED: Error with " + str(result['error']))
 
 
 def query(args, switch, querycommand = None):

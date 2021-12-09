@@ -215,8 +215,8 @@ class ProSafeLinux:
         while True:
             (message, address) = self.recv()
             if message is None:
-                return (None, address)
-            return (message, address)
+                return
+            yield (message, address)
 
     def parse_data(self, pack):
         "unpack packet send by the switch"
@@ -310,7 +310,7 @@ class ProSafeLinux:
         # FIXME: Search in /proc/net/arp if mac there use this one
         #with open("/proc/net/arp") as f:
         # for line in f:
-        #   print line
+        #   print(line)
         query_arr = [self.CMD_MAC, self.CMD_IP]
         message, address = self.query(query_arr, mac, with_address=True, use_ip_func=False)
         if message == None:
@@ -340,11 +340,23 @@ class ProSafeLinux:
         if type(cmd_arr).__name__ != 'tupe' and type(cmd_arr).__name__ != 'list':
             cmd_arr = (cmd_arr, )
         self.send_query(cmd_arr, mac, use_ip_func)
-        message, address = self.recv_all()
+        message, address = self.recv()
         if with_address:
             return (self.parse_data(message), address)
         else:
             return self.parse_data(message)
+
+    def queryall(self, cmd_arr, mac, with_address=False, use_ip_func=True):
+        "get some values from the switch, but do not change them"
+        # translate non-list to list
+        if type(cmd_arr).__name__ != 'tupe' and type(cmd_arr).__name__ != 'list':
+            cmd_arr = (cmd_arr, )
+        self.send_query(cmd_arr, mac, use_ip_func)
+        for message, address in self.recv_all():
+            if with_address:
+                yield (self.parse_data(message), address)
+            else:
+                yield self.parse_data(message)
 
     def transmit(self, cmddict, mac):
         "change something in the switch, like name, mac ..."
@@ -352,7 +364,7 @@ class ProSafeLinux:
         ipadr = self.ip_from_mac(mac)
         data = self.baseudp(destmac=mac, ctype=self.CTYPE_TRANSMIT_REQUEST)
         firmwarevers = self.query(self.get_cmd_by_name("firmwarever"), mac)
-        firmwarevers = firmwarevers.values()[0].translate({ord("."):None})
+        firmwarevers = list(firmwarevers.values())[0].translate({ord("."):None})
         # New firmwares put capital leter V in front ...
         if "V" == firmwarevers[0]:
             firmwarevers = firmwarevers[1:]
@@ -374,14 +386,17 @@ class ProSafeLinux:
                 if cmd != self.CMD_PASSWORD:
                     data += self.addudp(cmd, pdata)
         elif type(cmddict).__name__ == 'string':
-            print 'got string!'
+            print('got string!')
+            data += cmddict
+        elif isinstance(cmddict, bytes):
+            print('got bytes!')
             data += cmddict
         data += self.addudp(self.CMD_END)
         self.send(ipadr, self.SENDPORT, data)
-        message, address = self.recv_all()
+        message, address = self.recv()
         while message == None and transmit_counter < 3:
             time.sleep(1)
-            message, address = self.recv_all()
+            message, address = self.recv()
             transmit_counter += 1
         if message == None:
             return { 'error' : 'no result received within 3 seconds' }
@@ -401,10 +416,10 @@ class ProSafeLinux:
                    self.CMD_MAC,
                    self.CMD_DHCP,
                    self.CMD_IP]
-        message = self.query(query_arr, None)
-        if message != False:
-            self.mac_cache[message[self.CMD_MAC]] = message[self.CMD_IP]
-        return message
+        for message in self.queryall(query_arr, None):
+            if message != False:
+                self.mac_cache[message[self.CMD_MAC]] = message[self.CMD_IP]
+            yield message
 
     def verify_data(self, datadict):
         "Verify the data we want to set on the switch"
