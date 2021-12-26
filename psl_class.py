@@ -12,33 +12,17 @@ import fcntl
 import psl_typ
 import inspect
 import errno
+import select
+import netifaces
 
 
 def get_hw_addr(ifname):
     "gives the hardware (mac) address of an interface (eth0,eth1..)"
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    ifname = ifname.encode('ascii')  # struct.pack requires bytes in Python 3
-    info = fcntl.ioctl(sock.fileno(), 0x8927, struct.pack('256s', ifname[:15]))
-    if type(info) is str:
-        return ''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1]
-    else:
-        # Python 3 returns a list of bytes from ioctl, no need for ord()
-        return ''.join(['%02x:' % char for char in info[18:24]])[:-1]
+    return netifaces.ifaddresses(ifname)[netifaces.AF_LINK][0]['addr']
 
 def get_ip_address(ifname):
     "returns the first ip address of an interface"
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    ifname = ifname.encode('ascii')  # struct.pack requires bytes in Python 3
-    try:
-        # 0x8915 = SIOCGIFADDR
-        addr = socket.inet_ntoa(fcntl.ioctl(sock.fileno(), 0x8915,
-                                            struct.pack('256s',
-                                            ifname[:15]))[20:24])
-        return addr
-    except IOError as err:
-        if err.errno == errno.EADDRNOTAVAIL:
-            return None
-        raise
+    return netifaces.ifaddresses(ifname)[2][0]['addr']
 
 def pack_mac(value):
     "packs the hardware address (mac) to the internal representation"
@@ -142,18 +126,24 @@ class ProSafeLinux:
             return False
         self.srcmac = pack_mac(get_hw_addr(interface))
 
-        # send socket
-        self.ssocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        # send socket, can also be used to receive unicast!
+        self.ssocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self.ssocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.ssocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         self.ssocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        self.ssocket.bind((self.myhost, self.RECPORT))
 
-        # receive socket
+        self.ssocket.bind((self.myhost, self.RECPORT))
+        #self.ssocket.bind(('<broadcast>', self.RECPORT))
+        #self.ssocket.bind(('', self.RECPORT))
+
+        # separate broadcast receive socket
         self.rsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.rsocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        # self.rsocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        self.rsocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         self.rsocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        self.rsocket.bind(("255.255.255.255", self.RECPORT))
+        #self.rsocket.bind(("<broadcast>", self.RECPORT))
+        self.rsocket.bind(('', self.RECPORT))
+        #self.rsocket.bind(("255.255.255.255", self.RECPORT))
 
         return True
 
@@ -194,15 +184,21 @@ class ProSafeLinux:
 
     def recv(self, maxlen=8192):
         "receive a packet from the switch"
-        self.rsocket.settimeout(self.timeout)
+
+        sel = select.select([self.ssocket.fileno(), self.rsocket.fileno()], [], [], self.timeout)
+        if sel[0] and sel[0][0] == self.ssocket.fileno():
+            rsock = self.ssocket
+        else:
+            rsock = self.rsocket
+        rsock.settimeout(self.timeout)
         try:
-            message, address = self.rsocket.recvfrom(maxlen)
+            message, address = rsock.recvfrom(maxlen)
         except socket.timeout:
             return (None, None)
         except socket.error as error:
             # according to the Python documentation this error
             # is system-specifc; this works on Linux
-            if error.errno == errno.EAGAIN: 
+            if error.errno == errno.EAGAIN:
                 return (None, None)
             raise
         if self.debug:
