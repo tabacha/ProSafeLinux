@@ -41,7 +41,7 @@ def set_switch(args, switch):
                 if isinstance(scmd, psl_typ.PslTypBoolean):
                     cmds[scmd] = (vars(args)[scmd.get_name()][0] == "on")
                 else:
-                    if len(vars(args)[scmd.get_name()])==1:
+                    if len(vars(args)[scmd.get_name()])==1 and scmd.get_num_args()==1:
                         cmds[scmd] = vars(args)[scmd.get_name()][0]
                     else:
                         cmds[scmd] = vars(args)[scmd.get_name()]
