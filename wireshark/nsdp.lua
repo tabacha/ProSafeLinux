@@ -173,6 +173,8 @@ local f_port_mirror_dest=ProtoField.uint8("nsdp.port_mirror_dest", "Destination 
 
 local f_pvid_vlan=ProtoField.uint16("nsdp.pvid_vlan", "VLAN")
 local f_del_vlan=ProtoField.uint16("nsdp.del_vlan", "Delete VLAN")
+local f_vlan=ProtoField.uint16("nsdp.vlan", "VLAN")
+local f_vlan_ports=ProtoField.uint8("nsdp.vlan_ports", "VLAN ports", base.HEX)
 local f_802_1q_vlan = ProtoField.uint16("nsdp.802_1q_vlan", "802.1q VLAN")
 local f_802_1q_ports = ProtoField.uint8("nsdp.802_1q_ports", "802.1q ports", base.HEX)
 local f_802_1q_tagged = ProtoField.uint8("nsdp.802_1q_tagged", "802.1q tagged", base.HEX)
@@ -216,6 +218,7 @@ p_nsdp.fields = {f_type,f_status,f_source,f_destination,f_seq,f_cmd,f_password,f
                  f_fixme0002, f_fixme000C,
                  f_qos_mode, f_qos_port_prio,
                  f_pvid_vlan, f_del_vlan,
+                 f_vlan, f_vlan_ports,
                  f_802_1q_vlan, f_802_1q_ports, f_802_1q_tagged,
                  f_cable_test_status, f_cable_test_distance,
                  f_bcast_filtering,f_rate_limit,f_port_admin_speed,
@@ -426,6 +429,12 @@ function p_nsdp.dissector (buf, pkt, root)
                 tree:add(f_cable_test_distance, distance)
             elseif cmd==0x2000 and len==0x01 then
                 tree=subtree:add(f_vlan_engine,buf(offset,len))
+            elseif cmd==0x2400 and len==0x03 then
+                local vlan=buf(offset,2)
+                local ports=buf(offset+2,1)
+                tree=subtree:add(buf(offset,len), string.format("VLAN status: VLAN:%u, Ports:%s", vlan:uint(), port_list(ports:uint())))
+                tree:add(f_vlan, vlan)
+                tree:add(f_vlan_ports, ports)
             elseif cmd==0x2800 and len==0x04 then
                 local vlan=buf(offset,2)
                 local ports=buf(offset+2,1)
