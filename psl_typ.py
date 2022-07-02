@@ -697,8 +697,8 @@ class PslTypVlan802Id(PslTypVlanId):
 
     def pack_py(self, value):
         members = self.pack_port(value[1])
-        untagged = self.pack_port(value[2])
-        rtn = struct.pack(">hBB", int(value[0]), members, untagged)
+        tagged = self.pack_port(value[2])
+        rtn = struct.pack(">hBB", int(value[0]), members, tagged)
         return rtn
 
     def unpack_cmd(self, value):
