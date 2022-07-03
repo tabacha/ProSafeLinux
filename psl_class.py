@@ -427,31 +427,34 @@ class ProSafeLinux:
         data = b''
 
         if type(cmddict).__name__ == 'dict':
+            if self.CMD_PASSWORD in cmddict:
+                result = self.add_password(mac, cmddict[self.CMD_PASSWORD])
+
+                if type(result).__name__ == 'dict':
+                    return result
+
+                data += result;
+                del cmddict[self.CMD_PASSWORD]
+
+            if self.CMD_NEW_PASSWORD in cmddict:
+                result = self.add_new_password(mac, cmddict[self.CMD_NEW_PASSWORD])
+
+                if type(result).__name__ == 'dict':
+                    return result
+
+                data += result;
+                del cmddict[self.CMD_NEW_PASSWORD]
+
             for cmd, pdata in list(cmddict.items()):
-                if cmd == self.CMD_PASSWORD:
-                    result = self.add_password(mac, cmddict[cmd])
-
-                    if type(result).__name__ == 'dict':
-                        return result
-
-                    data += result;
-                elif cmd == self.CMD_NEW_PASSWORD:
-                    result = self.add_new_password(mac, cmddict[cmd])
-
-                    if type(result).__name__ == 'dict':
-                        return result
-
-                    data += result;
+                if type(pdata).__name__ == 'list' and cmd.allow_multiple():
+                    for entry in pdata:
+                        if cmd.get_num_args() == 1:
+                            # Get single arguments out of a list (of one)
+                            data += self.addudp(cmd, entry[0])
+                        else:
+                            data += self.addudp(cmd, entry)
                 else:
-                    if type(pdata).__name__ == 'list' and cmd.allow_multiple():
-                        for entry in pdata:
-                            if cmd.get_num_args() == 1:
-                                # Get single arguments out of a list (of one)
-                                data += self.addudp(cmd, entry[0])
-                            else:
-                                data += self.addudp(cmd, entry)
-                    else:
-                        data += self.addudp(cmd, pdata)
+                    data += self.addudp(cmd, pdata)
         elif type(cmddict).__name__ == 'string':
             print('got string!')
             data += cmddict
