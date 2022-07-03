@@ -622,8 +622,7 @@ class PslTypBandwidth(PslTyp):
 
 class PslTypVlanId(PslTyp):
     "Vlan ports are binary coded"
-    BIN_PORTS = {0: 0x00,
-                 1: 0x80,
+    BIN_PORTS = {1: 0x80,
                  2: 0x40,
                  3: 0x20,
                  4: 0x10,
@@ -633,35 +632,67 @@ class PslTypVlanId(PslTyp):
                  8: 0x01
                  }
 
+    def set_total_ports(self, total_ports):
+        # Calculate number of bytes required to store bitmap of all ports
+        self.total_ports = total_ports
+        self.num_port_bytes = (total_ports + 7) // 8
+
+    def unpack_ports(self, port_bitmap, start = 0, length = 0):
+        if length == 0:
+            length = len(port_bitmap) - start
+
+        port_bitmap = port_bitmap[start:start + length]
+        port_list = []
+        base = 0
+
+        # Bytes are a bitmap of the ports from left-to-right
+        # (so most-significant bit in the first byte is port 1)
+        for ports in struct.unpack("%uB" % len(port_bitmap), port_bitmap):
+            for port in list(self.BIN_PORTS.keys()):
+                if (ports & self.BIN_PORTS[port] > 0):
+                    port_list.append(port + base)
+            base += 8
+
+        return port_list
+
+    def pack_ports(self, ports):
+        "helper method to pack ports to binary"
+        port_list = [0] * self.num_port_bytes
+
+        if ports == "":
+            return port_list
+
+        if type(ports) is not list:
+            ports = ports.split(",")
+
+        for port in ports:
+            port = int(port)
+            base = (port - 1) // 8
+
+            if base < len(port_list):
+                port_list[base] |= self.BIN_PORTS[((port - 1) % 8) + 1]
+            else:
+                raise ValueError("Port '{}' is out of range".format(port))
+
+        # Return a packed structure here to allow compatibility with
+        # Python2 that will not allow multiple tuples to be unpacked in one
+        # line so the results from multple calls to 'pack_ports' cannot be
+        # passed to struct.pack unless we return a single value here (and not
+        # a tuple)
+        return struct.pack("%uB" % len(port_list), *port_list)
+
     def unpack_py(self, value):
-        ports = struct.unpack(">B", value[2:])[0]
-        out_ports = []
-        for port in list(self.BIN_PORTS.keys()):
-            if (ports & self.BIN_PORTS[port] > 0):
-                out_ports.append(port)
+        out_ports = self.unpack_ports(value, 2)
+
         rtn = {
             "vlan_id": struct.unpack(">h", value[0:2])[0],
             "ports": out_ports
         }
         return rtn
 
-    def pack_port(self, ports):
-        "helper method to pack ports to binary"
-        rtn = 0
-        if ports == "":
-            return rtn
-        if type(ports) is list:
-            for port in ports:
-                rtn |= self.BIN_PORTS[int(port)]
-        else:
-            for port in ports.split(","):
-                rtn |= self.BIN_PORTS[int(port)]
-        return rtn
-
     def pack_py(self, value):
-        ports = self.pack_port(value[1])
-        rtn = struct.pack(">hB", int(value[0]), ports)
-        return rtn
+        ports = self.pack_ports(value[1])
+        return struct.pack(">h%us" % len(ports), int(value[0]), ports)
 
     def unpack_cmd(self, value):
         return self.unpack_py(value)
@@ -683,7 +714,6 @@ class PslTypVlanId(PslTyp):
                                    int(row["vlan_id"]),
                                    ",".join([str(x) for x in row["ports"]])))
 
-
 ################################################################################
 
 
@@ -691,20 +721,11 @@ class PslTypVlan802Id(PslTypVlanId):
     "802Vlan is binary coded"
 
     def unpack_py(self, value):
-        # Python 3 uses an array of bytes, Python 2 uses a string
-        if type(value) is str:
-            member_ports = struct.unpack(">B", value[2])[0]
-            tagged_ports = struct.unpack(">B", value[3])[0]
-        else:
-            member_ports = value[2]
-            tagged_ports = value[3]
-        out_member_ports = []
-        out_tagged_ports = []
-        for port in list(self.BIN_PORTS.keys()):
-            if (member_ports & self.BIN_PORTS[port] > 0):
-               out_member_ports.append(port)
-            if (tagged_ports & self.BIN_PORTS[port] > 0):
-                out_tagged_ports.append(port)
+        port_len = (len(value) - 1) // 2
+
+        out_member_ports = self.unpack_ports(value, 2, port_len)
+        out_tagged_ports = self.unpack_ports(value, 2 + port_len, port_len)
+
         rtn = {
             "vlan_id": struct.unpack(">h", value[0:2])[0],
             "member_ports":out_member_ports,
@@ -712,11 +733,10 @@ class PslTypVlan802Id(PslTypVlanId):
         }
         return rtn
 
-
     def pack_py(self, value):
-        members = self.pack_port(value[1])
-        tagged = self.pack_port(value[2])
-        rtn = struct.pack(">hBB", int(value[0]), members, tagged)
+        members = self.pack_ports(value[1])
+        tagged = self.pack_ports(value[2])
+        rtn = struct.pack(">h%us%us" % (len(members), len(tagged)), int(value[0]), members, tagged)
         return rtn
 
     def unpack_cmd(self, value):
@@ -1009,12 +1029,26 @@ class PslTypPortMirror(PslTyp):
                  8: 0x01
                  }
 
+    def set_total_ports(self, total_ports):
+        # Calculate number of bytes required to store bitmap of all ports
+        self.total_ports = total_ports
+        self.num_port_bytes = (total_ports + 7) // 8
+
     def unpack_py(self, value):
-        dst_port, fixme, src_ports = struct.unpack(">bbb", value)
+        dst_port, fixme = struct.unpack(">BB", value[:2])
+        # Remaining values are a bitmap of the source ports
+        src_port_list = value[2:]
         out_src_ports = []
-        for port in list(self.BIN_PORTS.keys()):
-            if (src_ports & self.BIN_PORTS[port] > 0):
-                out_src_ports.append(port)
+
+        base = 0
+
+        # Bytes are a bitmap of the source ports from left-to-right
+        # (so most-significant bit in the first byte is port 1)
+        for src_ports in struct.unpack("%uB" % len(src_port_list), src_port_list):
+            for port in list(self.BIN_PORTS.keys()):
+                if (src_ports & self.BIN_PORTS[port] > 0):
+                    out_src_ports.append(port + base)
+            base += 8
 
         if dst_port == 0:
             return "No Port Mirroring has been set up"
@@ -1026,16 +1060,29 @@ class PslTypPortMirror(PslTyp):
         return rtn
 
     def pack_py(self, value):
-        if int(value[0]) == 0:
-            return struct.pack(">bbb", 0, 0, 0)
-        src_ports = 0
-        if type(value[1]) is list:
-            for sport in value[1]:
-                src_ports |= self.BIN_PORTS[int(sport)]
-        else:
-            for sport in value[1].split(","):
-                src_ports |= self.BIN_PORTS[int(sport)]
-        return struct.pack(">bbb", int(value[0]), 0, src_ports)
+        dst_port = int(value[0])
+        src_ports = [0] * self.num_port_bytes
+
+        if dst_port != 0:
+            if dst_port > self.total_ports:
+                raise ValueError("Destination port '{}' is out of range".format(dst_port))
+
+            port_list = value[1]
+
+            # Convert comma-separated values into a list
+            if type(port_list) is not list:
+                port_list = port_list.split(",")
+
+            for sport in port_list:
+                sport = int(sport)
+                idx = (sport - 1) // 8
+
+                if sport >= 1 and sport <= self.total_ports:
+                    src_ports[idx] |= self.BIN_PORTS[((sport - 1) % 8) + 1]
+                else:
+                    raise ValueError("Source port '{}' is out of range".format(sport))
+
+        return struct.pack(">BB%uB" % len(src_ports), dst_port, 0, *src_ports)
 
     def unpack_cmd(self, value):
         return self.unpack_py(value)
@@ -1047,10 +1094,10 @@ class PslTypPortMirror(PslTyp):
         return 2
 
     def get_metavar(self):
-        return ("DST_PORTS","SRC_PORTS")
+        return ("DST_PORT","SRC_PORTS")
 
     def get_set_help(self):
-        return "SET DST_PORTS and SRC_PORTS to 0 to disable"
+        return "SET DST_PORT and SRC_PORTS to 0 to disable"
 
 ################################################################################
 

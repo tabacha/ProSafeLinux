@@ -231,27 +231,34 @@ p_nsdp.fields = {f_type,f_status,f_source,f_destination,f_seq,f_cmd,f_password,f
                  f_serial_num}
 
 -- Build a condensed string of port ranges from a bitmap
-function port_list(ports)
+function port_list(portslist)
     local list = {}
     local lastPort = -1
     local firstPort = -1
-    for i=1,9 do
-        if bit32.band(ports,0x80) ~= 0 then
-            if lastPort ~= (i - 1) then
-                list[#list+1] = ","
-                list[#list+1] = i
-                firstPort = i
+    local base = 1
+
+    for i=0, portslist:len() - 1 do
+        ports = portslist(i,1):uint()
+
+        for b=base, base + 8 do
+            if bit32.band(ports,0x80) ~= 0 then
+                if lastPort ~= (b - 1) then
+                    list[#list+1] = ","
+                    list[#list+1] = b
+                    firstPort = b
+                end
+                lastPort = b
+            elseif lastPort ~= -1 then
+                if firstPort ~= lastPort then
+                    list[#list+1] = "-"
+                    list[#list+1] = tostring(lastPort)
+                end
+                firstPort = -1
+                lastPort = -1
             end
-            lastPort = i
-        elseif lastPort ~= -1 then
-            if firstPort ~= lastPort then
-                list[#list+1] = "-"
-                list[#list+1] = tostring(lastPort)
-            end
-            firstPort = -1
-            lastPort = -1
+            ports = bit32.lshift(ports,1)
         end
-        ports = bit32.lshift(ports,1)
+        base = base + 8
     end
 
     if #list == 0 then
@@ -429,17 +436,18 @@ function p_nsdp.dissector (buf, pkt, root)
                 tree:add(f_cable_test_distance, distance)
             elseif cmd==0x2000 and len==0x01 then
                 tree=subtree:add(f_vlan_engine,buf(offset,len))
-            elseif cmd==0x2400 and len==0x03 then
+            elseif cmd==0x2400 and len>=0x03 then
                 local vlan=buf(offset,2)
-                local ports=buf(offset+2,1)
-                tree=subtree:add(buf(offset,len), string.format("VLAN status: VLAN:%u, Ports:%s", vlan:uint(), port_list(ports:uint())))
+                local ports=buf(offset+2, len - 2)
+                tree=subtree:add(buf(offset,len), string.format("VLAN status: VLAN:%u, Ports:%s", vlan:uint(), port_list(ports)))
                 tree:add(f_vlan, vlan)
                 tree:add(f_vlan_ports, ports)
-            elseif cmd==0x2800 and len==0x04 then
+            elseif cmd==0x2800 and len>=0x04 then
                 local vlan=buf(offset,2)
-                local ports=buf(offset+2,1)
-                local tagged=buf(offset+3,1)
-                tree=subtree:add(buf(offset,len), string.format("802.1q status: VLAN:%u, Ports:%s, Tagged:%s", vlan:uint(), port_list(ports:uint()), port_list(tagged:uint())))
+                local port_len = (len - 2) / 2
+                local ports=buf(offset+2, port_len)
+                local tagged=buf(offset+2+port_len, port_len)
+                tree=subtree:add(buf(offset,len), string.format("802.1q status: VLAN:%u, Ports:%s, Tagged:%s", vlan:uint(), port_list(ports), port_list(tagged)))
                 tree:add(f_802_1q_vlan, vlan)
                 tree:add(f_802_1q_ports, ports)
                 tree:add(f_802_1q_tagged, tagged)
@@ -504,10 +512,10 @@ function p_nsdp.dissector (buf, pkt, root)
                     tree:add(f_port, port)
                     tree:add(f_rate_limit, rate)
                 end
-            elseif cmd==0x5c00 and len==0x03 then
+            elseif cmd==0x5c00 and len>=3 then
                 local dest=buf(offset,1)
-                local src=buf(offset+2,1)
-                tree=subtree:add(buf(offset,len), string.format("Port mirroring: Source port(s):%s, Dest port:%u", port_list(src:uint()), dest:uint()))
+                local src=buf(offset+2, len - 2)
+                tree=subtree:add(buf(offset,len), string.format("Port mirroring: Source port(s):%s, Dest port:%u", port_list(src), dest:uint()))
                 tree:add(f_port_mirror_src, src)
                 tree:add(f_port_mirror_dest, dest)
             elseif cmd==0x6000 then

@@ -31,6 +31,12 @@ def exploit(args, switch):
 
 def set_switch(args, switch):
     "Set values on switch"
+    results = switch.query(switch.CMD_NUMBER_OF_PORTS, args.mac[0])
+    if switch.CMD_NUMBER_OF_PORTS in results:
+        switch.CMD_PORT_MIRROR.set_total_ports(results[switch.CMD_NUMBER_OF_PORTS])
+        switch.CMD_VLAN_ID.set_total_ports(results[switch.CMD_NUMBER_OF_PORTS])
+        switch.CMD_VLAN802_ID.set_total_ports(results[switch.CMD_NUMBER_OF_PORTS])
+
     cmds = {ProSafeLinux.CMD_PASSWORD: args.passwd[0]}
     for scmd in switch.get_setable_cmds():
         if vars(args)[scmd.get_name()] is not None:
