@@ -387,6 +387,11 @@ class PslTypPortStatus(PslTyp):
     def print_result(self, value):
         print("%-30s%4s%20s%15s" % ("Status:", "Port",
                                     "Speed", "Flow control"))
+
+        # Make sure we have a list of values (even if it's just a list of one)
+        if type(value) != list:
+            value = [value]
+
         for row in value:
             speed = self.speed_to_string[row["speed"]]
 
@@ -460,6 +465,11 @@ class PslTypAdminPortStatus(PslTyp):
     def print_result(self, value):
         print("%-30s%4s%20s%15s" % ("Status:", "Port",
                                     "Speed", "Flow control"))
+
+        # Make sure we have a list of values (even if it's just a list of one)
+        if type(value) != list:
+            value = [value]
+
         for row in value:
             speed = self.speed_to_string[row["speed"]]
             flow = "On"
@@ -516,6 +526,11 @@ class PslTypPortStat(PslTyp):
                                       "Rec.", "Send", "Packets",
                                       "Broadcast pkt", "Multicast pkt",
                                       "CRC errors"))
+
+        # Make sure we have a list of values (even if it's just a list of one)
+        if type(value) != list:
+            value = [value]
+
         for row in value:
             print("%-30s%4d%15d%15d%15d%15d%15d%15d" % ("",
                                       row["port"], row["rec"],
@@ -595,6 +610,11 @@ class PslTypBandwidth(PslTyp):
     def print_result(self, value):
         print("%-30s%4s%15s %s" % (self.get_name().capitalize(), "Port",
                                       "Limit", "FIXME"))
+
+        # Make sure we have a list of values (even if it's just a list of one)
+        if type(value) != list:
+            value = [value]
+
         for row in value:
             print("%-30s%4d%15s %s " % ("",
                                         row["port"],
@@ -709,6 +729,11 @@ class PslTypVlanId(PslTyp):
     def print_result(self, value):
         print("%-30s%7s %s" % (self.get_name().capitalize(), "VLAN_ID",
                                       "Ports"))
+
+        # Make sure we have a list of values (even if it's just a list of one)
+        if type(value) != list:
+            value = [value]
+
         for row in value:
             print("%-30s%7d %s" % ("",
                                    int(row["vlan_id"]),
@@ -751,19 +776,16 @@ class PslTypVlan802Id(PslTypVlanId):
     def print_result(self, value):
         print("%-30s%7s %18s %18s" % (self.get_name().capitalize(), "VLAN_ID",
                                       "Member ports","Tagged ports"))
-        if type(value) is list:
-            for row in value:
-                print("%-30s%7d %18s %18s" % ("",
-                        int(row["vlan_id"]),
-                        ",".join([str(x) for x in row["member_ports"]]),
-                        ",".join([str(x) for x in row["tagged_ports"]])))
-        else:
+
+        # Make sure we have a list of values (even if it's just a list of one)
+        if type(value) != list:
+            value = [value]
+
+        for row in value:
             print("%-30s%7d %18s %18s" % ("",
-                        int(value["vlan_id"]),
-                        ",".join([str(x) for x in value["member_ports"]]),
-                        ",".join([str(x) for x in value["tagged_ports"]])))
-
-
+                    int(row["vlan_id"]),
+                    ",".join([str(x) for x in row["member_ports"]]),
+                    ",".join([str(x) for x in row["tagged_ports"]])))
 
 ################################################################################
 
@@ -807,6 +829,11 @@ class PslTypVlanPVID(PslTyp):
     def print_result(self, value):
         print("%-30s%4s %s" % (self.get_name().capitalize(), "Port",
                                       "VLAN_ID"))
+
+        # Make sure we have a list of values (even if it's just a list of one)
+        if type(value) != list:
+            value = [value]
+
         for row in value:
             print("%-30s%4d %7d" % ("",
                                         row["port"],
@@ -937,6 +964,11 @@ class PslTypPortBasedQOS(PslTyp):
     def print_result(self, value):
         print("%-30s%4s %s" % (self.get_name().capitalize(), "Port",
                                       "Priority"))
+
+        # Make sure we have a list of values (even if it's just a list of one)
+        if type(value) != list:
+            value = [value]
+
         for row in value:
             print("%-30s%4d %s" % ("",
                                    row["port"],
@@ -1172,11 +1204,13 @@ class PslTypCableTestResult(PslTyp):
     def print_result(self, value):
         print(("%-30s%4s%20s%19s" % ("Cable status:", "Port",
                                    "Status", "Fault distance (m)")))
-        if type(value) == type(list()):
-            for row in value:
-                print(("%-30s%4d%20s%19u" % ("", row["port"], self.status_to_string[row["status"]], row["dist"])))
-        else:
-            print(("%-30s%4d%20s%19u" % ("", value["port"], self.status_to_string[value["status"]], value["dist"])))
+
+        # Make sure we have a list of values (even if it's just a list of one)
+        if type(value) != list:
+            value = [value]
+
+        for row in value:
+            print(("%-30s%4d%20s%19u" % ("", row["port"], self.status_to_string[row["status"]], row["dist"])))
 
 
     def unpack_cmd(self, value):
