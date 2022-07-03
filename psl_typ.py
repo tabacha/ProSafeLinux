@@ -298,6 +298,24 @@ class PslTypHex(PslTyp):
 
 ################################################################################
 
+class PslTypDec(PslTyp):
+    "just decode to decimal"
+    def pack_py(self, value):
+        return binascii.unhexlify(value)
+
+    def unpack_py(self, value):
+        # Convert bytes to a hex string then to a decimal integer
+        # This allows us to convert a big-endian value of unknown length
+        return int(binascii.hexlify(value).decode(), 16)
+
+    def pack_cmd(self, value):
+        return self.pack_py(value)
+
+    def unpack_cmd(self, value):
+        return self.unpack_py(value)
+
+################################################################################
+
 class PslTypUnknown(PslTypHex):
     "Unknown Data"
     def unpack_cmd(self, value):

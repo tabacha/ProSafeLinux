@@ -101,7 +101,7 @@ class ProSafeLinux:
     CMD_BROADCAST_BANDWIDTH = psl_typ.PslTypBandwidth(0x5800,
                  "broadcast_bandwidth")
     CMD_PORT_MIRROR = psl_typ.PslTypPortMirror(0x5c00, "port_mirror")
-    CMD_NUMBER_OF_PORTS = psl_typ.PslTypHex(0x6000, "number_of_ports")
+    CMD_NUMBER_OF_PORTS = psl_typ.PslTypDec(0x6000, "number_of_ports")
     CMD_IGMP_SNOOPING = psl_typ.PslTypIGMPSnooping(0x6800, "igmp_snooping")
     CMD_BLOCK_UNKNOWN_MULTICAST = psl_typ.PslTypBoolean(
                                               0x6c00, "block_unknown_multicast")
