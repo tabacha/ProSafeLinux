@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 "Main Program executed by the user"
 
@@ -13,6 +13,7 @@ import psl_typ
 def discover(args, switch):
     "Search for Switches"
     print("Searching for ProSafe Plus Switches ...\n")
+    found = False
     for data in switch.discover():
         found = True
         for entry in data.keys():
